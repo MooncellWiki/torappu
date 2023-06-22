@@ -4,7 +4,7 @@ import logging
 import random
 
 import httpx
-
+from loguru import logger
 from torappu.core.client import Client
 from torappu.core.task.gamedata import GameData
 from torappu.core.utils import StorageDir, Version, headers
@@ -20,7 +20,6 @@ async def get_version() -> Version:
 
 
 async def poll():
-    print("poll")
     version_path = StorageDir/"meta"/"version.json"
     prev_version = None
     if version_path.exists():
@@ -30,14 +29,14 @@ async def poll():
         except:
             pass
     version = await get_version()
-    print("cur version", version)
     if prev_version is not None:
         if (
             version["resVersion"] == prev_version["resVersion"]
             and version["clientVersion"] == prev_version["clientVersion"]
         ):
-            print("version not change")
+            logger.info("version not change")
             return
+    logger.info("version change", version)
     version_path.parent.mkdir(parents=True, exist_ok=True)
     with open(version_path, "w") as f:
         f.write(json.dumps(version))

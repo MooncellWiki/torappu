@@ -1,7 +1,7 @@
 
 from torappu.core.client import Change, Client
 
-
+from loguru import logger
 class Task:
     client: Client
     name: str
@@ -13,9 +13,9 @@ class Task:
         self.client = client
 
     async def run(self):
-        print(f"start {self.name}")
+        logger.info(f"start {self.name}")
         await self.inner_run()
-        print(f"finish {self.name}")
+        logger.info(f"finished {self.name}")
 
     async def inner_run(self):
         pass
