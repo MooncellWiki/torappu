@@ -1,13 +1,13 @@
-import asyncio
 import json
-import logging
 import random
+import logging
 
 import httpx
 from loguru import logger
+
 from torappu.core.client import Client
 from torappu.core.task.gamedata import GameData
-from torappu.core.utils import StorageDir, Version, headers
+from torappu.core.utils import Version, StorageDir, headers
 
 
 async def get_version() -> Version:
@@ -20,7 +20,7 @@ async def get_version() -> Version:
 
 
 async def poll():
-    version_path = StorageDir/"meta"/"version.json"
+    version_path = StorageDir / "meta" / "version.json"
     prev_version = None
     if version_path.exists():
         try:
@@ -52,5 +52,3 @@ async def poll():
                 await inst.run()
         except Exception as e:
             logging.exception(e)
-
-
