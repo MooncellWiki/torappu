@@ -1,16 +1,14 @@
 import hashlib
 import io
-import zipfile
-import httpx
-from torappu.core.utils import headers, StorageDir, Version
-import typing
 import json
-import os.path as Path
+import pathlib
+import typing
+import zipfile
+
+import httpx
 import UnityPy
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import unpad
-import bson
-import os
+
+from torappu.core.utils import BaseUrl, StorageDir, Version, headers
 
 
 class AbInfo(typing.TypedDict):
@@ -44,115 +42,115 @@ class Change(typing.TypedDict):
 
 class Client:
     version: Version
-    hotUpdateList: HotUpdateList
+    hot_update_list: HotUpdateList
 
-    prevVersion: Version | None
-    prevHotUpdateList: HotUpdateList | None
+    prev_version: Version | None
+    prev_hot_update_list: HotUpdateList | None
 
-    assetToBundle: typing.Dict[str, str]
+    asset_to_bundle: dict[str, str]
 
-    def __init__(self, version: Version, prevVersion: Version | None) -> None:
+    def __init__(self, version: Version, prev_version: Version | None) -> None:
         self.version = version
-        self.prevVersion = prevVersion
-        self.assetToBundle = {}
+        self.prev_version = prev_version
+        self.asset_to_bundle = {}
 
     async def init(self):
-        self.hotUpdateList = await self.loadHotUpdateList(self.version["resVersion"])
-        if self.prevVersion is not None and self.prevVersion["resVersion"] is not None:
-            self.prevHotUpdateList = await self.loadHotUpdateList(
-                self.prevVersion["resVersion"]
+        self.hot_update_list = await self.load_hot_update_list(self.version["resVersion"])
+        if self.prev_version is not None and self.prev_version["resVersion"] is not None:
+            self.prev_hot_update_list = await self.load_hot_update_list(
+                self.prev_version["resVersion"]
             )
         else:
-            self.prevHotUpdateList = None
-        await self.initTorappu()
+            self.prev_hot_update_list = None
+        await self.init_torappu()
 
-    def _getHotUpdateListPath(self, res: str):
-        return Path.join(StorageDir, "hotUpdateList", res + ".json")
+    def _get_hot_update_list_path(self, res: str)-> pathlib.Path:
+        return StorageDir/"hotUpdateList"/f"{res}.json"
 
-    def diff(self) -> typing.List[Change]:
+    def diff(self) -> list[Change]:
         result = []
-        if self.prevHotUpdateList is None:
-            for info in self.hotUpdateList["abInfos"]:
+        if self.prev_hot_update_list is None:
+            for info in self.hot_update_list["abInfos"]:
                 result.append(Change(kind="add", abPath=info["name"]))
             return result
-        curMap = {}
-        for info in self.hotUpdateList["abInfos"]:
-            curMap[info["name"]] = info["md5"]
-        for info in self.prevHotUpdateList["abInfos"]:
-            if curMap[info["name"]] is None:
+        cur_map = {}
+        for info in self.hot_update_list["abInfos"]:
+            cur_map[info["name"]] = info["md5"]
+        for info in self.prev_hot_update_list["abInfos"]:
+            if cur_map[info["name"]] is None:
                 result.append(Change(kind="remove", abPath=info["name"]))
                 continue
-            sign = curMap[info["name"]]
-            del curMap[info["name"]]
+            sign = cur_map[info["name"]]
+            del cur_map[info["name"]]
             if sign == info["md5"]:
                 continue
             result.append(Change(kind="change", abPath=info["name"]))
-        for k, v in curMap.items():
+        for k, v in cur_map.items():
             result.append(Change(kind="add", abPath=k))
         return result
 
-    def _tryLoadHotUpdateList(self, res: str) -> HotUpdateList | None:
+    def _try_load_hot_update_list(self, res: str) -> HotUpdateList | None:
         try:
-            with open(self._getHotUpdateListPath(res), "r") as f:
+            with open(self._get_hot_update_list_path(res)) as f:
                 return json.load(f)
         except:
             pass
         return None
 
-    async def loadHotUpdateList(self, resVersion: str) -> HotUpdateList:
-        result = self._tryLoadHotUpdateList(resVersion)
+    async def load_hot_update_list(self, res_version: str) -> HotUpdateList:
+        result = self._try_load_hot_update_list(res_version)
         if result is not None:
             return result
 
         async with httpx.AsyncClient() as client:
             resp = await client.get(
-                f"https://ak.hycdn.cn/assetbundle/official/Android/assets/{resVersion}/hot_update_list.json",
+                f"{BaseUrl}{res_version}/hot_update_list.json",
                 headers=headers,
             )
             result = resp.json()
-            p = self._getHotUpdateListPath(resVersion)
-            os.makedirs(os.path.dirname(p), exist_ok=True)
+            p = self._get_hot_update_list_path(res_version)
+            p.parent.mkdir(parents=True, exist_ok=True)
             with open(p, "w") as f:
                 json.dump(result, f)
             return result
 
-    def getABInfoByPath(self, path: str) -> AbInfo:
-        for info in self.hotUpdateList["abInfos"]:
+    def get_ab_info_by_path(self, path: str) -> AbInfo:
+        for info in self.hot_update_list["abInfos"]:
             if info["name"] == path:
                 return info
 
-    def pathToUrl(path: str) -> str:
+    @staticmethod
+    def path2url(path: str) -> str:
         return path.replace("\\", "/").replace("/", "_").replace("#", "__")
 
     # .ab的路径
-    async def resolveAB(self, path: str) -> str:
-        info = self.getABInfoByPath(path + ".ab")
+    async def resolve_ab(self, path: str) -> str:
+        info = self.get_ab_info_by_path(path + ".ab")
         md5 = info["md5"]
-        md5path = Path.join(StorageDir, "assetBundle", md5 + ".ab")
-        if Path.exists(md5path):
+        md5path = StorageDir/"assetBundle"/f"{md5}.ab"
+        if md5path.exists():
             with open(md5path, "rb") as f:
                 bytes = f.read()
                 if md5 == hashlib.md5(bytes).hexdigest():
-                    return md5path
-        os.makedirs(os.path.dirname(md5path), exist_ok=True)
+                    return md5path.as_posix()
+        md5path.parent.mkdir(parents=True, exist_ok=True)
         async with httpx.AsyncClient() as client:
-            # todo 转义
             resp = await client.get(
-                f"https://ak.hycdn.cn/assetbundle/official/Android/assets/{self.version['resVersion']}/{Client.pathToUrl(path)}.dat"
+                f"{BaseUrl}{self.version['resVersion']}/{Client.path2url(path)}.dat"
             )
             file = io.BytesIO(resp.content)
             with zipfile.ZipFile(file) as myzip:
-                unzipedBytes = myzip.read(myzip.filelist[0])
+                unziped_bytes = myzip.read(myzip.filelist[0])
                 with open(md5path, "wb") as f:
-                    f.write(unzipedBytes)
-        return md5path
+                    f.write(unziped_bytes)
+        return md5path.as_posix()
 
-    async def initTorappu(self):
-        path = await self.resolveAB("torappu_index")
+    async def init_torappu(self):
+        path = await self.resolve_ab("torappu_index")
         env = UnityPy.load(path)
         for object in env.objects:
             if object.type.name == "MonoBehaviour":
                 obj = object.read_typetree()
                 if obj["m_Name"] == "torappu_index":
                     for item in obj["assetToBundleList"]:
-                        self.assetToBundle[item["assetName"]] = item["bundleName"]
+                        self.asset_to_bundle[item["assetName"]] = item["bundleName"]

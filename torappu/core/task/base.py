@@ -1,11 +1,12 @@
+
 from torappu.core.client import Change, Client
-import typing
 
 
 class Task:
     client: Client
     name: str
-    def needRun(changeList: typing.List[Change]) -> bool:
+
+    def need_run(self, change_list: list[Change]) -> bool:
         return False
 
     def __init__(self, client: Client) -> None:
@@ -13,8 +14,8 @@ class Task:
 
     async def run(self):
         print(f"start {self.name}")
-        await self.innerRun()
+        await self.inner_run()
         print(f"finish {self.name}")
-    
-    async def innerRun(self):
+
+    async def inner_run(self):
         pass
