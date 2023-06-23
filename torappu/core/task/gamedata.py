@@ -8,9 +8,9 @@ import UnityPy
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 
-from torappu.task.base import Task
-from torappu.client import Change, Client
-from torappu.utils import FBSDir, TempDir, StorageDir
+from torappu.core.task.base import Task
+from torappu.core.client import Change, Client
+from torappu.utils.utils import FBSDir, TempDir, StorageDir
 
 flatbuffer_list = [
     "activity_table",

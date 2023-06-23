@@ -2,7 +2,7 @@ import pathlib
 
 from pydantic import BaseModel
 
-BaseDir = pathlib.Path(__file__).parent.parent.absolute()
+BaseDir = pathlib.Path(__file__).parent.parent.parent.absolute()
 StorageDir = BaseDir / "storage"
 TempDir = BaseDir / "temp"
 FBSDir = BaseDir / "OpenArknightsFBS" / "FBS"

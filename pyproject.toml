@@ -17,6 +17,7 @@ pycryptodome = "^3.18.0"
 bson = "^0.5.10"
 apscheduler = "^3.10.1"
 loguru = "^0.7.0"
+fastapi = {extras = ["all"], version = "^0.98.0"}
 
 
 [tool.poetry.group.dev.dependencies]

@@ -1,6 +1,6 @@
 from loguru import logger
 
-from torappu.client import Change, Client
+from torappu.core.client import Change, Client
 
 
 class Task:

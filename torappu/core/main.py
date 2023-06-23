@@ -1,8 +1,8 @@
 from loguru import logger
 
-from torappu.client import Client
-from torappu.utils import Version
-from torappu.task.gamedata import GameData
+from torappu.core.client import Client
+from torappu.utils.utils import Version
+from torappu.core.task.gamedata import GameData
 
 
 async def run(version: Version, prev: Version | None):

@@ -8,7 +8,7 @@ import zipfile
 import httpx
 import UnityPy
 
-from torappu.utils import BaseUrl, Version, StorageDir, headers
+from torappu.utils.utils import BaseUrl, Version, StorageDir, headers
 
 
 class AbInfo(typing.TypedDict):
