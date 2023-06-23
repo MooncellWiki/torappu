@@ -1,4 +1,4 @@
-def transProf(profession):
+def trans_prof(profession):
     return {
         "PIONEER": "先锋",
         "WARRIOR": "近卫",

@@ -1,14 +1,14 @@
-import hashlib
 import io
 import json
-import pathlib
 import typing
+import hashlib
+import pathlib
 import zipfile
 
 import httpx
 import UnityPy
 
-from torappu.core.utils import BaseUrl, StorageDir, Version, headers
+from torappu.core.utils import BaseUrl, Version, StorageDir, headers
 
 
 class AbInfo(typing.TypedDict):
@@ -55,8 +55,13 @@ class Client:
         self.asset_to_bundle = {}
 
     async def init(self):
-        self.hot_update_list = await self.load_hot_update_list(self.version["resVersion"])
-        if self.prev_version is not None and self.prev_version["resVersion"] is not None:
+        self.hot_update_list = await self.load_hot_update_list(
+            self.version["resVersion"]
+        )
+        if (
+            self.prev_version is not None
+            and self.prev_version["resVersion"] is not None
+        ):
             self.prev_hot_update_list = await self.load_hot_update_list(
                 self.prev_version["resVersion"]
             )
@@ -64,8 +69,8 @@ class Client:
             self.prev_hot_update_list = None
         await self.init_torappu()
 
-    def _get_hot_update_list_path(self, res: str)-> pathlib.Path:
-        return StorageDir/"hotUpdateList"/f"{res}.json"
+    def _get_hot_update_list_path(self, res: str) -> pathlib.Path:
+        return StorageDir / "hotUpdateList" / f"{res}.json"
 
     def diff(self) -> list[Change]:
         result = []
@@ -118,6 +123,7 @@ class Client:
         for info in self.hot_update_list["abInfos"]:
             if info["name"] == path:
                 return info
+        raise Exception(f"{path} not found")
 
     @staticmethod
     def path2url(path: str) -> str:
@@ -127,7 +133,7 @@ class Client:
     async def resolve_ab(self, path: str) -> str:
         info = self.get_ab_info_by_path(path + ".ab")
         md5 = info["md5"]
-        md5path = StorageDir/"assetBundle"/f"{md5}.ab"
+        md5path = StorageDir / "assetBundle" / f"{md5}.ab"
         if md5path.exists():
             with open(md5path, "rb") as f:
                 bytes = f.read()

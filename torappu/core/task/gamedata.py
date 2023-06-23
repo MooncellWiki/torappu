@@ -1,6 +1,6 @@
-import base64
-import json
 import os
+import json
+import base64
 import shutil
 
 import bson
@@ -8,9 +8,9 @@ import UnityPy
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 
-from torappu.core.client import Change, Client
 from torappu.core.task.base import Task
-from torappu.core.utils import FBSDir, StorageDir, TempDir
+from torappu.core.client import Change, Client
+from torappu.core.utils import FBSDir, TempDir, StorageDir
 
 flatbuffer_list = [
     "activity_table",
@@ -39,8 +39,9 @@ encrypted_list = [
 signed_list = ["excel", "_table", "[uc]lua"]
 chat_mask = "UITpAi82pHAWwnzqHRMCwPonJLIB3WCl"
 
+
 class GameData(Task):
-    name="GameData"
+    name = "GameData"
 
     def need_run(self, change_list: list[Change]) -> bool:
         return True
@@ -122,7 +123,7 @@ class GameData(Task):
                         f.write(res)
                     continue
                 if fb_name is not None:
-                    flatbuffer_data_path = TempDir/f"{fb_name}.json"
+                    flatbuffer_data_path = TempDir / f"{fb_name}.json"
                     temp_path = TempDir.joinpath(
                         os.path.dirname(
                             path.replace("assets/torappu/dynamicassets/gamedata/", "")
@@ -132,11 +133,14 @@ class GameData(Task):
                     with open(flatbuffer_data_path, mode="wb") as f:
                         f.write(bytes(script)[128:])
                     os.system(
-                        f"flatc -o {temp_path} --no-warnings --json --strict-json --natural-utf8 --defaults-json --raw-binary {FBSDir}/{fb_name}.fbs -- {flatbuffer_data_path}"
+                        f"flatc -o {temp_path} --no-warnings --json --strict-json"
+                        + " --natural-utf8 --defaults-json"
+                        + f" --raw-binary {FBSDir}/{fb_name}.fbs"
+                        + " -- {flatbuffer_data_path}"
                     )
                     os.remove(flatbuffer_data_path)
                     with open(
-                        temp_path/f"{fb_name}.json",
+                        temp_path / f"{fb_name}.json",
                         encoding="utf-8",
                     ) as f:
                         jsons = json.loads(f.read())
@@ -156,7 +160,7 @@ class GameData(Task):
                     )
                     container_path.mkdir(parents=True, exist_ok=True)
                     with open(
-                        container_path/f"{fb_name}.json",
+                        container_path / f"{fb_name}.json",
                         mode="w",
                         encoding="utf-8",
                     ) as f:
