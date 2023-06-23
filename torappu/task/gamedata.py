@@ -8,9 +8,9 @@ import UnityPy
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 
-from torappu.core.task.base import Task
-from torappu.core.client import Change, Client
-from torappu.core.utils import FBSDir, TempDir, StorageDir
+from torappu.task.base import Task
+from torappu.client import Change, Client
+from torappu.utils import FBSDir, TempDir, StorageDir
 
 flatbuffer_list = [
     "activity_table",
@@ -98,7 +98,7 @@ class GameData(Task):
                         StorageDir,
                         "asset",
                         "gamedata",
-                        self.client.version["resVersion"],
+                        self.client.version.res_version,
                         path.replace("assets/torappu/dynamicassets/gamedata/", ""),
                     )
                     if temp_path.name.endswith(".lua.bytes"):
@@ -133,10 +133,11 @@ class GameData(Task):
                     with open(flatbuffer_data_path, mode="wb") as f:
                         f.write(bytes(script)[128:])
                     os.system(
-                        f"flatc -o {temp_path} --no-warnings --json --strict-json"
+                        f"flatc -o {temp_path}"
+                        + " --no-warnings --json --strict-json"
                         + " --natural-utf8 --defaults-json"
                         + f" --raw-binary {FBSDir}/{fb_name}.fbs"
-                        + " -- {flatbuffer_data_path}"
+                        + f" -- {flatbuffer_data_path}"
                     )
                     os.remove(flatbuffer_data_path)
                     with open(
@@ -153,7 +154,7 @@ class GameData(Task):
                     container_path = StorageDir.joinpath(
                         "asset",
                         "gamedata",
-                        self.client.version["resVersion"],
+                        self.client.version.res_version,
                         os.path.dirname(
                             path.replace("assets/torappu/dynamicassets/gamedata/", "")
                         ),
@@ -170,7 +171,7 @@ class GameData(Task):
                 output_path = StorageDir.joinpath(
                     "asset",
                     "gamedata",
-                    self.client.version["resVersion"],
+                    self.client.version.res_version,
                     path.replace("assets/torappu/dynamicassets/gamedata/", ""),
                 )
                 if output_path.name.endswith(".lua.bytes"):

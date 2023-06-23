@@ -8,7 +8,7 @@ import zipfile
 import httpx
 import UnityPy
 
-from torappu.core.utils import BaseUrl, Version, StorageDir, headers
+from torappu.utils import BaseUrl, Version, StorageDir, headers
 
 
 class AbInfo(typing.TypedDict):
@@ -55,15 +55,10 @@ class Client:
         self.asset_to_bundle = {}
 
     async def init(self):
-        self.hot_update_list = await self.load_hot_update_list(
-            self.version["resVersion"]
-        )
-        if (
-            self.prev_version is not None
-            and self.prev_version["resVersion"] is not None
-        ):
+        self.hot_update_list = await self.load_hot_update_list(self.version.res_version)
+        if self.prev_version is not None and self.prev_version.res_version is not None:
             self.prev_hot_update_list = await self.load_hot_update_list(
-                self.prev_version["resVersion"]
+                self.prev_version.res_version
             )
         else:
             self.prev_hot_update_list = None
@@ -142,7 +137,7 @@ class Client:
         md5path.parent.mkdir(parents=True, exist_ok=True)
         async with httpx.AsyncClient() as client:
             resp = await client.get(
-                f"{BaseUrl}{self.version['resVersion']}/{Client.path2url(path)}.dat"
+                f"{BaseUrl}{self.version.res_version}/{Client.path2url(path)}.dat"
             )
             file = io.BytesIO(resp.content)
             with zipfile.ZipFile(file) as myzip:
