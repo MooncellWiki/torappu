@@ -13,12 +13,33 @@ from torappu.core.client import Change, Client
 from torappu.utils.utils import FBSDir, TempDir, StorageDir
 
 flatbuffer_list = [
+    "ep_breakbuff_table",
     "activity_table",
     "building_data",
     "campaign_table",
     "chapter_table",
+    "char_meta_table",
+    "char_patch_table",
     "character_table",
+    "charm_table",
     "charword_table",
+    "checkin_table",
+    "climb_tower_table",
+    "enemy_handbook_table",
+    "favor_table",
+    "gacha_table",
+    "gamedata_const",
+    "item_table",
+    "mission_table",
+    "replicate_table",
+    "retro_table",
+    "skin_table",
+    "story_review_meta_table",
+    "story_review_table",
+    "story_table",
+    "token_table",
+    "uniequip_table",
+    "zone_table",
     "enemy_database",
     "handbook_info_table",
     "medal_table",
@@ -28,6 +49,7 @@ flatbuffer_list = [
     "shop_client_table",
     "skill_table",
     "stage_table",
+    "extra_battlelog_table",
 ]
 encrypted_list = [
     "[uc]lua",
@@ -65,6 +87,12 @@ class GameData(Task):
                         fb_name = fb
                         is_encrypted = False
                         break
+                if "/gamedata/levels/" in path and fb_name is None:
+                    fb_name = "prts___levels"
+                    is_encrypted = False
+                if path.startswith("assets/torappu/dynamicassets/gamedata/buff_table"):
+                    fb_name = "buff_table"
+                    is_encrypted = False
                 for k in signed_list:
                     if k in path:
                         is_signed = True
@@ -72,6 +100,10 @@ class GameData(Task):
                 if "data_version.txt" in path:
                     is_signed = False
                     is_encrypted = False
+                if "levels/levels_meta.json" in path:
+                    is_signed = False
+                    is_encrypted = False
+                    fb_name = None
                 if is_encrypted:
                     key = chat_mask[:16].encode()
                     iv = chat_mask[16:].encode()
@@ -123,7 +155,7 @@ class GameData(Task):
                         f.write(res)
                     continue
                 if fb_name is not None:
-                    flatbuffer_data_path = TempDir / f"{fb_name}.json"
+                    flatbuffer_data_path = TempDir / f"{fb_name}.bytes"
                     temp_path = TempDir.joinpath(
                         os.path.dirname(
                             path.replace("assets/torappu/dynamicassets/gamedata/", "")
