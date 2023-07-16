@@ -3,13 +3,14 @@ from loguru import logger
 from torappu.core.client import Client
 from torappu.utils.utils import Version
 from torappu.core.task.gamedata import GameData
+from torappu.core.task.item_demand import ItemDemand
 
 
 async def run(version: Version, prev: Version | None):
     if prev == version:
         logger.info("version not change")
         return
-    tasks = [GameData]
+    tasks = [GameData, ItemDemand]
 
     client = Client(version, prev)
     await client.init()
