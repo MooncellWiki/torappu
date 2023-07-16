@@ -7,8 +7,9 @@ import zipfile
 
 import httpx
 import UnityPy
+from loguru import logger
 
-from torappu.utils.utils import BaseUrl, Version, StorageDir, headers
+from torappu.utils.utils import Config, BaseDir, BaseUrl, Version, StorageDir, headers
 
 
 class AbInfo(typing.TypedDict):
@@ -41,6 +42,7 @@ class Change(typing.TypedDict):
 
 
 class Client:
+    config: Config | None
     version: Version
     hot_update_list: HotUpdateList
 
@@ -53,6 +55,10 @@ class Client:
         self.version = version
         self.prev_version = prev_version
         self.asset_to_bundle = {}
+        try:
+            self.config = Config.parse_file(BaseDir / "config.json")
+        except:
+            logger.info("load config file failed")
 
     async def init(self):
         self.hot_update_list = await self.load_hot_update_list(self.version.res_version)
