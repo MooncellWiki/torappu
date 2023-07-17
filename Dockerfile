@@ -8,7 +8,7 @@ ENV PATH="${PATH}:/root/.local/bin"
 
 COPY ./pyproject.toml ./poetry.lock* /tmp/
 
-RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --with deploy
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 
 FROM python:3.11-bullseye as build-stage
 
