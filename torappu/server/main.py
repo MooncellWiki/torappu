@@ -23,7 +23,7 @@ class Resp(BaseModel):
 
 
 def sync_run(info: VersionInfo):
-    asyncio.run(run(info.cur, info.prev))
+    asyncio.run(run(info.cur, info.prev, True))
 
 
 async def run_task(info: VersionInfo):

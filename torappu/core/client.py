@@ -57,8 +57,8 @@ class Client:
         self.asset_to_bundle = {}
         try:
             self.config = Config.parse_file(BaseDir / "config.json")
-        except:
-            logger.info("load config file failed")
+        except Exception as e:
+            logger.info("load config file failed", e)
 
     async def init(self):
         self.hot_update_list = await self.load_hot_update_list(self.version.res_version)
