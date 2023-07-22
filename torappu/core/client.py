@@ -1,4 +1,5 @@
 import io
+import os
 import json
 import typing
 import hashlib
@@ -7,9 +8,8 @@ import zipfile
 
 import httpx
 import UnityPy
-from loguru import logger
 
-from torappu.utils.utils import Config, BaseDir, BaseUrl, Version, StorageDir, headers
+from torappu.utils.utils import Config, BaseUrl, Version, StorageDir, headers
 
 
 class AbInfo(typing.TypedDict):
@@ -55,10 +55,10 @@ class Client:
         self.version = version
         self.prev_version = prev_version
         self.asset_to_bundle = {}
-        try:
-            self.config = Config.parse_file(BaseDir / "config.json")
-        except Exception as e:
-            logger.info("load config file failed", e)
+        token = os.environ.get("TOKEN")
+        endpoint = os.environ.get("ENDPOINT")
+        if token is not None and endpoint is not None:
+            self.config = Config(token=token, endpoint=endpoint)
 
     async def init(self):
         self.hot_update_list = await self.load_hot_update_list(self.version.res_version)
