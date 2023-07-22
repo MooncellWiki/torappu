@@ -47,3 +47,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Update
+        run: curl -X POST ${{ secrets.UPDATE_HOOK }}
