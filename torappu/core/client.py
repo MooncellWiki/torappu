@@ -8,6 +8,7 @@ import zipfile
 
 import httpx
 import UnityPy
+from loguru import logger
 
 from torappu.utils.utils import Config, BaseUrl, Version, StorageDir, headers
 
@@ -109,6 +110,7 @@ class Client:
             return result
 
         async with httpx.AsyncClient() as client:
+            logger.debug(f"request {BaseUrl}{res_version}/hot_update_list.json")
             resp = await client.get(
                 f"{BaseUrl}{res_version}/hot_update_list.json",
                 headers=headers,
@@ -142,6 +144,9 @@ class Client:
                     return md5path.as_posix()
         md5path.parent.mkdir(parents=True, exist_ok=True)
         async with httpx.AsyncClient() as client:
+            logger.debug(
+                f"request {BaseUrl}{self.version.res_version}/{Client.path2url(path)}.dat"
+            )
             resp = await client.get(
                 f"{BaseUrl}{self.version.res_version}/{Client.path2url(path)}.dat"
             )

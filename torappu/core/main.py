@@ -23,7 +23,13 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
     tasks = [GameData, ItemDemand]
 
     client = Client(version, prev)
-    await client.init()
+    try:
+        await client.init()
+    except Exception as e:
+        if sentry:
+            sentry_sdk.capture_exception(e)
+        logger.exception(e)
+        return
     diff = client.diff()
     for task in tasks:
         try:
@@ -34,3 +40,4 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
             if sentry:
                 sentry_sdk.capture_exception(e)
             logger.exception(e)
+            return
