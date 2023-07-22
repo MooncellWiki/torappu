@@ -16,9 +16,6 @@ jobs:
         with:
           submodules: true
 
-      - name: list files
-        run: ls -la
-
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v2
 

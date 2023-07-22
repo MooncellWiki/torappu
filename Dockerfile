@@ -36,6 +36,8 @@ ENV DEBIAN_FRONTEND noninteractive
 
 ENV PYTHONPATH=/app
 
+RUN apt-get update && apt-get -y install ca-certificates
+
 EXPOSE 8000
 
 COPY --from=build-stage /wheel /wheel
