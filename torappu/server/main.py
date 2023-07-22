@@ -1,6 +1,7 @@
 import asyncio
 import concurrent.futures
 
+from loguru import logger
 from pydantic import BaseModel
 from fastapi import FastAPI, BackgroundTasks
 
@@ -42,6 +43,7 @@ async def start_task(
     info: VersionInfo,
     background_tasks: BackgroundTasks,
 ) -> Resp:
+    logger.info(f"try start task: {info}")
     global working
     if working:
         return Resp(code=1, message="is running")
