@@ -1318,6 +1318,20 @@ files = [
 widechars = ["wcwidth"]
 
 [[package]]
+name = "tenacity"
+version = "8.2.2"
+description = "Retry code until it succeeds"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "tenacity-8.2.2-py3-none-any.whl", hash = "sha256:2f277afb21b851637e8f52e6a613ff08734c347dc19ade928e519d7d2d8569b0"},
+    {file = "tenacity-8.2.2.tar.gz", hash = "sha256:43af037822bd0029025877f3b2d97cc4d7bb0c2991000a3d59d71517c5c969e0"},
+]
+
+[package.extras]
+doc = ["reno", "sphinx", "tornado (>=4.5)"]
+
+[[package]]
 name = "texture2ddecoder"
 version = "1.0.4"
 description = "a python wrapper for Perfare's Texture2DDecoder"
@@ -1822,4 +1836,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "010e53c8291c7321d7089203268d9ca8952a4ee6ced688f26c0c4e972dd154da"
+content-hash = "92aa2d72dc9d724d0050c5676b533fd984d49bfa675ccfd21f80b23cc0e9f365"

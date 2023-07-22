@@ -1,5 +1,6 @@
 import sentry_sdk
 from loguru import logger
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
 
 from torappu.core.client import Client
 from torappu.utils.utils import Version
@@ -18,6 +19,9 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
             # of transactions for performance monitoring.
             # We recommend adjusting this value in production.
             traces_sample_rate=1.0,
+            integrations=[
+                AsyncioIntegration(),
+            ],
         )
 
     tasks = [GameData, ItemDemand]

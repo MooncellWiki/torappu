@@ -9,6 +9,7 @@ import zipfile
 import httpx
 import UnityPy
 from loguru import logger
+from tenacity import retry, stop_after_attempt
 
 from torappu.utils.utils import Config, BaseUrl, Version, StorageDir, headers
 
@@ -104,23 +105,30 @@ class Client:
             pass
         return None
 
-    async def load_hot_update_list(self, res_version: str) -> HotUpdateList:
-        result = self._try_load_hot_update_list(res_version)
-        if result is not None:
-            return result
-
-        async with httpx.AsyncClient() as client:
+    @retry(stop=stop_after_attempt(3))
+    async def download_hot_update_list(self, res_version: str) -> HotUpdateList:
+        async with httpx.AsyncClient(
+            timeout=10.0,
+        ) as client:
             logger.debug(f"request {BaseUrl}{res_version}/hot_update_list.json")
             resp = await client.get(
                 f"{BaseUrl}{res_version}/hot_update_list.json",
                 headers=headers,
             )
             result = resp.json()
-            p = self._get_hot_update_list_path(res_version)
-            p.parent.mkdir(parents=True, exist_ok=True)
-            with open(p, "w") as f:
-                json.dump(result, f)
             return result
+
+    async def load_hot_update_list(self, res_version: str) -> HotUpdateList:
+        result = self._try_load_hot_update_list(res_version)
+        if result is not None:
+            return result
+
+        result = await self.download_hot_update_list(res_version)
+        p = self._get_hot_update_list_path(res_version)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with open(p, "w") as f:
+            json.dump(result, f)
+        return result
 
     def get_ab_info_by_path(self, path: str) -> AbInfo:
         for info in self.hot_update_list["abInfos"]:
@@ -131,6 +139,17 @@ class Client:
     @staticmethod
     def path2url(path: str) -> str:
         return path.replace("\\", "/").replace("/", "_").replace("#", "__")
+
+    @retry(stop=stop_after_attempt(3))
+    async def download_ab(self, path: str) -> bytes:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            logger.debug(
+                f"request {BaseUrl}{self.version.res_version}/{Client.path2url(path)}.dat"
+            )
+            resp = await client.get(
+                f"{BaseUrl}{self.version.res_version}/{Client.path2url(path)}.dat"
+            )
+            return resp.content
 
     # .ab的路径
     async def resolve_ab(self, path: str) -> str:
@@ -143,18 +162,12 @@ class Client:
                 if md5 == hashlib.md5(bytes).hexdigest():
                     return md5path.as_posix()
         md5path.parent.mkdir(parents=True, exist_ok=True)
-        async with httpx.AsyncClient() as client:
-            logger.debug(
-                f"request {BaseUrl}{self.version.res_version}/{Client.path2url(path)}.dat"
-            )
-            resp = await client.get(
-                f"{BaseUrl}{self.version.res_version}/{Client.path2url(path)}.dat"
-            )
-            file = io.BytesIO(resp.content)
-            with zipfile.ZipFile(file) as myzip:
-                unziped_bytes = myzip.read(myzip.filelist[0])
-                with open(md5path, "wb") as f:
-                    f.write(unziped_bytes)
+        content = await self.download_ab(path)
+        file = io.BytesIO(content)
+        with zipfile.ZipFile(file) as myzip:
+            unziped_bytes = myzip.read(myzip.filelist[0])
+            with open(md5path, "wb") as f:
+                f.write(unziped_bytes)
         return md5path.as_posix()
 
     async def init_torappu(self):

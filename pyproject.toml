@@ -19,6 +19,7 @@ apscheduler = "^3.10.1"
 loguru = "^0.7.0"
 fastapi = {extras = ["all"], version = "^0.98.0"}
 sentry-sdk = {version = "^1.28.1"}
+tenacity = "^8.2.2"
 
 
 [tool.poetry.group.dev.dependencies]
