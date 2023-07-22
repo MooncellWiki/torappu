@@ -1,0 +1,3 @@
+[submodule "OpenArknightsFBS"]
+	path = OpenArknightsFBS
+	url = https://github.com/MooncellWiki/OpenArknightsFBS.git
