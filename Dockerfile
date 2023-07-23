@@ -1,4 +1,4 @@
-FROM python:3.11-bookworm as requirements-stage
+FROM python:3.10-bookworm as requirements-stage
 
 WORKDIR /tmp
 
@@ -10,7 +10,7 @@ COPY ./pyproject.toml ./poetry.lock* /tmp/
 
 RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 
-FROM python:3.11-bookworm as build-stage
+FROM python:3.10-bookworm as build-stage
 
 WORKDIR /wheel
 
@@ -18,7 +18,7 @@ COPY --from=requirements-stage /tmp/requirements.txt /wheel/requirements.txt
 
 RUN pip wheel --wheel-dir=/wheel --no-cache-dir --requirement /wheel/requirements.txt
 
-FROM python:3.11-bullseye as metadata-stage
+FROM python:3.10-bullseye as metadata-stage
 
 WORKDIR /tmp
 
@@ -27,7 +27,7 @@ RUN --mount=type=bind,source=./.git/,target=/tmp/.git/ \
   || git rev-parse --short HEAD > /tmp/VERSION \
   && echo "Building version: $(cat /tmp/VERSION)"
 
-FROM python:3.11-slim-bookworm
+FROM python:3.10-slim-bookworm
 
 WORKDIR /app
 
