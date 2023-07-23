@@ -14,7 +14,7 @@ def ensure_item_exists(item_demand, item_name, char_id, char_detail, skill_num):
         item_demand[item_name] = {}
     if not item_demand[item_name].get(char_id):
         item_demand[item_name][char_id] = {
-            "rarity": char_detail["rarity"],
+            "rarity": int(char_detail["rarity"].replace("TIER_", "")),
             "name": char_detail["name"],
             "profession": char_detail["profession"],
             "elite": 0,
