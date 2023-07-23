@@ -1,6 +1,5 @@
 import sentry_sdk
 from loguru import logger
-from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 
@@ -22,7 +21,6 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
             # We recommend adjusting this value in production.
             traces_sample_rate=1.0,
             integrations=[
-                AsyncioIntegration(),
                 HttpxIntegration(),
                 LoguruIntegration(),
             ],
