@@ -18,7 +18,7 @@ bson = "^0.5.10"
 apscheduler = "^3.10.1"
 loguru = "^0.7.0"
 fastapi = {extras = ["all"], version = "^0.98.0"}
-sentry-sdk = {version = "^1.28.1"}
+sentry-sdk = {version = "^1.28.1", extras=["loguru","httpx"]}
 tenacity = "^8.2.2"
 
 

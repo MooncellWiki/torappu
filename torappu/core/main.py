@@ -1,11 +1,13 @@
 import sentry_sdk
 from loguru import logger
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
+from sentry_sdk.integrations.httpx import HttpxIntegration
+from sentry_sdk.integrations.loguru import LoguruIntegration
 
 from torappu.core.client import Client
-from torappu.utils.utils import Version
 from torappu.core.task.gamedata import GameData
 from torappu.core.task.item_demand import ItemDemand
+from torappu.utils.utils import Version
 
 
 async def run(version: Version, prev: Version | None, sentry: bool = False):
@@ -21,6 +23,8 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
             traces_sample_rate=1.0,
             integrations=[
                 AsyncioIntegration(),
+                HttpxIntegration(),
+                LoguruIntegration(),
             ],
         )
 
@@ -30,9 +34,7 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
     try:
         await client.init()
     except Exception as e:
-        if sentry:
-            sentry_sdk.capture_exception(e)
-        logger.exception(e)
+        logger.error(e)
         return
     diff = client.diff()
     for task in tasks:
@@ -41,7 +43,5 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
             if inst.need_run(diff):
                 await inst.run()
         except Exception as e:
-            if sentry:
-                sentry_sdk.capture_exception(e)
-            logger.exception(e)
+            logger.error(e)
             return
