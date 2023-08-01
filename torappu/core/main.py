@@ -1,13 +1,14 @@
 import sentry_sdk
 from loguru import logger
-from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
+from sentry_sdk.integrations.asyncio import AsyncioIntegration
 
 from torappu.core.client import Client
-from torappu.core.task.gamedata import GameData
-from torappu.core.task.item_demand import ItemDemand
 from torappu.utils.utils import Version
+from torappu.core.task.gamedata import GameData
+from torappu.core.task.enemy_spine import EnemySpine
+from torappu.core.task.item_demand import ItemDemand
 
 
 async def run(version: Version, prev: Version | None, sentry: bool = False):
@@ -28,7 +29,7 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
             ],
         )
 
-    tasks = [GameData, ItemDemand]
+    tasks = [GameData, ItemDemand, EnemySpine]
 
     client = Client(version, prev)
     try:
