@@ -1,9 +1,9 @@
-import io
-import os
-import json
-import typing
 import hashlib
+import io
+import json
+import os
 import pathlib
+import typing
 import zipfile
 
 import httpx
@@ -11,7 +11,7 @@ import UnityPy
 from loguru import logger
 from tenacity import retry, stop_after_attempt
 
-from torappu.utils.utils import Config, BaseUrl, Version, StorageDir, headers
+from torappu.utils.utils import BaseUrl, Config, StorageDir, Version, headers
 
 
 class AbInfo(typing.TypedDict):
@@ -85,7 +85,7 @@ class Client:
         for info in self.hot_update_list["abInfos"]:
             cur_map[info["name"]] = info["md5"]
         for info in self.prev_hot_update_list["abInfos"]:
-            if cur_map[info["name"]] is None:
+            if info["name"] not in cur_map:
                 result.append(Change(kind="remove", abPath=info["name"]))
                 continue
             sign = cur_map[info["name"]]

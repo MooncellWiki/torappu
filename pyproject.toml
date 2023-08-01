@@ -20,6 +20,7 @@ loguru = "^0.7.0"
 fastapi = {extras = ["all"], version = "^0.98.0"}
 sentry-sdk = {version = "^1.28.1", extras=["loguru","httpx"]}
 tenacity = "^8.2.2"
+pillow = "^10.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
