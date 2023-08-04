@@ -2,6 +2,7 @@ import typing
 
 import UnityPy
 from loguru import logger
+from UnityPy.classes.GameObject import GameObject
 from UnityPy.classes.Material import Material
 from UnityPy.classes.MonoBehaviour import MonoBehaviour
 from UnityPy.classes.PPtr import PPtr
@@ -33,14 +34,14 @@ class EnemySpine(Task):
         # https://github.com/Perfare/AssetStudio/blob/master/AssetStudioGUI/Studio.cs#L210
         container_map = build_container_path(env)
 
-        def unpack(data: MonoBehaviour):
+        def unpack(data: MonoBehaviour, path: str):
             container_path = (
                 container_map[data.path_id]
                 .replace("assets/torappu/dynamicassets/battle/prefabs/enemies/", "")
                 .replace(".prefab", "")
             )
 
-            base_dir = StorageDir / "asset" / "raw" / "enemySpine" / container_path
+            base_dir = StorageDir / "asset" / "raw" / "enemySpine" / path
             base_dir.mkdir(parents=True, exist_ok=True)
             skel = typing.cast(TextAsset, data.skeletonJSON.read())
             with open(base_dir / skel.name, "wb") as f:
@@ -57,10 +58,29 @@ class EnemySpine(Task):
             logger.info(f"{container_path} saved")
 
         for obj in env.objects:
-            if obj.type.name == "MonoBehaviour":
-                data = typing.cast(MonoBehaviour, obj.read())
-                if data.name.endswith("_SkeletonData"):
-                    unpack(data)
+            if obj.type.name == "GameObject":
+                game_obj = typing.cast(GameObject, obj.read())
+                if game_obj.name == "Spine":
+                    path = (
+                        container_map[game_obj.path_id]
+                        .replace(
+                            "assets/torappu/dynamicassets/battle/prefabs/enemies/", ""
+                        )
+                        .replace(".prefab", "")
+                    )
+                    for comp in game_obj.m_Components:
+                        if comp.type.name == "MonoBehaviour":
+                            skeleton_animation = typing.cast(MonoBehaviour, comp.read())
+                            if skeleton_animation.has_struct_member(
+                                "skeletonDataAsset"
+                            ):
+                                data = typing.cast(
+                                    MonoBehaviour,
+                                    skeleton_animation.skeletonDataAsset.read(),
+                                )
+                                if data.name.endswith("_SkeletonData"):
+                                    unpack(data, path)
+                                    break
 
     async def inner_run(self):
         for ab in self.ab_list:
