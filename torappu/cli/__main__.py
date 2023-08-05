@@ -2,7 +2,8 @@ import asyncio
 import argparse
 
 from torappu.core.main import run
-from torappu.utils.utils import Version
+
+from ..models import Version
 
 parser = argparse.ArgumentParser(
     prog="torappu",

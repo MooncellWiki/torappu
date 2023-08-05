@@ -6,7 +6,7 @@ import httpx
 from torappu.core.client import Change
 from torappu.core.task.base import Task
 from torappu.core.task.utils import trans_prof
-from torappu.utils.utils import BaseDir, GameDataDir
+from torappu.consts import BASE_DIR, GAMEDATA_DIR
 
 
 def ensure_item_exists(item_demand, item_name, char_id, char_detail, skill_num):
@@ -31,13 +31,13 @@ class ItemDemand(Task):
         return True
 
     def fetch_data(self, path: str):
-        with open(GameDataDir / self.client.version.res_version / path) as f:
+        with open(GAMEDATA_DIR / self.client.version.res_version / path) as f:
             return json.load(f)
 
     async def inner_run(self):
         demand = self.get_item_demand()
         if self.client.config is None:
-            with open(BaseDir / "itemDemand.json", "w+") as f:
+            with open(BASE_DIR / "itemDemand.json", "w+") as f:
                 json.dump(demand, f)
             return
         async with httpx.AsyncClient() as client:

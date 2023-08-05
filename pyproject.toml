@@ -5,33 +5,24 @@ description = ""
 authors = ["daflyinbed <1677759063@qq.com>"]
 readme = "README.md"
 
-packages = [
-    { include = "torappu" }
-]
-
 [tool.poetry.dependencies]
 python = "^3.10"
-httpx = "^0.24.1"
-unitypy = "^1.10.1"
-pycryptodome = "^3.18.0"
-bson = "^0.5.10"
 apscheduler = "^3.10.1"
+bson = "^0.5.10"
+fastapi = { version = "^0.98.0", extras = ["all"] }
+httpx = "^0.24.1"
 loguru = "^0.7.0"
-fastapi = {extras = ["all"], version = "^0.98.0"}
-sentry-sdk = {version = "^1.28.1", extras=["loguru","httpx"]}
-tenacity = "^8.2.2"
 pillow = "^10.0.0"
-
+pycryptodome = "^3.18.0"
+sentry-sdk = { version = "^1.28.1", extras=["loguru", "httpx"] }
+tenacity = "^8.2.2"
+unitypy = "^1.10.1"
 
 [tool.poetry.group.dev.dependencies]
-pycln = "^2.1.5"
-ruff = "^0.0.272"
+ruff = "^0.0.282"
+isort = "^5.10.1"
+black = "^23.1.0"
 pre-commit = "^3.3.3"
-isort = "^5.12.0"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 88
@@ -46,12 +37,11 @@ line_length = 88
 length_sort = true
 skip_gitignore = true
 force_sort_within_sections = true
-src_paths = ["torappu"]
 extra_standard_library = ["typing_extensions"]
 
 [tool.ruff]
-select = ["E", "W", "F", "UP", "C", "T", "PYI", "PT", "Q", "N"]
-ignore = ["E402", "C901","E722"]
+select = ["E", "W", "F", "UP", "C", "T", "PYI", "PT", "Q"]
+ignore = ["E402", "C901"]
 
 line-length = 88
 target-version = "py310"
@@ -59,3 +49,17 @@ target-version = "py310"
 [tool.ruff.flake8-pytest-style]
 fixture-parentheses = false
 mark-parentheses = false
+
+[tool.pyright]
+pythonVersion = "3.10"
+pythonPlatform = "All"
+executionEnvironments = [
+  { root = "./" },
+]
+
+typeCheckingMode = "basic"
+reportShadowedImports = false
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import shutil
+from typing import TYPE_CHECKING
 
 import bson
 import UnityPy
@@ -10,7 +11,10 @@ from Crypto.Util.Padding import unpad
 
 from torappu.core.task.base import Task
 from torappu.core.client import Change, Client
-from torappu.utils.utils import FBSDir, TempDir, StorageDir
+from torappu.consts import FBS_DIR, TEMP_DIR, STORAGE_DIR
+
+if TYPE_CHECKING:
+    from UnityPy.classes import TextAsset
 
 flatbuffer_list = [
     "ep_breakbuff_table",
@@ -73,7 +77,7 @@ class GameData(Task):
         env = UnityPy.load(real_path)
         for path, object in env.container.items():
             if object.type.name == "TextAsset":
-                obj = object.read()
+                obj: TextAsset = object.read()  # type: ignore
                 script = obj.script
                 fb_name = None
                 is_encrypted = False
@@ -124,10 +128,10 @@ class GameData(Task):
                             ),
                             encoding="utf-8",
                         )
-                    except:
+                    except Exception:
                         res = decipher[16:]
-                    temp_path = StorageDir.joinpath(
-                        StorageDir,
+                    temp_path = STORAGE_DIR.joinpath(
+                        STORAGE_DIR,
                         "asset",
                         "gamedata",
                         self.client.version.res_version,
@@ -150,13 +154,13 @@ class GameData(Task):
                                 ),
                                 encoding="utf-8",
                             )
-                        except:
+                        except Exception:
                             res = decipher[16:]
                         f.write(res)
                     continue
                 if fb_name is not None:
-                    flatbuffer_data_path = TempDir / f"{fb_name}.bytes"
-                    temp_path = TempDir.joinpath(
+                    flatbuffer_data_path = TEMP_DIR / f"{fb_name}.bytes"
+                    temp_path = TEMP_DIR.joinpath(
                         os.path.dirname(
                             path.replace("assets/torappu/dynamicassets/gamedata/", "")
                         ),
@@ -168,7 +172,7 @@ class GameData(Task):
                         f"flatc -o {temp_path}"
                         + " --no-warnings --json --strict-json"
                         + " --natural-utf8 --defaults-json"
-                        + f" --raw-binary {FBSDir}/{fb_name}.fbs"
+                        + f" --raw-binary {FBS_DIR}/{fb_name}.fbs"
                         + f" -- {flatbuffer_data_path}"
                     )
                     os.remove(flatbuffer_data_path)
@@ -183,7 +187,7 @@ class GameData(Task):
                                     jsons["dynActs"][k] = bson.decode_document(
                                         base64.b64decode(v["base64"]), 0
                                     )[1]
-                    container_path = StorageDir.joinpath(
+                    container_path = STORAGE_DIR.joinpath(
                         "asset",
                         "gamedata",
                         self.client.version.res_version,
@@ -200,7 +204,7 @@ class GameData(Task):
                         f.write(json.dumps(jsons, indent=2, ensure_ascii=False))
                     shutil.rmtree(temp_path)
                     continue
-                output_path = StorageDir.joinpath(
+                output_path = STORAGE_DIR.joinpath(
                     "asset",
                     "gamedata",
                     self.client.version.res_version,
@@ -218,14 +222,14 @@ class GameData(Task):
                             indent=2,
                             ensure_ascii=False,
                         )
-                    except:
+                    except Exception:
                         pass
                 if pack_data is None:
                     try:
                         pack_data = json.dumps(
                             json.loads(obj.text), indent=2, ensure_ascii=False
                         )
-                    except:
+                    except Exception:
                         pack_data = obj.text
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(output_path, mode="w", encoding="utf-8") as f:

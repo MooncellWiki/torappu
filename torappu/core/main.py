@@ -5,10 +5,11 @@ from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 
 from torappu.core.client import Client
-from torappu.utils.utils import Version
 from torappu.core.task.gamedata import GameData
 from torappu.core.task.enemy_spine import EnemySpine
 from torappu.core.task.item_demand import ItemDemand
+
+from ..models import Version
 
 
 async def run(version: Version, prev: Version | None, sentry: bool = False):
