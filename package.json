@@ -1,0 +1,10 @@
+{
+  "name": "torappu",
+  "private": true,
+  "scripts": {
+    "pyright": "pyright"
+  },
+  "devDependencies": {
+    "pyright": "^1.1.320"
+  }
+}
