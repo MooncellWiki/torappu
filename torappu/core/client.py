@@ -1,9 +1,9 @@
-import hashlib
 import io
-import json
 import os
-import pathlib
+import json
 import typing
+import hashlib
+import pathlib
 import zipfile
 
 import httpx
@@ -11,7 +11,8 @@ import UnityPy
 from loguru import logger
 from tenacity import retry, stop_after_attempt
 
-from torappu.utils.utils import BaseUrl, Config, StorageDir, Version, headers
+from ..models import Config, Version
+from ..consts import BASEURL, HEADERS, STORAGE_DIR
 
 
 class AbInfo(typing.TypedDict):
@@ -73,7 +74,7 @@ class Client:
         await self.init_torappu()
 
     def _get_hot_update_list_path(self, res: str) -> pathlib.Path:
-        return StorageDir / "hotUpdateList" / f"{res}.json"
+        return STORAGE_DIR / "hotUpdateList" / f"{res}.json"
 
     def diff(self) -> list[Change]:
         result = []
@@ -101,7 +102,7 @@ class Client:
         try:
             with open(self._get_hot_update_list_path(res)) as f:
                 return json.load(f)
-        except:
+        except Exception:
             pass
         return None
 
@@ -110,10 +111,10 @@ class Client:
         async with httpx.AsyncClient(
             timeout=10.0,
         ) as client:
-            logger.debug(f"request {BaseUrl}{res_version}/hot_update_list.json")
+            logger.debug(f"request {BASEURL}{res_version}/hot_update_list.json")
             resp = await client.get(
-                f"{BaseUrl}{res_version}/hot_update_list.json",
-                headers=headers,
+                f"{BASEURL}{res_version}/hot_update_list.json",
+                headers=HEADERS,
             )
             result = resp.json()
             return result
@@ -144,10 +145,11 @@ class Client:
     async def download_ab(self, path: str) -> bytes:
         async with httpx.AsyncClient(timeout=10.0) as client:
             logger.debug(
-                f"request {BaseUrl}{self.version.res_version}/{Client.path2url(path)}.dat"
+                "request"
+                f"{BASEURL}{self.version.res_version}/{Client.path2url(path)}.dat"
             )
             resp = await client.get(
-                f"{BaseUrl}{self.version.res_version}/{Client.path2url(path)}.dat"
+                f"{BASEURL}{self.version.res_version}/{Client.path2url(path)}.dat"
             )
             return resp.content
 
@@ -155,7 +157,7 @@ class Client:
     async def resolve_ab(self, path: str) -> str:
         info = self.get_ab_info_by_path(path + ".ab")
         md5 = info["md5"]
-        md5path = StorageDir / "assetBundle" / f"{md5}.ab"
+        md5path = STORAGE_DIR / "assetBundle" / f"{md5}.ab"
         if md5path.exists():
             with open(md5path, "rb") as f:
                 bytes = f.read()

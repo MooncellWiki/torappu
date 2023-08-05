@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI, BackgroundTasks
 
 from torappu.core.main import run
-from torappu.utils.utils import Version
+from ..models import Version
 
 app = FastAPI()
 
@@ -50,6 +50,6 @@ async def start_task(
     working = True
     try:
         background_tasks.add_task(task, info)
-    except:
+    except Exception:
         pass
     return Resp(code=0, message="started")

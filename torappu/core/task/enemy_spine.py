@@ -1,17 +1,16 @@
-import typing
+from typing import TYPE_CHECKING
 
 import UnityPy
 from loguru import logger
-from UnityPy.classes.GameObject import GameObject
-from UnityPy.classes.Material import Material
-from UnityPy.classes.MonoBehaviour import MonoBehaviour
-from UnityPy.classes.PPtr import PPtr
-from UnityPy.classes.TextAsset import TextAsset
 
-from torappu.core.client import Change
+from torappu.consts import STORAGE_DIR
 from torappu.core.task.base import Task
-from torappu.core.task.utils import build_container_path, material2img
-from torappu.utils.utils import StorageDir
+from torappu.core.task.utils import material2img, build_container_path
+
+if TYPE_CHECKING:
+    from UnityPy.classes import PPtr, Material, TextAsset, GameObject, MonoBehaviour
+
+    from torappu.core.client import Change
 
 
 class EnemySpine(Task):
@@ -19,13 +18,12 @@ class EnemySpine(Task):
     ab_list: set[str]
 
     def need_run(self, change_list: list[Change]) -> bool:
-        self.ab_list = set()
-        change_set = set()
-        for change in change_list:
-            change_set.add(change["abPath"])
-        for asset, bundle in self.client.asset_to_bundle.items():
-            if asset.startswith("battle/prefabs/enemies/") and (bundle in change_set):
-                self.ab_list.add(bundle)
+        change_set = {change["abPath"] for change in change_list}
+        self.ab_list = {
+            bundle
+            for asset, bundle in self.client.asset_to_bundle.items()
+            if asset.startswith("battle/prefabs/enemies/") and (bundle in change_set)
+        }
 
         return len(self.ab_list) > 0
 
@@ -41,46 +39,43 @@ class EnemySpine(Task):
                 .replace(".prefab", "")
             )
 
-            base_dir = StorageDir / "asset" / "raw" / "enemySpine" / path
+            base_dir = STORAGE_DIR / "asset" / "raw" / "enemySpine" / path
             base_dir.mkdir(parents=True, exist_ok=True)
-            skel = typing.cast(TextAsset, data.skeletonJSON.read())
+            skel: TextAsset = data.skeletonJSON.read()  # type: ignore
             with open(base_dir / skel.name, "wb") as f:
                 f.write(bytes(skel.script))
-            for pptr in typing.cast(list[PPtr], data.atlasAssets):
-                atlas_mono_behaviour = typing.cast(MonoBehaviour, pptr.read())
-                atlas = typing.cast(TextAsset, atlas_mono_behaviour.atlasFile.read())
+            atlas_assets: list[PPtr] = data.atlasAssets  # type: ignore
+            for pptr in atlas_assets:
+                atlas_mono_behaviour: MonoBehaviour = pptr.read()
+                atlas: TextAsset = atlas_mono_behaviour.atlasFile.read()  # type: ignore
                 with open(base_dir / atlas.name, "wb") as f:
                     f.write(bytes(atlas.script))
-                for mat_pptr in typing.cast(list[PPtr], atlas_mono_behaviour.materials):
-                    mat = typing.cast(Material, mat_pptr.read())
+                materials: list[PPtr] = atlas_mono_behaviour.materials  # type: ignore
+                for mat_pptr in materials:
+                    mat: Material = mat_pptr.read()
                     img, name = material2img(mat)
                     img.save(base_dir / (name + ".png"))
             logger.info(f"{container_path} saved")
 
-        for obj in env.objects:
-            if obj.type.name == "GameObject":
-                game_obj = typing.cast(GameObject, obj.read())
-                if game_obj.name == "Spine":
-                    path = (
-                        container_map[game_obj.path_id]
-                        .replace(
-                            "assets/torappu/dynamicassets/battle/prefabs/enemies/", ""
-                        )
-                        .replace(".prefab", "")
-                    )
-                    for comp in game_obj.m_Components:
-                        if comp.type.name == "MonoBehaviour":
-                            skeleton_animation = typing.cast(MonoBehaviour, comp.read())
-                            if skeleton_animation.has_struct_member(
-                                "skeletonDataAsset"
-                            ):
-                                data = typing.cast(
-                                    MonoBehaviour,
-                                    skeleton_animation.skeletonDataAsset.read(),
-                                )
-                                if data.name.endswith("_SkeletonData"):
-                                    unpack(data, path)
-                                    break
+        for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
+            game_obj: GameObject = obj.read()  # type: ignore
+            if game_obj.name == "Spine":
+                path = (
+                    container_map[game_obj.path_id]
+                    .replace("assets/torappu/dynamicassets/battle/prefabs/enemies/", "")
+                    .replace(".prefab", "")
+                )
+                for comp in filter(
+                    lambda comp: comp.type.name == "MonoBehaviour",
+                    game_obj.m_Components,
+                ):
+                    skeleton_animation: MonoBehaviour = comp.read()
+                    if skeleton_animation.has_struct_member("skeletonDataAsset"):
+                        skeleton_data = skeleton_animation.skeletonDataAsset
+                        data: MonoBehaviour = skeleton_data.read()  # type: ignore
+                        if data.name.endswith("_SkeletonData"):
+                            unpack(data, path)
+                            break
 
     async def inner_run(self):
         for ab in self.ab_list:
