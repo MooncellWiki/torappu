@@ -145,7 +145,8 @@ class Client:
     async def download_ab(self, path: str) -> bytes:
         async with httpx.AsyncClient(timeout=10.0) as client:
             logger.debug(
-                f"request {BASEURL}{self.version.res_version}/{Client.path2url(path)}.dat"
+                "request "
+                f"{BASEURL}{self.version.res_version}/{Client.path2url(path)}.dat"
             )
             resp = await client.get(
                 f"{BASEURL}{self.version.res_version}/{Client.path2url(path)}.dat"
