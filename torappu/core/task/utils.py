@@ -15,14 +15,14 @@ def trans_prof(profession):
     return PROFESSIONS[profession]
 
 
-def material2img(mat: Material) -> tuple[Image.Image, str]:
+def material2img(mat: "Material") -> tuple[Image.Image, str]:
     atexture: Texture2D | None = None
     rgbtexture: Texture2D | None = None
     for key, tex in mat.m_SavedProperties.m_TexEnvs.items():
         if key == "_AlphaTex":
-            atexture = Texture2D, tex.m_Texture.read()  # type: ignore
+            atexture = tex.m_Texture.read()
         if key == "_MainTex":
-            rgbtexture = Texture2D, tex.m_Texture.read()  # type: ignore
+            rgbtexture = tex.m_Texture.read()
     if rgbtexture is None:
         raise Exception("rgb texture not found")
     if atexture is None:
@@ -41,7 +41,7 @@ def material2img(mat: Material) -> tuple[Image.Image, str]:
     return Image.merge("RGBA", (r, g, b, a)), rgbtexture.name
 
 
-def build_container_path(env: Environment) -> dict[int, str]:
+def build_container_path(env: "Environment") -> dict[int, str]:
     container_map: dict[int, str] = {}
     for obj in filter(lambda obj: obj.type.name == "AssetBundle", env.objects):
         typetree = obj.read_typetree()

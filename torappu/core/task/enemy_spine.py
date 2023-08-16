@@ -17,7 +17,7 @@ class EnemySpine(Task):
     name = "EnemySpine"
     ab_list: set[str]
 
-    def need_run(self, change_list: list[Change]) -> bool:
+    def need_run(self, change_list: list["Change"]) -> bool:
         change_set = {change["abPath"] for change in change_list}
         self.ab_list = {
             bundle
@@ -32,7 +32,7 @@ class EnemySpine(Task):
         # https://github.com/Perfare/AssetStudio/blob/master/AssetStudioGUI/Studio.cs#L210
         container_map = build_container_path(env)
 
-        def unpack(data: MonoBehaviour, path: str):
+        def unpack(data: "MonoBehaviour", path: str):
             container_path = (
                 container_map[data.path_id]
                 .replace("assets/torappu/dynamicassets/battle/prefabs/enemies/", "")
