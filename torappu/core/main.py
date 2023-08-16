@@ -18,7 +18,7 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
         return
     if sentry:
         sentry_sdk.init(
-            "https://a743fee458854a24b86356cb8520a975@mt.mooncell.wiki/9",
+            "https://a743fee458854a24b86356cb8520a975@ingest.sentry.mooncell.wiki/9",
             # Set traces_sample_rate to 1.0 to capture 100%
             # of transactions for performance monitoring.
             # We recommend adjusting this value in production.
