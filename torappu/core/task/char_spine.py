@@ -1,9 +1,9 @@
 import re
-from os import replace
 from typing import TYPE_CHECKING
 
 import UnityPy
 from loguru import logger
+from pydantic import BaseModel
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.task.base import Task
@@ -15,9 +15,22 @@ if TYPE_CHECKING:
     from torappu.core.client import Change
 
 
+class FileConfig(BaseModel):
+    file: str
+
+
+class SpineConfig(BaseModel):
+    prefix = "https://torappu.prts.wiki/assets/charSpine/"
+    name: str
+    skin: dict[str, dict[str, FileConfig]]
+
+
 class CharSpine(Task):
     name = "CharSpine"
     ab_list: set[str]
+    changed_char: dict[str, SpineConfig]
+    char_map: dict[str, str]
+    skin_map: dict[str, str]
 
     def need_run(self, change_list: list["Change"]) -> bool:
         change_set = {change["abPath"] for change in change_list}
@@ -25,23 +38,52 @@ class CharSpine(Task):
             bundle
             for asset, bundle in self.client.asset_to_bundle.items()
             if (
-                asset.startswith("battle/prefabs/skins/character")  # 干员以及token的皮肤
-                or asset.startswith("building/vault/characters")  # 干员的基建
-                or asset.startswith("battle/prefabs/[uc]tokens")  # token的初始
+                # 干员以及token的皮肤
+                asset.startswith("battle/prefabs/skins/character")
+                # 干员的基建
+                or asset.startswith("building/vault/characters")
+                # token的初始
+                or asset.startswith("battle/prefabs/[uc]tokens")
             )
             and (bundle in change_set)
         }
 
         return len(self.ab_list) > 0
 
+    def update_config(self, name: str, skin: str, side: str):
+        self.changed_char.setdefault(name, SpineConfig(name=name, skin={}))
+        skin_name = None
+        if skin == "defaultskin":
+            skin_name = "默认"
+        else:
+            skin_name = self.skin_map[skin]
+        self.changed_char[name].skin.setdefault(skin_name, {})
+        side_map = {
+            "spine": "战斗",
+            "front": "正面",
+            "back": "背面",
+            "down": "向下",
+            "build": "基建",
+        }
+        self.changed_char[name].skin[skin_name][side_map[side]] = FileConfig(
+            file=f"{name}/{skin}/{side}"
+        )
+
     def unpack_ab(self, real_path):
         env = UnityPy.load(real_path)
 
         container_map = build_container_path(env)
 
-        def unpack(data: "MonoBehaviour", path: str):
+        def unpack(
+            data: "MonoBehaviour",
+            path: str,
+        ) -> bool:
+            result = False
             base_dir = STORAGE_DIR / "asset" / "raw" / "charSpine" / path
-            base_dir.mkdir(parents=True, exist_ok=True)
+            if not base_dir.exists():
+                result = True
+                base_dir.mkdir(parents=True, exist_ok=True)
+
             skel: TextAsset = data.skeletonJSON.read()  # type: ignore
             with open(base_dir / skel.name.replace("#", "_"), "wb") as f:
                 f.write(bytes(skel.script))
@@ -59,6 +101,7 @@ class CharSpine(Task):
                     img, name = material2img(mat)
                     img.save(base_dir / (name.replace("#", "_") + ".png"))
             logger.info(f"{base_dir} saved")
+            return result
 
         for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
             game_obj: GameObject = obj.read()  # type: ignore
@@ -69,15 +112,16 @@ class CharSpine(Task):
                 and game_obj.name != "Down"
             ):
                 continue
-            path_map = {
-                # char_101_sora 只有一面 就是叫Spine的
-                "Spine": "/spine",
-                "Front": "/front",
-                "Back": "/back",
+            name = None
+            skin = "defaultskin"
+            side_map = {
+                "Spine": "spine",
+                "Front": "front",
+                "Back": "back",
                 # 比如 token_10027_ironmn_pile3
-                "Down": "/down",
+                "Down": "down",
             }
-            path = None
+            side = None
             container_path = container_map[game_obj.path_id]
             # 基建
             if container_path.startswith(
@@ -99,40 +143,38 @@ class CharSpine(Task):
                 name = match.group(1)
                 # char_485_pallas/char_485_pallas_epoque_19/build
                 # char_485_pallas/defaultskin/build
-                if name == fullname:
-                    path = name + "/defaultskin/build"
-                else:
-                    path = name + "/" + fullname + "/build"
+                side = "build"
+                if name != fullname:
+                    skin = fullname
 
             # 皮肤
             if container_path.startswith(
                 "assets/torappu/dynamicassets/battle/prefabs/skins/character/"
             ):
-                path = (
-                    # char_485_pallas/defaultskin/front
-                    # char_485_pallas/char_485_pallas_epoque_12/front
+                tmp = (
                     container_path.replace(
                         "assets/torappu/dynamicassets/battle/prefabs/skins/character/",
                         "",
                     )
                     .replace(".prefab", "")
                     .replace("#", "_")
-                    + path_map[game_obj.name]
+                    .split("/")
                 )
+                name = tmp[0]
+                skin = tmp[1]
+                side = side_map[game_obj.name]
             if container_path.startswith(
                 "assets/torappu/dynamicassets/battle/prefabs/[uc]tokens/"
             ):
-                path = (
-                    # trap_077_rmtarmn/defaultskin/front
+                name = (
                     container_path.replace(
                         "assets/torappu/dynamicassets/battle/prefabs/[uc]tokens/", ""
                     )
                     .replace(".prefab", "")
-                    .replace("#", "_")  # 已知的里面没有带#的 都是在在上面那种的
-                    + "/defaultskin"
-                    + path_map[game_obj.name]
+                    .replace("#", "_")
                 )
-            if path is None:
+                side = side_map[game_obj.name]
+            if name is None or side is None:
                 continue
             for comp in filter(
                 lambda comp: comp.type.name == "MonoBehaviour",
@@ -142,13 +184,42 @@ class CharSpine(Task):
                 if skeleton_animation.has_struct_member("skeletonDataAsset"):
                     skeleton_data = skeleton_animation.skeletonDataAsset
                     if skeleton_data is None:
-                        continue
+                        break
                     data: MonoBehaviour = skeleton_data.read()  # type: ignore
                     if data.name.endswith("_SkeletonData"):
-                        unpack(data, path)
+                        if unpack(data, f"{name}/{skin}/{side}"):
+                            self.update_config(name, skin, side)
                         break
 
     async def inner_run(self):
+        self.changed_char = {}
+        self.char_map = {}
+        self.skin_map = {}
+        char_table = self.get_gamedata("excel/character_table.json")
+        for char in char_table:
+            self.char_map[char] = char_table[char]["name"]
+        patch_table = self.get_gamedata("excel/char_patch_table.json")
+        for char in patch_table["patchChars"]:
+            self.char_map[char] = patch_table["patchChars"][char]["name"]
+        skin_table = self.get_gamedata("excel/skin_table.json")
+        for skin in skin_table["charSkins"].values():
+            skin_id = skin["battleSkin"]["skinOrPrefabId"]
+            if (
+                skin_id is None
+                or skin_id == "DefaultSkin"
+                or skin["displaySkin"]["skinName"] is None
+            ):
+                continue
+            self.skin_map[skin_id.replace("#", "_").lower()] = skin["displaySkin"][
+                "skinName"
+            ]
+            if skin["tokenSkinMap"] is None:
+                continue
+            for token in skin["tokenSkinMap"]:
+                self.skin_map[token["tokenSkinId"].replace("#", "_").lower()] = skin[
+                    "displaySkin"
+                ]["skinName"]
+
         for ab in self.ab_list:
             ab_path = ab[:-3]
             logger.info(f"start unpack {ab_path}")
@@ -156,3 +227,10 @@ class CharSpine(Task):
             self.unpack_ab(real_path)
             logger.info(f"unpacked {ab_path}")
             logger.info(f"unpacked {ab_path}")
+        for config in self.changed_char:
+            if config in self.char_map:
+                await self.client.wiki.edit(
+                    self.char_map[config] + "/spine",
+                    text=self.changed_char[config].json(),
+                    contentmodel="json",
+                )

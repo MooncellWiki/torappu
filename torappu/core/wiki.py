@@ -1,9 +1,8 @@
 import json
-import time
-import traceback
 from urllib.parse import quote
 
 import httpx
+from loguru import logger
 from tenacity import retry, stop_after_attempt
 
 
@@ -11,13 +10,18 @@ class Wiki:
     async def close(self):
         return await self.client.aclose()
 
-    async def __init__(self, api_url, username, password, mode="product"):
+    def __init__(self, api_url, mode="product"):
         self.api_url = api_url
         self.mode = mode
         self.client = httpx.AsyncClient()
 
+    async def login(
+        self,
+        username,
+        password,
+    ):
         lgtoken = await self.client.get(
-            api_url,
+            self.api_url,
             params={
                 "format": "json",
                 "action": "query",
@@ -26,7 +30,7 @@ class Wiki:
             },
         )
         res = await self.client.post(
-            api_url,
+            self.api_url,
             data={
                 "format": "json",
                 "action": "login",
@@ -71,8 +75,10 @@ class Wiki:
         :param prependtext:将该文本添加到该页面的开始。覆盖text。
         :param appendtext:将该文本添加到该页面的结尾。覆盖text。
         :param redirect:自动解决重定向。
-        :param contentformat:用于输入文本的内容序列化格式。application/json、text/plain、text/css、text/x-wiki、text/javascript
-        :param contentmodel:新内容的内容模型。GadgetDefinition、Scribunto、sanitized-css、flow-board、wikitext、javascript、json、css、text、smw/schema
+        :param contentformat:
+        用于输入文本的内容序列化格式。application/json、text/plain、text/css、text/x-wiki、text/javascript
+        :param contentmodel:
+        新内容的内容模型。GadgetDefinition、Scribunto、sanitized-css、flow-board、wikitext、javascript、json、css、text、smw/schema
         :type minor: bool
         :type bot: bool
         :type createonly:bool
@@ -83,7 +89,7 @@ class Wiki:
         args = locals().copy()
         args.pop("self")
         if self.mode != "product":
-            print("\n" + str(args) + "\n")
+            logger.info(args)
             return
         boolargs = {"minor", "createonly", "nocreate", "redirect", "bot"}
         token = await self.client.get(
@@ -152,17 +158,19 @@ class Wiki:
         """
         :param title:要（解除）保护的页面标题。不能与pageid一起使用。
         :param pageid:要（解除）保护的页面ID。不能与title一起使用。
-        :param protections:保护等级列表，格式：action=level（例如edit=sysop）。等级all意味着任何人都可以执行操作，也就是说没有限制。
+        :param protections:
+        保护等级列表，格式：action=level（例如edit=sysop）。等级all意味着任何人都可以执行操作，也就是说没有限制。
         注意：未列出的操作将移除限制。
         :param reason:（解除）保护的原因。
-        :param cascade:启用连锁保护（也就是保护包含于此页面的页面）。如果所有提供的保护等级不支持连锁，就将其忽略。
+        :param cascade:
+        启用连锁保护（也就是保护包含于此页面的页面）。如果所有提供的保护等级不支持连锁，就将其忽略。
         :type cascade:bool
         :return:
         """
         args = locals().copy()
         args.pop("self")
         if self.mode != "product":
-            print("\n" + "\n" + str(args) + "\n")
+            logger.info(args)
             return
         token = await self.client.get(
             self.api_url,
@@ -179,7 +187,7 @@ class Wiki:
             "expiry": "infinite",
         }
         for key in args:
-            if not args[key] is None:
+            if args[key] is not None:
                 if key == "cascade" and args[key]:
                     post_data[key] = "1"
                 else:
@@ -217,7 +225,7 @@ class Wiki:
             % quote(filename)
         }
         for key in args:
-            if not args[key] is None:
+            if args[key] is not None:
                 upload_data[key] = args[key]
         r = await self.client.post(
             self.api_url,
