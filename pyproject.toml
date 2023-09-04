@@ -7,16 +7,18 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-apscheduler = "^3.10.1"
 bson = "^0.5.10"
-fastapi = { version = "^0.98.0", extras = ["all"] }
+click = "^8.1.7"
 httpx = "^0.24.1"
 loguru = "^0.7.0"
 pillow = "^10.0.0"
-pycryptodome = "^3.18.0"
-sentry-sdk = { version = "^1.28.1", extras=["loguru", "httpx"] }
-tenacity = "^8.2.2"
 unitypy = "^1.10.1"
+tenacity = "^8.2.2"
+apscheduler = "^3.10.1"
+pycryptodome = "^3.18.0"
+fastapi = { version = "^0.103.0", extras = ["all"] }
+sentry-sdk = { version = "^1.28.1", extras=["loguru", "httpx"] }
+cashews = "^6.2.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.0.282"

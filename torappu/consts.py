@@ -8,7 +8,8 @@ GAMEDATA_DIR = STORAGE_DIR / "asset" / "gamedata"
 HEADERS = {
     "user-agent": "Dalvik/2.1.0 (Linux; U; Android 6.0.1; vivo X9L Build/MMB29M)"
 }
-BASEURL = "https://ak.hycdn.cn/assetbundle/official/Android/assets/"
+WIKI_API_ENDPOINT = "https://prts.wiki/api.php"
+HG_CN_BASEURL = "https://ak.hycdn.cn/assetbundle/official/Android/assets/"
 PROFESSIONS = {
     "PIONEER": "先锋",
     "WARRIOR": "近卫",

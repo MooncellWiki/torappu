@@ -1,11 +1,13 @@
 import asyncio
 import concurrent.futures
 
+import uvicorn
 from loguru import logger
 from pydantic import BaseModel
 from fastapi import FastAPI, BackgroundTasks
 
 from torappu.core.main import run
+
 from ..models import Version
 
 app = FastAPI()
@@ -53,3 +55,7 @@ async def start_task(
     except Exception:
         pass
     return Resp(code=0, message="started")
+
+
+if __name__ == "__main__":
+    uvicorn.run(app)

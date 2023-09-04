@@ -236,9 +236,9 @@ class GameData(Task):
                     f.write(pack_data)
 
     async def inner_run(self):
-        for info in self.client.hot_update_list["abInfos"]:
-            if info["name"].startswith("gamedata"):
-                await self.unpack(info["name"])
+        for info in self.client.hot_update_list.abInfos:
+            if info.name.startswith("gamedata"):
+                await self.unpack(info.name)
 
     def __init__(self, client: Client) -> None:
         super().__init__(client)
