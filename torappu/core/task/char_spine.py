@@ -52,11 +52,8 @@ class CharSpine(Task):
 
     def update_config(self, name: str, skin: str, side: str):
         self.changed_char.setdefault(name, SpineConfig(name=name, skin={}))
-        skin_name = None
-        if skin == "defaultskin":
-            skin_name = "默认"
-        else:
-            skin_name = self.skin_map[skin]
+        skin_name = "默认" if skin == "defaultskin" else self.skin_map.get(skin, None)
+        assert skin_name is not None, f"skin {skin} not found"
         self.changed_char[name].skin.setdefault(skin_name, {})
         side_map = {
             "spine": "战斗",
@@ -225,7 +222,6 @@ class CharSpine(Task):
             logger.info(f"start unpack {ab_path}")
             real_path = await self.client.resolve_ab(ab_path)
             self.unpack_ab(real_path)
-            logger.info(f"unpacked {ab_path}")
             logger.info(f"unpacked {ab_path}")
         for config in self.changed_char:
             if config in self.char_map:
