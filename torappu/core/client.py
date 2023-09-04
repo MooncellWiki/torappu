@@ -11,6 +11,8 @@ import UnityPy
 from loguru import logger
 from tenacity import retry, stop_after_attempt
 
+from torappu.core.wiki import Wiki
+
 from ..models import Config, Version
 from ..consts import BASEURL, HEADERS, STORAGE_DIR
 
@@ -60,6 +62,9 @@ class Client:
         self.asset_to_bundle = {}
         token = os.environ.get("TOKEN")
         endpoint = os.environ.get("ENDPOINT")
+        self.wiki = Wiki(
+            "https://prts.wiki/api.php", mode=os.environ.get("ENV") or "test"
+        )
         if token is not None and endpoint is not None:
             self.config = Config(token=token, endpoint=endpoint)
 
@@ -72,6 +77,9 @@ class Client:
         else:
             self.prev_hot_update_list = None
         await self.init_torappu()
+        await self.wiki.login(
+            os.environ.get("WIKI_USERNAME"), os.environ.get("WIKI_PASSWORD")
+        )
 
     def _get_hot_update_list_path(self, res: str) -> pathlib.Path:
         return STORAGE_DIR / "hotUpdateList" / f"{res}.json"

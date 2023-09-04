@@ -6,6 +6,7 @@ from sentry_sdk.integrations.asyncio import AsyncioIntegration
 
 from torappu.core.client import Client
 from torappu.core.task.gamedata import GameData
+from torappu.core.task.char_spine import CharSpine
 from torappu.core.task.enemy_spine import EnemySpine
 from torappu.core.task.item_demand import ItemDemand
 
@@ -30,7 +31,12 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
             ],
         )
 
-    tasks = [GameData, ItemDemand, EnemySpine]
+    tasks = [
+        GameData,
+        ItemDemand,
+        EnemySpine,
+        CharSpine,
+    ]
 
     client = Client(version, prev)
     try:
@@ -45,5 +51,5 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
             if inst.need_run(diff):
                 await inst.run()
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             return

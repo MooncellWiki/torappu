@@ -41,6 +41,7 @@ def material2img(mat: "Material") -> tuple[Image.Image, str]:
     return Image.merge("RGBA", (r, g, b, a)), rgbtexture.name
 
 
+# https://github.com/Perfare/AssetStudio/blob/master/AssetStudioGUI/Studio.cs#L210
 def build_container_path(env: "Environment") -> dict[int, str]:
     container_map: dict[int, str] = {}
     for obj in filter(lambda obj: obj.type.name == "AssetBundle", env.objects):

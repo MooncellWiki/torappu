@@ -1,5 +1,8 @@
+import json
+
 from loguru import logger
 
+from torappu.consts import GAMEDATA_DIR
 from torappu.core.client import Change, Client
 
 
@@ -20,3 +23,7 @@ class Task:
 
     async def inner_run(self):
         pass
+
+    def get_gamedata(self, path: str):
+        with open(GAMEDATA_DIR / self.client.version.res_version / path) as f:
+            return json.load(f)

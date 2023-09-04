@@ -1,6 +1,6 @@
-import pathlib
+from pathlib import Path
 
-BASE_DIR = pathlib.Path(__file__).parent.parent.absolute()
+BASE_DIR = Path(__file__).parent.parent.absolute()
 STORAGE_DIR = BASE_DIR / "storage"
 TEMP_DIR = BASE_DIR / "temp"
 FBS_DIR = BASE_DIR / "OpenArknightsFBS" / "FBS"

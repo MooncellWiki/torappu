@@ -29,16 +29,10 @@ class EnemySpine(Task):
 
     def unpack_ab(self, real_path):
         env = UnityPy.load(real_path)
-        # https://github.com/Perfare/AssetStudio/blob/master/AssetStudioGUI/Studio.cs#L210
+
         container_map = build_container_path(env)
 
         def unpack(data: "MonoBehaviour", path: str):
-            container_path = (
-                container_map[data.path_id]
-                .replace("assets/torappu/dynamicassets/battle/prefabs/enemies/", "")
-                .replace(".prefab", "")
-            )
-
             base_dir = STORAGE_DIR / "asset" / "raw" / "enemySpine" / path
             base_dir.mkdir(parents=True, exist_ok=True)
             skel: TextAsset = data.skeletonJSON.read()  # type: ignore
@@ -55,7 +49,7 @@ class EnemySpine(Task):
                     mat: Material = mat_pptr.read()
                     img, name = material2img(mat)
                     img.save(base_dir / (name + ".png"))
-            logger.info(f"{container_path} saved")
+            logger.info(f"{base_dir} saved")
 
         for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
             game_obj: GameObject = obj.read()  # type: ignore

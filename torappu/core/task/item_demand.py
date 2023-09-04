@@ -3,10 +3,10 @@ import itertools
 
 import httpx
 
+from torappu.consts import BASE_DIR
 from torappu.core.client import Change
 from torappu.core.task.base import Task
 from torappu.core.task.utils import trans_prof
-from torappu.consts import BASE_DIR, GAMEDATA_DIR
 
 
 def ensure_item_exists(item_demand, item_name, char_id, char_detail, skill_num):
@@ -30,10 +30,6 @@ class ItemDemand(Task):
     def need_run(self, change_list: list[Change]) -> bool:
         return True
 
-    def fetch_data(self, path: str):
-        with open(GAMEDATA_DIR / self.client.version.res_version / path) as f:
-            return json.load(f)
-
     async def inner_run(self):
         demand = self.get_item_demand()
         if self.client.config is None:
@@ -48,10 +44,10 @@ class ItemDemand(Task):
             )
 
     def get_item_demand(self):
-        character_table = self.fetch_data("excel/character_table.json")
-        item_table = self.fetch_data("excel/item_table.json")
-        char_patch_table = self.fetch_data("excel/char_patch_table.json")
-        uniequip_table = self.fetch_data("excel/uniequip_table.json")
+        character_table = self.get_gamedata("excel/character_table.json")
+        item_table = self.get_gamedata("excel/item_table.json")
+        char_patch_table = self.get_gamedata("excel/char_patch_table.json")
+        uniequip_table = self.get_gamedata("excel/uniequip_table.json")
 
         for patch_char_id, patch_char_detail in char_patch_table["patchChars"].items():
             patch_char_detail[
