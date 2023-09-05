@@ -1,12 +1,13 @@
+from typing import Any, TypeVar
 from functools import wraps, partial
 from typing_extensions import ParamSpec
-from typing import Any, TypeVar
 from collections.abc import Callable, Coroutine
 
 import anyio
 
 P = ParamSpec("P")
 R = TypeVar("R")
+
 
 def run_sync(func: Callable[P, R]) -> Callable[P, Coroutine[Any, Any, R]]:
     @wraps(func)

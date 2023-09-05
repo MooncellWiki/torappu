@@ -1,4 +1,3 @@
-import os
 import json
 import pathlib
 from io import BytesIO
@@ -9,11 +8,10 @@ import httpx
 import UnityPy
 from tenacity import retry, stop_after_attempt
 
-from torappu.core.wiki import Wiki
-
+from .wiki import Wiki
 from ..log import logger
-from ..models import ABInfo, Change, Version, HotUpdateInfo
 from ..config import Config
+from ..models import ABInfo, Change, Version, HotUpdateInfo
 from ..consts import HEADERS, STORAGE_DIR, HG_CN_BASEURL, WIKI_API_ENDPOINT
 
 
@@ -31,7 +29,7 @@ class Client:
         self.version = version
         self.prev_version = prev_version
         self.asset_to_bundle = {}
-        self.wiki = Wiki(WIKI_API_ENDPOINT, mode=self.config.environment)
+        self.wiki = Wiki(WIKI_API_ENDPOINT, self.config)
 
     async def init(self):
         self.hot_update_list = await self.load_hot_update_list(self.version.res_version)
@@ -43,7 +41,7 @@ class Client:
             self.prev_hot_update_list = None
         await self.load_torappu_index()
         await self.wiki.login(
-            os.environ.get("WIKI_USERNAME"), os.environ.get("WIKI_PASSWORD")
+            self.config.wiki_username, self.config.wiki_password
         )
 
     def _get_hot_update_list_path(self, res: str) -> pathlib.Path:
@@ -120,9 +118,7 @@ class Client:
     @retry(stop=stop_after_attempt(3))
     async def download_ab(self, path: str) -> bytes:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            url = (
-                f"{HG_CN_BASEURL}{self.version.res_version}/{Client.path2url(path)}.dat"
-            )
+            url = f"{HG_CN_BASEURL}{self.version.res_version}/{self.path2url(path)}.dat"
             logger.debug(f"requesting {url}")
             resp = await client.get(url)
             return resp.content

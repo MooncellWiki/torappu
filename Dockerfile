@@ -50,6 +50,6 @@ COPY OpenArknightsFBS /app/OpenArknightsFBS
 
 COPY torappu /app/torappu
 
-COPY flatc /usr/local/bin/
+COPY bin/flatc /usr/local/bin/
 
-CMD ["uvicorn", "torappu.server.main:app", "--host", "0.0.0.0"]
+CMD ["python", "-m", "torappu.server"]
