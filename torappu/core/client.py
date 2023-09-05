@@ -12,12 +12,13 @@ from tenacity import retry, stop_after_attempt
 from torappu.core.wiki import Wiki
 
 from ..log import logger
-from ..models import ABInfo, Change, Config, Version, HotUpdateInfo
+from ..models import ABInfo, Change, Version, HotUpdateInfo
+from ..config import Config
 from ..consts import HEADERS, STORAGE_DIR, HG_CN_BASEURL, WIKI_API_ENDPOINT
 
 
 class Client:
-    config: Config | None
+    config: Config = Config()
     version: Version
     hot_update_list: HotUpdateInfo
 
@@ -30,11 +31,7 @@ class Client:
         self.version = version
         self.prev_version = prev_version
         self.asset_to_bundle = {}
-        token = os.environ.get("TOKEN")
-        endpoint = os.environ.get("ENDPOINT")
-        self.wiki = Wiki(WIKI_API_ENDPOINT, mode=os.environ.get("ENV") or "test")
-        if token is not None and endpoint is not None:
-            self.config = Config(token=token, endpoint=endpoint)
+        self.wiki = Wiki(WIKI_API_ENDPOINT, mode=self.config.environment)
 
     async def init(self):
         self.hot_update_list = await self.load_hot_update_list(self.version.res_version)

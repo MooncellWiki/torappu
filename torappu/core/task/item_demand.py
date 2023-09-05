@@ -38,7 +38,7 @@ class ItemDemand(Task):
             return
         async with httpx.AsyncClient() as client:
             await client.post(
-                self.client.config.endpoint + "/api/v1/item/demand",
+                self.client.config.backend_endpoint + "/api/v1/item/demand",
                 headers={"torappu-auth": self.client.config.token},
                 json=demand,
             )
