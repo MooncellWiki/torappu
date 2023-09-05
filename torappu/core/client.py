@@ -1,17 +1,17 @@
 import os
 import json
 import pathlib
-import zipfile
 from io import BytesIO
 from hashlib import md5
+from zipfile import ZipFile
 
 import httpx
 import UnityPy
-from loguru import logger
 from tenacity import retry, stop_after_attempt
 
 from torappu.core.wiki import Wiki
 
+from ..log import logger
 from ..models import ABInfo, Change, Config, Version, HotUpdateInfo
 from ..consts import HEADERS, STORAGE_DIR, HG_CN_BASEURL, WIKI_API_ENDPOINT
 
@@ -66,11 +66,14 @@ class Client:
             if info.name not in cur_map:
                 result.append(Change(kind="remove", abPath=info.name))
                 continue
+
             sign = cur_map[info.name]
             del cur_map[info.name]
             if sign == info.md5:
                 continue
+
             result.append(Change(kind="change", abPath=info.name))
+
         for k, v in cur_map.items():
             result.append(Change(kind="add", abPath=k))
 
@@ -86,12 +89,15 @@ class Client:
         async with httpx.AsyncClient(
             timeout=10.0,
         ) as client:
-            logger.debug(f"request {HG_CN_BASEURL}{res_version}/hot_update_list.json")
+            url = f"{HG_CN_BASEURL}{res_version}/hot_update_list.json"
+
+            logger.debug(f"request {url}")
             resp = await client.get(
-                f"{HG_CN_BASEURL}{res_version}/hot_update_list.json",
+                url,
                 headers=HEADERS,
             )
             result = resp.json()
+
             return result
 
     async def load_hot_update_list(self, res_version: str) -> HotUpdateInfo:
@@ -101,12 +107,14 @@ class Client:
         result = await self.download_hot_update_list(res_version)
         p = self._get_hot_update_list_path(res_version)
         p.parent.mkdir(parents=True, exist_ok=True)
-        with open(p, "w") as f:
-            json.dump(result, f)
+        p.write_text(json.dumps(result), "utf-8")
+
         return result
 
     def get_abinfo_by_path(self, path: str) -> ABInfo:
-        return next(info for info in self.hot_update_list.abInfos if info.name == path)
+        return next(
+            filter(lambda info: info.name == path, self.hot_update_list.abInfos)
+        )
 
     @staticmethod
     def path2url(path: str) -> str:
@@ -127,16 +135,17 @@ class Client:
         info = self.get_abinfo_by_path(path + ".ab")
 
         if (
-            md5path := STORAGE_DIR / "assetBundle" / f"{info.md5}.ab"
-        ).exists() and info.md5 == md5(md5path.read_bytes()).hexdigest():
-            return md5path.as_posix()
-        md5path.parent.mkdir(parents=True, exist_ok=True)
-        content = await self.download_ab(path)
-        file = BytesIO(content)
-        with zipfile.ZipFile(file) as myzip:
-            md5path.write_bytes(myzip.read(myzip.filelist[0]))
+            md5_path := STORAGE_DIR / "assetBundle" / f"{info.md5}.ab"
+        ).exists() and info.md5 == md5(md5_path.read_bytes()).hexdigest():
+            return md5_path.as_posix()
 
-        return md5path.as_posix()
+        md5_path.parent.mkdir(parents=True, exist_ok=True)
+        content = await self.download_ab(path)
+
+        with ZipFile(BytesIO(content)) as myzip:
+            md5_path.write_bytes(myzip.read(myzip.filelist[0]))
+
+        return md5_path.as_posix()
 
     async def load_torappu_index(self):
         path = await self.resolve_ab("torappu_index")

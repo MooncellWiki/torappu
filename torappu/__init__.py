@@ -1,7 +1,7 @@
 from importlib.metadata import version
 
 try:
-    __version__ = version("nb-cli")
+    __version__ = version("torappu")
 except Exception:
     __version__ = None
 

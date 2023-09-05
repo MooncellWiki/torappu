@@ -1,16 +1,13 @@
 import sentry_sdk
-from loguru import logger
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
+from sentry_sdk.integrations.logging import EventHandler, BreadcrumbHandler
 
-from torappu.core.client import Client
-from torappu.core.task.gamedata import GameData
-from torappu.core.task.char_spine import CharSpine
-from torappu.core.task.enemy_spine import EnemySpine
-from torappu.core.task.item_demand import ItemDemand
-
+from ..log import logger
+from .client import Client
 from ..models import Version
+from .task import GameData, CharSpine, EnemySpine, ItemDemand
 
 
 async def run(version: Version, prev: Version | None, sentry: bool = False):
@@ -29,6 +26,14 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
                 HttpxIntegration(),
                 LoguruIntegration(),
             ],
+        )
+        logger.add(
+            EventHandler("ERROR"),
+            filter=lambda r: r["level"].no >= logger.level("ERROR").no,
+        )
+        logger.add(
+            BreadcrumbHandler("INFO"),
+            filter=lambda r: r["level"].no >= logger.level("INFO").no,
         )
 
     tasks = [
