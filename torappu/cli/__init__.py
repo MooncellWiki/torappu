@@ -23,8 +23,8 @@ from .utils import run_async as run_async
 )
 @click.argument("client_version")
 @click.argument("res_version")
-@click.option("--prev_client_version", help="number of greetings")
-@click.option("--prev_res_version", help="number of greetings")
+@click.option("--prev_client_version", help="prev client version")
+@click.option("--prev_res_version", help="prev res version")
 @run_async
 async def cli(
     client_version: str,
@@ -33,7 +33,9 @@ async def cli(
     prev_res_version: str,
 ):
     version = Version(res_version=res_version, client_version=client_version)
-    prev = None
-    if prev_client_version is not None and prev_res_version is not None:
-        prev = Version(res_version=prev_res_version, client_version=prev_client_version)
+    prev = (
+        Version(res_version=prev_res_version, client_version=prev_client_version)
+        if prev_client_version and prev_res_version
+        else None
+    )
     asyncio.run(run(version, prev))

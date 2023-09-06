@@ -40,23 +40,20 @@ class Client:
         else:
             self.prev_hot_update_list = None
         await self.load_torappu_index()
-        await self.wiki.login(
-            self.config.wiki_username, self.config.wiki_password
-        )
+        await self.wiki.login(self.config.wiki_username, self.config.wiki_password)
 
     def _get_hot_update_list_path(self, res: str) -> pathlib.Path:
         return STORAGE_DIR / "HotUpdateInfo" / f"{res}.json"
 
     def diff(self) -> list[Change]:
-        result = [
-            Change(kind="add", abPath=info.name)
-            for info in self.hot_update_list.abInfos
-        ]
+        result = []
         if self.prev_hot_update_list is None:
-            return result
+            return [
+                Change(kind="add", abPath=info.name)
+                for info in self.hot_update_list.abInfos
+            ]
 
         cur_map = {info.name: info.md5 for info in self.hot_update_list.abInfos}
-
         for info in self.prev_hot_update_list.abInfos:
             if info.name not in cur_map:
                 result.append(Change(kind="remove", abPath=info.name))
