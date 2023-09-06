@@ -1,5 +1,8 @@
+import os
+import sys
 from pathlib import Path
 
+WINDOWS = sys.platform.startswith("win") or (sys.platform == "cli" and os.name == "nt")
 BASE_DIR = Path(__file__).parent.parent.absolute()
 STORAGE_DIR = BASE_DIR / "storage"
 TEMP_DIR = BASE_DIR / "temp"

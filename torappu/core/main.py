@@ -47,7 +47,7 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
     try:
         await client.init()
     except Exception as e:
-        logger.error(e)
+        logger.exception(e)
         return
     diff = client.diff()
     for task in tasks:

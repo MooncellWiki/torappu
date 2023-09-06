@@ -1,5 +1,3 @@
-import asyncio
-
 import click
 
 from torappu import __version__
@@ -32,10 +30,13 @@ async def cli(
     prev_client_version: str,
     prev_res_version: str,
 ):
-    version = Version(res_version=res_version, client_version=client_version)
-    prev = (
-        Version(res_version=prev_res_version, client_version=prev_client_version)
-        if prev_client_version and prev_res_version
-        else None
-    )
-    asyncio.run(run(version, prev))
+    try:
+        version = Version(res_version=res_version, client_version=client_version)
+        prev = (
+            Version(res_version=prev_res_version, client_version=prev_client_version)
+            if prev_client_version and prev_res_version
+            else None
+        )
+        await run(version, prev)
+    except KeyboardInterrupt:
+        click.Abort()

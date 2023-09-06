@@ -1,11 +1,12 @@
 import json
-import pathlib
 from io import BytesIO
 from hashlib import md5
+from pathlib import Path
 from zipfile import ZipFile
 
 import httpx
 import UnityPy
+from UnityPy.classes import MonoBehaviour
 from tenacity import retry, stop_after_attempt
 
 from .wiki import Wiki
@@ -40,9 +41,10 @@ class Client:
         else:
             self.prev_hot_update_list = None
         await self.load_torappu_index()
-        await self.wiki.login(self.config.wiki_username, self.config.wiki_password)
+        if self.config.environment == "prod":
+            await self.wiki.login(self.config.wiki_username, self.config.wiki_password)
 
-    def _get_hot_update_list_path(self, res: str) -> pathlib.Path:
+    def _get_hot_update_list_path(self, res: str) -> Path:
         return STORAGE_DIR / "HotUpdateInfo" / f"{res}.json"
 
     def diff(self) -> list[Change]:
@@ -72,8 +74,10 @@ class Client:
         return result
 
     def _try_load_hot_update_list(self, res: str) -> HotUpdateInfo | None:
-        return HotUpdateInfo.model_validate_json(
-            self._get_hot_update_list_path(res).read_text("utf-8")
+        return (
+            HotUpdateInfo.model_validate_json(path.read_text("utf-8"))
+            if (path := self._get_hot_update_list_path(res)).exists()
+            else None
         )
 
     @retry(stop=stop_after_attempt(3))
@@ -141,14 +145,14 @@ class Client:
         path = await self.resolve_ab("torappu_index")
         env = UnityPy.load(path)
 
-        torappu_index = next(
-            typetree
-            for obj in filter(
-                lambda object: object.type == "MonoBehaviour", env.objects
-            )
-            if (typetree := obj.read_typetree())["m_Name"] == "torappu_index"
-        )
-        self.asset_to_bundle = {
-            item["assetName"]: item["bundleName"]
-            for item in torappu_index["assetToBundleList"]
-        }
+        torappu_index: MonoBehaviour | None = None
+        for asset in filter(lambda object: object.type == "MonoBehaviour", env.objects):
+            behavior = asset.read()
+            if isinstance(behavior, MonoBehaviour) and behavior.name == "torappu_index":
+                torappu_index = behavior
+
+        if torappu_index:
+            self.asset_to_bundle = {
+                item["assetName"]: item["bundleName"]
+                for item in torappu_index.type_tree["assetToBundleList"]
+            }

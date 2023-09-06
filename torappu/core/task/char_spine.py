@@ -20,7 +20,7 @@ class FileConfig(BaseModel):
 
 
 class SpineConfig(BaseModel):
-    prefix = "https://torappu.prts.wiki/assets/charSpine/"
+    prefix: str = "https://torappu.prts.wiki/assets/charSpine/"
     name: str
     skin: dict[str, dict[str, FileConfig]]
 

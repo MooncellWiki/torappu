@@ -1,21 +1,24 @@
 from pathlib import Path
 from ipaddress import IPv4Address
+from typing import Literal
 
 from pydantic import IPvAnyAddress
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from torappu.consts import WINDOWS
 
 
 class Config(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    environment: str = "dev"
+    environment: Literal["prod", "dev"] = "dev"
 
     host: IPvAnyAddress = IPv4Address("0.0.0.0")  # type: ignore
     token: str = ""
     timeout: int = 10
 
     backend_endpoint: str = ""
-    flatc_path: Path = Path("flatc")
+    flatc_path: Path = Path("bin/flatc.exe" if WINDOWS else "bin/flatc")
 
     wiki_username: str = ""
     wiki_password: str = ""
