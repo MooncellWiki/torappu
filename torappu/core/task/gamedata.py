@@ -89,10 +89,10 @@ class GameData(Task):
             ],
         ]
 
-        return matched[0] if matched and self._check_not_plaintext(path) else None
+        return matched[0] if matched and await self._check_not_plaintext(path) else None
 
     async def _check_not_plaintext(self, path: str):
-        return any(plaintext not in path for plaintext in plaintexts)
+        return all(plaintext not in path for plaintext in plaintexts)
 
     async def _check_encrypted(self, path: str) -> bool:
         return any(
@@ -154,11 +154,8 @@ class GameData(Task):
         cipher_data = (
             bytearray(obj.script)[128:] if is_signed else bytearray(obj.script)
         )
-        try:
-            for i in range(16):
-                cipher_data[i] ^= iv[i]
-        except Exception as e:
-            print(path, e)
+        for i in range(16):
+            cipher_data[i] ^= iv[i]
 
         cipher = AES.new(key, AES.MODE_CBC)
         decipher = unpad(bytearray(cipher.decrypt(cipher_data)), 16)
@@ -208,7 +205,6 @@ class GameData(Task):
         script: bytes = obj.script
         is_signed = await self._check_signed(path)
         is_encrypted = await self._check_encrypted(path)
-        print(path, is_encrypted)
         fb_name = await self._get_flatbuffer_name(path)
 
         if fb_name is not None:
@@ -254,10 +250,7 @@ class GameData(Task):
         )
 
     async def inner_run(self):
-        return await asyncio.gather(
-            *(
-                self.unpack(info.name)
-                for info in self.client.hot_update_list.abInfos
-                if info.name.startswith("gamedata")
-            )
-        )
+        for info in filter(
+            lambda i: i.name.startswith("gamedata"), self.client.hot_update_list.abInfos
+        ):
+            await self.unpack(info.name)

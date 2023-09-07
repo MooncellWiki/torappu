@@ -5,6 +5,7 @@ from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.logging import EventHandler, BreadcrumbHandler
 
 from torappu.config import Config
+from torappu.core.task.base import Task
 
 from ..log import logger
 from .client import Client
@@ -39,14 +40,14 @@ async def run(version: Version, prev: Version | None):
             filter=lambda r: r["level"].no >= logger.level("INFO").no,
         )
 
-    tasks = [
+    tasks: list[type[Task]] = [
         GameData,
         ItemDemand,
         EnemySpine,
         CharSpine,
     ]
 
-    client = Client(version, prev,config)
+    client = Client(version, prev, config)
     try:
         await client.init()
     except Exception as e:
@@ -54,10 +55,6 @@ async def run(version: Version, prev: Version | None):
         return
     diff = client.diff()
     for task in tasks:
-        try:
-            inst = task(client)
-            if inst.need_run(diff):
-                await inst.run()
-        except Exception as e:
-            logger.exception(e)
-            return
+        inst = task(client)
+        if inst.need_run(diff):
+            await inst.run()

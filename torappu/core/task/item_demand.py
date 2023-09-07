@@ -41,7 +41,7 @@ class ItemDemand(Task):
                 )
         else:
             dest = BASE_DIR / "itemDemand.json"
-            dest.write_text(json.dumps(demand))
+            dest.write_text(json.dumps(demand, ensure_ascii=False))
 
     def get_item_demand(self):
         character_table = self.get_gamedata("excel/character_table.json")
