@@ -4,8 +4,8 @@ from torappu import __version__
 from torappu.core.main import run
 
 from ..models import Version
-from .utils import run_sync as run_sync
-from .utils import run_async as run_async
+from ..utils import run_sync as run_sync
+from ..utils import run_async as run_async
 
 
 @click.group(
