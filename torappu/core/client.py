@@ -41,7 +41,7 @@ class Client:
         else:
             self.prev_hot_update_list = None
         await self.load_torappu_index()
-        if self.config.environment == "prod":
+        if self.config.is_production():
             await self.wiki.login(self.config.wiki_username, self.config.wiki_password)
 
     def _get_hot_update_list_path(self, res: str) -> Path:

@@ -26,3 +26,6 @@ class Config(BaseSettings):
     sentry_dsn: str = (
         "https://a743fee458854a24b86356cb8520a975@ingest.sentry.mooncell.wiki/9"
     )
+
+    def is_production(self):
+        return self.environment == "prod"
