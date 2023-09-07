@@ -32,16 +32,16 @@ class ItemDemand(Task):
 
     async def inner_run(self):
         demand = self.get_item_demand()
-        if self.client.config is None:
-            with open(BASE_DIR / "itemDemand.json", "w+") as f:
-                json.dump(demand, f)
-            return
-        async with httpx.AsyncClient() as client:
-            await client.post(
-                self.client.config.backend_endpoint + "/api/v1/item/demand",
-                headers={"torappu-auth": self.client.config.token},
-                json=demand,
-            )
+        if self.client.config.backend_endpoint:
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    self.client.config.backend_endpoint + "/api/v1/item/demand",
+                    headers={"torappu-auth": self.client.config.token},
+                    json=demand,
+                )
+        else:
+            dest = BASE_DIR / "itemDemand.json"
+            dest.write_text(json.dumps(demand))
 
     def get_item_demand(self):
         character_table = self.get_gamedata("excel/character_table.json")
