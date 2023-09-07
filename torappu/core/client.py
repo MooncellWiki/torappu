@@ -123,9 +123,13 @@ class Client:
     @retry(stop=stop_after_attempt(3))
     async def download_ab(self, path: str) -> bytes:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            url = f"{HG_CN_BASEURL}{self.version.res_version}/{self.path2url(path)}.dat"
-            logger.debug(f"requesting {url}")
-            resp = await client.get(url)
+            filename = self.path2url(path)
+
+            logger.debug(f"downloading {filename}")
+            resp = await client.get(
+                f"{HG_CN_BASEURL}{self.version.res_version}/{filename}.dat"
+            )
+
             return resp.content
 
     # .ab的路径
