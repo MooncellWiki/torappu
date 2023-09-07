@@ -89,16 +89,15 @@ class GameData(Task):
             ],
         ]
 
-        return (
-            matched[0]
-            if matched and any(plaintext not in path for plaintext in plaintexts)
-            else None
-        )
+        return matched[0] if matched and self._check_not_plaintext(path) else None
+
+    async def _check_not_plaintext(self, path: str):
+        return any(plaintext not in path for plaintext in plaintexts)
 
     async def _check_encrypted(self, path: str) -> bool:
-        return any(encrypted in path for encrypted in encrypted_list) and any(
-            plaintext not in path for plaintext in plaintexts
-        )
+        return any(
+            encrypted in path for encrypted in encrypted_list
+        ) and await self._check_not_plaintext(path)
 
     async def _check_signed(self, path: str) -> bool:
         return any(signed in path for signed in signed_list)
@@ -159,7 +158,7 @@ class GameData(Task):
             for i in range(16):
                 cipher_data[i] ^= iv[i]
         except Exception as e:
-            print(path,e)
+            print(path, e)
 
         cipher = AES.new(key, AES.MODE_CBC)
         decipher = unpad(bytearray(cipher.decrypt(cipher_data)), 16)
@@ -209,7 +208,7 @@ class GameData(Task):
         script: bytes = obj.script
         is_signed = await self._check_signed(path)
         is_encrypted = await self._check_encrypted(path)
-        print(path,is_encrypted)
+        print(path, is_encrypted)
         fb_name = await self._get_flatbuffer_name(path)
 
         if fb_name is not None:
