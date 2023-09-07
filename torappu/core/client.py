@@ -17,7 +17,8 @@ from ..consts import HEADERS, STORAGE_DIR, HG_CN_BASEURL, WIKI_API_ENDPOINT
 
 
 class Client:
-    config: Config = Config()
+    config: Config
+
     version: Version
     hot_update_list: HotUpdateInfo
 
@@ -26,9 +27,12 @@ class Client:
 
     asset_to_bundle: dict[str, str]
 
-    def __init__(self, version: Version, prev_version: Version | None) -> None:
+    def __init__(
+        self, version: Version, prev_version: Version | None, config: Config
+    ) -> None:
         self.version = version
         self.prev_version = prev_version
+        self.config = config
         self.asset_to_bundle = {}
         self.wiki = Wiki(WIKI_API_ENDPOINT, self.config)
 

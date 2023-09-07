@@ -4,22 +4,25 @@ from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.logging import EventHandler, BreadcrumbHandler
 
+from torappu.config import Config
+
 from ..log import logger
 from .client import Client
 from ..models import Version
 from .task import GameData, CharSpine, EnemySpine, ItemDemand
 
 
-async def run(version: Version, prev: Version | None, sentry: bool = False):
+async def run(version: Version, prev: Version | None):
     if prev == version:
         logger.info("version not change")
         return
-    if sentry:
+
+    if (config := Config()).sentry_dsn:
+        # Set traces_sample_rate to 1.0 to capture 100%
+        # of transactions for performance monitoring.
+        # We recommend adjusting this value in production.
         sentry_sdk.init(
-            "https://a743fee458854a24b86356cb8520a975@ingest.sentry.mooncell.wiki/9",
-            # Set traces_sample_rate to 1.0 to capture 100%
-            # of transactions for performance monitoring.
-            # We recommend adjusting this value in production.
+            config.sentry_dsn,
             traces_sample_rate=1.0,
             integrations=[
                 AsyncioIntegration(),
@@ -43,7 +46,7 @@ async def run(version: Version, prev: Version | None, sentry: bool = False):
         CharSpine,
     ]
 
-    client = Client(version, prev)
+    client = Client(version, prev,config)
     try:
         await client.init()
     except Exception as e:
