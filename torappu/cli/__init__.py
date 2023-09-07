@@ -39,4 +39,4 @@ async def cli(
         )
         await run(version, prev)
     except KeyboardInterrupt:
-        click.Abort()
+        ...
