@@ -11,7 +11,7 @@ from torappu.consts import WINDOWS
 class Config(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    environment: Literal["prod", "dev"] = "dev"
+    environment: Literal["production", "debug"] = "debug"
 
     host: IPvAnyAddress = IPv4Address("0.0.0.0")  # type: ignore
     token: str = ""
@@ -28,4 +28,4 @@ class Config(BaseSettings):
     )
 
     def is_production(self):
-        return self.environment == "prod"
+        return self.environment == "production"
