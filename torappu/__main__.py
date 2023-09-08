@@ -2,7 +2,12 @@ import sys
 
 import anyio
 
-from . import cli_main
+from .cli import run_sync
+from .cli import cli as cli_sync
+
+
+async def cli_main(*args, **kwargs):
+    return await run_sync(cli_sync)(*args, **kwargs)
 
 
 def main(*args):
