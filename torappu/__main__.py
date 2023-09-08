@@ -1,3 +1,4 @@
+import os
 import sys
 
 import anyio
@@ -11,11 +12,13 @@ async def cli_main(*args, **kwargs):
 
 
 def main(*args):
-    try:
-        anyio.run(cli_main, *args)
-    except KeyboardInterrupt:
-        sys.exit(1)
+    anyio.run(cli_main, *args)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(1)
+    finally:
+        os._exit(1)
