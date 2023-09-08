@@ -30,6 +30,7 @@ async def run(version: Version, prev: Version | None):
                 HttpxIntegration(),
                 LoguruIntegration(),
             ],
+            environment=config.environment,
         )
         logger.add(
             EventHandler("ERROR"),
