@@ -1,7 +1,10 @@
 import os
+import signal
 import sys
 
 import anyio
+
+from torappu.consts import WINDOWS
 
 from .cli import run_sync
 from .cli import cli as cli_sync
@@ -21,4 +24,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         sys.exit(1)
     finally:
-        os._exit(1)
+        if WINDOWS:
+            os._exit(1)
+        else:
+            os.kill(os.getpid(), signal.SIGINT)
