@@ -14,6 +14,7 @@ from UnityPy.classes import TextAsset
 from torappu.core.task.base import Task
 from torappu.core.client import Change, Client
 from torappu.consts import FBS_DIR, TEMP_DIR, STORAGE_DIR
+from torappu.log import logger
 
 flatbuffer_list = [
     "ep_breakbuff_table",
@@ -241,16 +242,25 @@ class GameData(Task):
     async def unpack(self, ab_path: str):
         real_path = await self.client.resolve_ab(ab_path[:-3])
         env = UnityPy.load(real_path)
-        return await asyncio.gather(
-            *(
-                self._unpack_gamedata(path, asset)
-                for path, object in env.container.items()
-                if isinstance((asset := object.read()), TextAsset)
+        try:
+            await asyncio.gather(
+                *(
+                    self._unpack_gamedata(path, asset)
+                    for path, object in env.container.items()
+                    if isinstance((asset := object.read()), TextAsset)
+                )
             )
-        )
+        except Exception as e:
+            logger.opt(exception=e).error("Failed to unpack gamedata")
 
     async def inner_run(self):
-        for info in filter(
-            lambda i: i.name.startswith("gamedata"), self.client.hot_update_list.abInfos
-        ):
-            await self.unpack(info.name)
+        gamedata_abs = [
+            info.name
+            for info in self.client.hot_update_list.abInfos
+            if info.name.startswith("gamedata")
+        ]
+
+        logger.debug("start resolve")
+        await asyncio.gather(*(self.client.resolve_ab(ab[:-3]) for ab in gamedata_abs))
+        logger.debug("end resolve")
+        await asyncio.gather(*(self.unpack(ab) for ab in gamedata_abs))

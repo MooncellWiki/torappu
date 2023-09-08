@@ -34,6 +34,7 @@ class Client:
         self.prev_version = prev_version
         self.config = config
         self.asset_to_bundle = {}
+        self.http_client = httpx.AsyncClient()
         self.wiki = Wiki(WIKI_API_ENDPOINT, self.config)
 
     async def init(self):
@@ -91,14 +92,14 @@ class Client:
         ) as client:
             url = f"{HG_CN_BASEURL}{res_version}/hot_update_list.json"
 
-            logger.debug(f"request {url}")
+            logger.debug(f"downloading hot_update_list.json res_version:{res_version}")
             resp = await client.get(
                 url,
                 headers=HEADERS,
             )
             result = resp.json()
 
-            return result
+            return HotUpdateInfo.model_validate(result)
 
     async def load_hot_update_list(self, res_version: str) -> HotUpdateInfo:
         if (result := self._try_load_hot_update_list(res_version)) is not None:
@@ -107,7 +108,7 @@ class Client:
         result = await self.download_hot_update_list(res_version)
         p = self._get_hot_update_list_path(res_version)
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(json.dumps(result), "utf-8")
+        p.write_text(result.model_dump_json(), "utf-8")
 
         return result
 
@@ -122,15 +123,14 @@ class Client:
 
     @retry(stop=stop_after_attempt(3))
     async def download_ab(self, path: str) -> bytes:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            filename = self.path2url(path)
+        filename = f"{self.path2url(path)}.dat"
 
-            logger.debug(f"downloading {filename}")
-            resp = await client.get(
-                f"{HG_CN_BASEURL}{self.version.res_version}/{filename}.dat"
-            )
+        resp = await self.http_client.get(
+            f"{HG_CN_BASEURL}{self.version.res_version}/{filename}"
+        )
+        logger.debug(f"downloaded {filename}")
 
-            return resp.content
+        return resp.content
 
     # .ab的路径
     async def resolve_ab(self, path: str) -> str:
