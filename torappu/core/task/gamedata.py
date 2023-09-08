@@ -260,7 +260,5 @@ class GameData(Task):
             if info.name.startswith("gamedata")
         ]
 
-        logger.debug("start resolve")
         await asyncio.gather(*(self.client.resolve_ab(ab[:-3]) for ab in gamedata_abs))
-        logger.debug("end resolve")
         await asyncio.gather(*(self.unpack(ab) for ab in gamedata_abs))
