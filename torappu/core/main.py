@@ -51,10 +51,13 @@ async def run(version: Version, prev: Version | None):
     try:
         await client.init()
     except Exception as e:
-        logger.exception(e)
+        logger.opt(exception=e).error("Failed to init client")
         return
     diff = client.diff()
     for task in tasks:
         inst = task(client)
         if inst.need_run(diff):
-            await inst.run()
+            try:
+                await inst.run()
+            except Exception as e:
+                logger.opt(exception=e).error(f"Failed to run task {task.__name__}")
