@@ -1,11 +1,11 @@
+import asyncio
+
 import click
 
 from torappu import __version__
 from torappu.core.main import run
 
 from ..models import Version
-from ..utils import run_sync as run_sync
-from ..utils import run_async as run_async
 
 
 @click.group(
@@ -23,8 +23,7 @@ from ..utils import run_async as run_async
 @click.argument("res_version")
 @click.option("--prev_client_version", help="prev client version")
 @click.option("--prev_res_version", help="prev res version")
-@run_async
-async def cli(
+def cli(
     client_version: str,
     res_version: str,
     prev_client_version: str,
@@ -36,4 +35,4 @@ async def cli(
         if prev_client_version and prev_res_version
         else None
     )
-    await run(version, prev)
+    asyncio.run(run(version, prev))
