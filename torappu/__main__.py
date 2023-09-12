@@ -5,7 +5,7 @@ import click
 
 from torappu.log import logger
 from torappu import __version__
-from torappu.core.main import main
+from torappu.core import main
 
 from .models import Version
 

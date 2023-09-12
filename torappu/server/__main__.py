@@ -5,7 +5,7 @@ from loguru import logger
 from pydantic import BaseModel
 from fastapi import FastAPI, BackgroundTasks
 
-from torappu.core.main import main
+from torappu.core import main
 
 from .. import get_config
 from ..models import Version
@@ -27,7 +27,9 @@ class Response(BaseModel):
 
 
 async def task_main(info: VersionInfo):
+    running_token = running.set(True)
     await main(info.cur, info.prev)
+    running.reset(running_token)
 
 
 @app.post("/task")
@@ -40,7 +42,6 @@ async def start_task(
     if running.get():
         return Response(code=1, message="all tasks already started")
 
-    running.set(True)
     background_tasks.add_task(task_main, info)
 
     return Response(code=0, message="started")
