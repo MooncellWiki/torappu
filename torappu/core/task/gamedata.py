@@ -11,10 +11,11 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from UnityPy.classes import TextAsset
 
-from torappu.core.task.base import Task
-from torappu.core.client import Change, Client
-from torappu.consts import FBS_DIR, TEMP_DIR, STORAGE_DIR
 from torappu.log import logger
+from torappu.consts import FBS_DIR, TEMP_DIR, STORAGE_DIR
+
+from .base import Task
+from ..client import Change, Client
 
 flatbuffer_list = [
     "ep_breakbuff_table",

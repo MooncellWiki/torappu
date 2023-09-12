@@ -1,21 +1,16 @@
-from typing import TYPE_CHECKING
-
 from PIL import Image
-from loguru import logger
+from UnityPy import Environment
+from UnityPy.classes import Material, Texture2D
 
+from torappu.log import logger
 from torappu.consts import PROFESSIONS
-
-if TYPE_CHECKING:
-    from UnityPy import Environment
-    from UnityPy.classes.Material import Material
-    from UnityPy.classes.Texture2D import Texture2D
 
 
 def trans_prof(profession):
     return PROFESSIONS[profession]
 
 
-def material2img(mat: "Material") -> tuple[Image.Image, str]:
+def material2img(mat: Material) -> tuple[Image.Image, str]:
     atexture: Texture2D | None = None
     rgbtexture: Texture2D | None = None
     for key, tex in mat.m_SavedProperties.m_TexEnvs.items():
@@ -47,7 +42,7 @@ def material2img(mat: "Material") -> tuple[Image.Image, str]:
 
 
 # https://github.com/Perfare/AssetStudio/blob/master/AssetStudioGUI/Studio.cs#L210
-def build_container_path(env: "Environment") -> dict[int, str]:
+def build_container_path(env: Environment) -> dict[int, str]:
     container_map: dict[int, str] = {}
     for obj in filter(lambda obj: obj.type.name == "AssetBundle", env.objects):
         typetree = obj.read_typetree()

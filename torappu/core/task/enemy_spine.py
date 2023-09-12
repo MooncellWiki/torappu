@@ -1,23 +1,19 @@
-from typing import TYPE_CHECKING
-
 import UnityPy
-from loguru import logger
+from UnityPy.classes import PPtr, Material, TextAsset, GameObject, MonoBehaviour
 
+from torappu.log import logger
 from torappu.consts import STORAGE_DIR
-from torappu.core.task.base import Task
-from torappu.core.task.utils import material2img, build_container_path
 
-if TYPE_CHECKING:
-    from UnityPy.classes import PPtr, Material, TextAsset, GameObject, MonoBehaviour
-
-    from torappu.core.client import Change
+from .base import Task
+from ..client import Change
+from .utils import material2img, build_container_path
 
 
 class EnemySpine(Task):
     name = "EnemySpine"
     ab_list: set[str]
 
-    def need_run(self, change_list: list["Change"]) -> bool:
+    def need_run(self, change_list: list[Change]) -> bool:
         change_set = {change.abPath for change in change_list}
         self.ab_list = {
             bundle

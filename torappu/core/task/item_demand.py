@@ -4,9 +4,10 @@ import itertools
 import httpx
 
 from torappu.consts import BASE_DIR
-from torappu.core.client import Change
-from torappu.core.task.base import Task
-from torappu.core.task.utils import trans_prof
+
+from .base import Task
+from ..client import Change
+from .utils import trans_prof
 
 
 def ensure_item_exists(item_demand, item_name, char_id, char_detail, skill_num):
