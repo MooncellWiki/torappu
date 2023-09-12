@@ -1,8 +1,8 @@
 from pathlib import Path
-from ipaddress import IPv4Address
 from typing import Literal
+from ipaddress import IPv4Address
 
-from pydantic import IPvAnyAddress
+from pydantic import Field, IPvAnyAddress
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from torappu.consts import WINDOWS
@@ -19,6 +19,9 @@ class Config(BaseSettings):
     environment: Literal["production", "debug"] = "debug"
 
     host: IPvAnyAddress = IPv4Address("0.0.0.0")  # type: ignore
+    port: int = Field(default=8080, ge=1, le=65535)
+    log_level: int | str = "INFO"
+
     token: str = ""
     timeout: int = 10
 

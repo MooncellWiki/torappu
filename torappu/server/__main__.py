@@ -7,8 +7,10 @@ from fastapi import FastAPI, BackgroundTasks
 
 from torappu.core.main import main
 
+from .. import get_config
 from ..models import Version
 
+config = get_config()
 app = FastAPI()
 
 running: ContextVar[int] = ContextVar("running", default=False)
@@ -61,4 +63,4 @@ if __name__ == "__main__":
             },
         },
     }
-    uvicorn.run(app, log_config=LOGGING_CONFIG)
+    uvicorn.run(app, host=str(config.host), port=config.port, log_config=LOGGING_CONFIG)
