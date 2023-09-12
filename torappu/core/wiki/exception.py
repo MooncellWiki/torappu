@@ -10,14 +10,6 @@ class WikiException(Exception):
     ...
 
 
-class AuthCredentialError(WikiException):
-    """Auth Credential Error"""
-
-
-class AuthExpiredError(WikiException):
-    """Auth Expired Error"""
-
-
 class RequestError(WikiException):
     """Simple API request failed with unknown error"""
 
