@@ -52,4 +52,6 @@ COPY torappu /app/torappu
 
 COPY bin /app/bin
 
+RUN chmod -R +x /app/bin
+
 CMD ["python", "-m", "torappu.server"]
