@@ -4,10 +4,10 @@ from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.logging import EventHandler, BreadcrumbHandler
 
-from .task import registry
 from ..log import logger
 from .. import get_config
 from .client import Client
+from .task import registry
 from ..models import Version
 
 config = get_config()
@@ -55,8 +55,7 @@ async def main(version: Version, prev: Version | None):
 
     for priority in sorted(registry.keys()):
         for task in registry[priority]:
-            instance = task(client)
-            if instance.need_run(diff):
+            if (instance := task(client)).need_run(diff):
                 try:
                     await instance.run()
                 except Exception as e:
