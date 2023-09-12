@@ -227,6 +227,6 @@ class CharSpine(Task):
             if config in self.char_map:
                 await self.client.wiki.edit(
                     self.char_map[config] + "/spine",
-                    text=self.changed_char[config].json(),
+                    text=self.changed_char[config].model_dump_json(),
                     contentmodel="json",
                 )
