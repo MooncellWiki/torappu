@@ -26,9 +26,9 @@ class Task:
         self.client = client
 
     async def run(self):
-        logger.info(f"start {self.name}")
+        logger.info(f"starting task {type(self).__name__}")
         await self.inner_run()
-        logger.info(f"finished {self.name}")
+        logger.info(f"finished task {type(self).__name__}")
 
     async def inner_run(self):
         pass
