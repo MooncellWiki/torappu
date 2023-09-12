@@ -5,7 +5,7 @@ from loguru import logger
 from pydantic import BaseModel
 from fastapi import FastAPI, BackgroundTasks
 
-from torappu.core.main import run
+from torappu.core.main import main
 
 from ..models import Version
 
@@ -25,7 +25,7 @@ class Response(BaseModel):
 
 
 async def task_main(info: VersionInfo):
-    await run(info.cur, info.prev)
+    await main(info.cur, info.prev)
 
 
 @app.post("/task")

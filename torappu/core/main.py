@@ -13,7 +13,7 @@ from ..models import Version
 from .task import GameData, CharSpine, EnemySpine, ItemDemand
 
 
-async def run(version: Version, prev: Version | None):
+async def main(version: Version, prev: Version | None):
     if prev == version:
         logger.info("version not change")
         return
