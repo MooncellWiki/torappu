@@ -42,7 +42,7 @@ default_format = (
 )
 logger_id = logger.add(
     sys.stdout,
-    colorize=True,
+    colorize=False,
     diagnose=False,
     filter=default_filter,
     format=default_format,

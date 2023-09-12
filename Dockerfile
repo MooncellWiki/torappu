@@ -50,6 +50,6 @@ COPY OpenArknightsFBS /app/OpenArknightsFBS
 
 COPY torappu /app/torappu
 
-COPY bin/flatc /usr/local/bin/
+COPY bin /app/bin
 
 CMD ["python", "-m", "torappu.server"]
