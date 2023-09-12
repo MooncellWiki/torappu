@@ -1,72 +1,40 @@
-import io
-import os
-import json
-import typing
-import hashlib
-import pathlib
-import zipfile
+from io import BytesIO
+from hashlib import md5
+from pathlib import Path
+from zipfile import ZipFile
 
 import httpx
 import UnityPy
-from loguru import logger
+from UnityPy.classes import MonoBehaviour
 from tenacity import retry, stop_after_attempt
 
-from torappu.core.wiki import Wiki
-
-from ..models import Config, Version
-from ..consts import BASEURL, HEADERS, STORAGE_DIR
-
-
-class AbInfo(typing.TypedDict):
-    name: str
-    hash: str
-    md5: str
-    totalSize: int
-    abSize: int
-    cid: int
-
-
-class FullPack(typing.TypedDict):
-    totalSize: int
-    abSize: int
-    type: str
-    cid: int
-
-
-class HotUpdateList(typing.TypedDict):
-    fullPack: FullPack
-    versionID: str
-    countOfTypedRes: int
-    packInfos: list[AbInfo]
-    abInfos: list[AbInfo]
-
-
-class Change(typing.TypedDict):
-    kind: typing.Literal["add", "change", "remove"]
-    abPath: str
+from .wiki import Wiki
+from ..log import logger
+from ..config import Config
+from ..models import ABInfo, Change, Version, HotUpdateInfo
+from ..consts import HEADERS, STORAGE_DIR, HG_CN_BASEURL, WIKI_API_ENDPOINT
 
 
 class Client:
-    config: Config | None
+    config: Config
+
     version: Version
-    hot_update_list: HotUpdateList
+    hot_update_list: HotUpdateInfo
 
     prev_version: Version | None
-    prev_hot_update_list: HotUpdateList | None
+    prev_hot_update_list: HotUpdateInfo | None
 
     asset_to_bundle: dict[str, str]
 
-    def __init__(self, version: Version, prev_version: Version | None) -> None:
+    def __init__(
+        self, version: Version, prev_version: Version | None, config: Config
+    ) -> None:
         self.version = version
         self.prev_version = prev_version
+        self.config = config
         self.asset_to_bundle = {}
-        token = os.environ.get("TOKEN")
-        endpoint = os.environ.get("ENDPOINT")
-        self.wiki = Wiki(
-            "https://prts.wiki/api.php", mode=os.environ.get("ENV") or "test"
-        )
-        if token is not None and endpoint is not None:
-            self.config = Config(token=token, endpoint=endpoint)
+        self.http_client = httpx.AsyncClient()
+        self.wiki = Wiki(WIKI_API_ENDPOINT, self.config)
 
     async def init(self):
         self.hot_update_list = await self.load_hot_update_list(self.version.res_version)
@@ -76,74 +44,77 @@ class Client:
             )
         else:
             self.prev_hot_update_list = None
-        await self.init_torappu()
-        await self.wiki.login(
-            os.environ.get("WIKI_USERNAME"), os.environ.get("WIKI_PASSWORD")
-        )
+        await self.load_torappu_index()
+        if self.config.is_production():
+            await self.wiki.login(self.config.wiki_username, self.config.wiki_password)
 
-    def _get_hot_update_list_path(self, res: str) -> pathlib.Path:
-        return STORAGE_DIR / "hotUpdateList" / f"{res}.json"
+    def _get_hot_update_list_path(self, res: str) -> Path:
+        return STORAGE_DIR / "HotUpdateInfo" / f"{res}.json"
 
     def diff(self) -> list[Change]:
         result = []
         if self.prev_hot_update_list is None:
-            for info in self.hot_update_list["abInfos"]:
-                result.append(Change(kind="add", abPath=info["name"]))
-            return result
-        cur_map = {}
-        for info in self.hot_update_list["abInfos"]:
-            cur_map[info["name"]] = info["md5"]
-        for info in self.prev_hot_update_list["abInfos"]:
-            if info["name"] not in cur_map:
-                result.append(Change(kind="remove", abPath=info["name"]))
+            return [
+                Change(kind="add", abPath=info.name)
+                for info in self.hot_update_list.abInfos
+            ]
+
+        cur_map = {info.name: info.md5 for info in self.hot_update_list.abInfos}
+        for info in self.prev_hot_update_list.abInfos:
+            if info.name not in cur_map:
+                result.append(Change(kind="remove", abPath=info.name))
                 continue
-            sign = cur_map[info["name"]]
-            del cur_map[info["name"]]
-            if sign == info["md5"]:
+
+            sign = cur_map[info.name]
+            del cur_map[info.name]
+            if sign == info.md5:
                 continue
-            result.append(Change(kind="change", abPath=info["name"]))
+
+            result.append(Change(kind="change", abPath=info.name))
+
         for k, v in cur_map.items():
             result.append(Change(kind="add", abPath=k))
+
         return result
 
-    def _try_load_hot_update_list(self, res: str) -> HotUpdateList | None:
-        try:
-            with open(self._get_hot_update_list_path(res)) as f:
-                return json.load(f)
-        except Exception:
-            pass
-        return None
+    def _try_load_hot_update_list(self, res: str) -> HotUpdateInfo | None:
+        return (
+            HotUpdateInfo.model_validate_json(path.read_text("utf-8"))
+            if (path := self._get_hot_update_list_path(res)).exists()
+            else None
+        )
 
     @retry(stop=stop_after_attempt(3))
-    async def download_hot_update_list(self, res_version: str) -> HotUpdateList:
+    async def download_hot_update_list(self, res_version: str) -> HotUpdateInfo:
         async with httpx.AsyncClient(
             timeout=10.0,
         ) as client:
-            logger.debug(f"request {BASEURL}{res_version}/hot_update_list.json")
+            url = f"{HG_CN_BASEURL}{res_version}/hot_update_list.json"
+
+            logger.debug(f"downloading hot_update_list.json res_version:{res_version}")
             resp = await client.get(
-                f"{BASEURL}{res_version}/hot_update_list.json",
+                url,
                 headers=HEADERS,
             )
             result = resp.json()
-            return result
 
-    async def load_hot_update_list(self, res_version: str) -> HotUpdateList:
-        result = self._try_load_hot_update_list(res_version)
-        if result is not None:
+            return HotUpdateInfo.model_validate(result)
+
+    async def load_hot_update_list(self, res_version: str) -> HotUpdateInfo:
+        if (result := self._try_load_hot_update_list(res_version)) is not None:
             return result
 
         result = await self.download_hot_update_list(res_version)
         p = self._get_hot_update_list_path(res_version)
         p.parent.mkdir(parents=True, exist_ok=True)
-        with open(p, "w") as f:
-            json.dump(result, f)
+        p.write_text(result.model_dump_json(), "utf-8")
+
         return result
 
-    def get_ab_info_by_path(self, path: str) -> AbInfo:
-        for info in self.hot_update_list["abInfos"]:
-            if info["name"] == path:
-                return info
-        raise Exception(f"{path} not found")
+    def get_abinfo_by_path(self, path: str) -> ABInfo:
+        return next(
+            filter(lambda info: info.name == path, self.hot_update_list.abInfos)
+        )
 
     @staticmethod
     def path2url(path: str) -> str:
@@ -151,41 +122,44 @@ class Client:
 
     @retry(stop=stop_after_attempt(3))
     async def download_ab(self, path: str) -> bytes:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            logger.debug(
-                "request "
-                f"{BASEURL}{self.version.res_version}/{Client.path2url(path)}.dat"
-            )
-            resp = await client.get(
-                f"{BASEURL}{self.version.res_version}/{Client.path2url(path)}.dat"
-            )
-            return resp.content
+        filename = f"{self.path2url(path)}.dat"
+
+        resp = await self.http_client.get(
+            f"{HG_CN_BASEURL}{self.version.res_version}/{filename}"
+        )
+        logger.debug(f"downloaded {filename}")
+
+        return resp.content
 
     # .ab的路径
     async def resolve_ab(self, path: str) -> str:
-        info = self.get_ab_info_by_path(path + ".ab")
-        md5 = info["md5"]
-        md5path = STORAGE_DIR / "assetBundle" / f"{md5}.ab"
-        if md5path.exists():
-            with open(md5path, "rb") as f:
-                bytes = f.read()
-                if md5 == hashlib.md5(bytes).hexdigest():
-                    return md5path.as_posix()
-        md5path.parent.mkdir(parents=True, exist_ok=True)
-        content = await self.download_ab(path)
-        file = io.BytesIO(content)
-        with zipfile.ZipFile(file) as myzip:
-            unziped_bytes = myzip.read(myzip.filelist[0])
-            with open(md5path, "wb") as f:
-                f.write(unziped_bytes)
-        return md5path.as_posix()
+        info = self.get_abinfo_by_path(path + ".ab")
 
-    async def init_torappu(self):
+        if (
+            md5_path := STORAGE_DIR / "assetBundle" / f"{info.md5}.ab"
+        ).exists() and info.md5 == md5(md5_path.read_bytes()).hexdigest():
+            return md5_path.as_posix()
+
+        md5_path.parent.mkdir(parents=True, exist_ok=True)
+        content = await self.download_ab(path)
+
+        with ZipFile(BytesIO(content)) as myzip:
+            md5_path.write_bytes(myzip.read(myzip.filelist[0]))
+
+        return md5_path.as_posix()
+
+    async def load_torappu_index(self):
         path = await self.resolve_ab("torappu_index")
         env = UnityPy.load(path)
-        for object in env.objects:
-            if object.type.name == "MonoBehaviour":
-                obj = object.read_typetree()
-                if obj["m_Name"] == "torappu_index":
-                    for item in obj["assetToBundleList"]:
-                        self.asset_to_bundle[item["assetName"]] = item["bundleName"]
+
+        torappu_index: MonoBehaviour | None = None
+        for asset in filter(lambda object: object.type == "MonoBehaviour", env.objects):
+            behavior = asset.read()
+            if isinstance(behavior, MonoBehaviour) and behavior.name == "torappu_index":
+                torappu_index = behavior
+
+        if torappu_index:
+            self.asset_to_bundle = {
+                item["assetName"]: item["bundleName"]
+                for item in torappu_index.type_tree["assetToBundleList"]
+            }

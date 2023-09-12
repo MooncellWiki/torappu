@@ -7,16 +7,25 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-apscheduler = "^3.10.1"
+# encrypter and decrypter
 bson = "^0.5.10"
-fastapi = { version = "^0.98.0", extras = ["all"] }
-httpx = "^0.24.1"
-loguru = "^0.7.0"
-pillow = "^10.0.0"
 pycryptodome = "^3.18.0"
-sentry-sdk = { version = "^1.28.1", extras=["loguru", "httpx"] }
-tenacity = "^8.2.2"
+# misc
 unitypy = "^1.10.1"
+cashews = "^6.2.0"
+pydantic-settings = "^2.0.0"
+# driver
+click = "^8.1.7"
+apscheduler = "^3.10.1"
+# httpx and retry dependency
+tenacity = "^8.2.2"
+httpx = ">=0.24.1,<1.0.0"
+# fastapi and driver
+fastapi = ">=0.103.0,<1.0.0"
+uvicorn = { version = ">=0.20.0,<1.0.0", extras = ["standard"] }
+# logging
+loguru = ">=0.7.0,<1.0.0"
+sentry-sdk = { version = "^1.28.1", extras = ["loguru", "httpx"] }
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.0.282"
@@ -53,9 +62,7 @@ mark-parentheses = false
 [tool.pyright]
 pythonVersion = "3.10"
 pythonPlatform = "All"
-executionEnvironments = [
-  { root = "./" },
-]
+executionEnvironments = [{ root = "./" }]
 
 typeCheckingMode = "basic"
 reportShadowedImports = false

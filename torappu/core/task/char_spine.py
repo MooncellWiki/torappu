@@ -20,7 +20,7 @@ class FileConfig(BaseModel):
 
 
 class SpineConfig(BaseModel):
-    prefix = "https://torappu.prts.wiki/assets/charSpine/"
+    prefix: str = "https://torappu.prts.wiki/assets/charSpine/"
     name: str
     skin: dict[str, dict[str, FileConfig]]
 
@@ -33,7 +33,7 @@ class CharSpine(Task):
     skin_map: dict[str, str]
 
     def need_run(self, change_list: list["Change"]) -> bool:
-        change_set = {change["abPath"] for change in change_list}
+        change_set = {change.abPath for change in change_list}
         self.ab_list = {
             bundle
             for asset, bundle in self.client.asset_to_bundle.items()
@@ -227,6 +227,6 @@ class CharSpine(Task):
             if config in self.char_map:
                 await self.client.wiki.edit(
                     self.char_map[config] + "/spine",
-                    text=self.changed_char[config].json(),
+                    text=self.changed_char[config].model_dump_json(),
                     contentmodel="json",
                 )

@@ -1,5 +1,8 @@
+import os
+import sys
 from pathlib import Path
 
+WINDOWS = sys.platform.startswith("win") or (sys.platform == "cli" and os.name == "nt")
 BASE_DIR = Path(__file__).parent.parent.absolute()
 STORAGE_DIR = BASE_DIR / "storage"
 TEMP_DIR = BASE_DIR / "temp"
@@ -8,7 +11,8 @@ GAMEDATA_DIR = STORAGE_DIR / "asset" / "gamedata"
 HEADERS = {
     "user-agent": "Dalvik/2.1.0 (Linux; U; Android 6.0.1; vivo X9L Build/MMB29M)"
 }
-BASEURL = "https://ak.hycdn.cn/assetbundle/official/Android/assets/"
+WIKI_API_ENDPOINT = "https://prts.wiki/api.php"
+HG_CN_BASEURL = "https://ak.hycdn.cn/assetbundle/official/Android/assets/"
 PROFESSIONS = {
     "PIONEER": "先锋",
     "WARRIOR": "近卫",

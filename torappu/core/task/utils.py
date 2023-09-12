@@ -23,11 +23,15 @@ def material2img(mat: "Material") -> tuple[Image.Image, str]:
             atexture = tex.m_Texture.read()
         if key == "_MainTex":
             rgbtexture = tex.m_Texture.read()
+
     if rgbtexture is None:
         raise Exception("rgb texture not found")
+
     if atexture is None:
         logger.info(f"{rgbtexture.name} alpha texture not found, use rgb texture")
+
         return (rgbtexture.image, rgbtexture.name)
+
     r, g, b = rgbtexture.image.split()[:3]
     if (
         atexture.m_Width != rgbtexture.m_Width
@@ -38,6 +42,7 @@ def material2img(mat: "Material") -> tuple[Image.Image, str]:
         ).split()
     else:
         a, *_ = atexture.image.split()
+
     return Image.merge("RGBA", (r, g, b, a)), rgbtexture.name
 
 
@@ -53,4 +58,5 @@ def build_container_path(env: "Environment") -> dict[int, str]:
                 info["preloadIndex"] + info["preloadSize"],
             ):
                 container_map[table[i]["m_PathID"]] = path
+
     return container_map

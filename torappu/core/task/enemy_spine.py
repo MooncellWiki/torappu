@@ -18,7 +18,7 @@ class EnemySpine(Task):
     ab_list: set[str]
 
     def need_run(self, change_list: list["Change"]) -> bool:
-        change_set = {change["abPath"] for change in change_list}
+        change_set = {change.abPath for change in change_list}
         self.ab_list = {
             bundle
             for asset, bundle in self.client.asset_to_bundle.items()
