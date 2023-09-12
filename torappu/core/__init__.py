@@ -1,3 +1,5 @@
+import asyncio
+
 import sentry_sdk
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
@@ -6,9 +8,9 @@ from sentry_sdk.integrations.logging import EventHandler, BreadcrumbHandler
 
 from ..log import logger
 from .. import get_config
-from .client import Client
-from .task import registry
 from ..models import Version
+from .task import Task, registry
+from .client import Change, Client
 
 config = get_config()
 
@@ -37,6 +39,18 @@ def init_sentry():
     )
 
 
+async def check_and_run_task(instance: Task, diff: list[Change]):
+    if not instance.need_run(diff):
+        return
+
+    try:
+        await instance.run()
+    except Exception as e:
+        logger.opt(colors=True, exception=e).error(
+            f"<r><bg #f8bbd0>Running {instance} failed.</bg #f8bbd0></r>"
+        )
+
+
 async def main(version: Version, prev: Version | None):
     if prev == version:
         logger.info("version not change")
@@ -51,12 +65,16 @@ async def main(version: Version, prev: Version | None):
     except Exception as e:
         logger.opt(exception=e).error("Failed to init client")
         return
-    diff = client.diff()
 
+    diff = client.diff()
     for priority in sorted(registry.keys()):
-        for task in registry[priority]:
-            if (instance := task(client)).need_run(diff):
-                try:
-                    await instance.run()
-                except Exception as e:
-                    logger.opt(exception=e).error(f"Failed to run task {task.__name__}")
+        logger.debug(f"Checking for tasks in priority {priority}...")
+        pending_tasks = [
+            check_and_run_task(task(client), diff) for task in registry[priority]
+        ]
+        results = await asyncio.gather(*pending_tasks, return_exceptions=True)
+        for result in results:
+            if not isinstance(result, Exception):
+                continue
+            else:
+                logger.opt(exception=result).error("Failed checking task")
