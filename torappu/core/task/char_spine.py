@@ -26,7 +26,6 @@ class SpineConfig(BaseModel):
 
 
 class CharSpine(Task):
-    name = "CharSpine"
     ab_list: set[str]
     changed_char: dict[str, SpineConfig]
     char_map: dict[str, str]

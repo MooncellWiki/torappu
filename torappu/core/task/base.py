@@ -1,14 +1,23 @@
 import json
+from typing import ClassVar
+from collections import defaultdict
 
 from loguru import logger
 
 from torappu.consts import GAMEDATA_DIR
-from torappu.core.client import Change, Client
+
+from ..client import Change, Client
+
+registry: defaultdict[int, list[type["Task"]]] = defaultdict(list)
 
 
 class Task:
-    client: Client
-    name: str
+    name: ClassVar[str]
+    priority: ClassVar[int] = 1
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        registry[cls.priority].append(cls)
 
     def need_run(self, change_list: list[Change]) -> bool:
         return False
@@ -25,5 +34,6 @@ class Task:
         pass
 
     def get_gamedata(self, path: str):
-        with open(GAMEDATA_DIR / self.client.version.res_version / path) as f:
-            return json.load(f)
+        return json.loads(
+            (GAMEDATA_DIR / self.client.version.res_version / path).read_text("utf-8")
+        )

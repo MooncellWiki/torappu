@@ -10,7 +10,6 @@ from .utils import material2img, build_container_path
 
 
 class EnemySpine(Task):
-    name = "EnemySpine"
     ab_list: set[str]
 
     def need_run(self, change_list: list[Change]) -> bool:
