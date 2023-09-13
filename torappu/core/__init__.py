@@ -41,6 +41,7 @@ def init_sentry():
 
 async def check_and_run_task(instance: Task, diff: list[Change]):
     if not instance.need_run(diff):
+        logger.debug(f"skipping task {instance}")
         return
 
     try:

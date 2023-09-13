@@ -24,7 +24,7 @@ class Client:
     prev_version: Version | None
     prev_hot_update_list: HotUpdateInfo | None
 
-    asset_to_bundle: dict[str, str]
+    asset_to_bundle: dict[str, str] = {}
 
     def __init__(
         self, version: Version, prev_version: Version | None, config: Config
@@ -32,7 +32,6 @@ class Client:
         self.version = version
         self.prev_version = prev_version
         self.config = config
-        self.asset_to_bundle = {}
         self.http_client = httpx.AsyncClient()
         self.wiki = Wiki(WIKI_API_ENDPOINT, self.config)
 
@@ -152,13 +151,11 @@ class Client:
         path = await self.resolve_ab("torappu_index")
         env = UnityPy.load(path)
 
-        torappu_index: MonoBehaviour | None = None
-        for asset in filter(lambda object: object.type == "MonoBehaviour", env.objects):
-            behavior = asset.read()
-            if isinstance(behavior, MonoBehaviour) and behavior.name == "torappu_index":
-                torappu_index = behavior
+        torappu_index = env.container[
+            "assets/torappu/dynamicassets/torappu_index.asset"
+        ].read()
 
-        if torappu_index:
+        if torappu_index and isinstance(torappu_index, MonoBehaviour):
             self.asset_to_bundle = {
                 item["assetName"]: item["bundleName"]
                 for item in torappu_index.type_tree["assetToBundleList"]

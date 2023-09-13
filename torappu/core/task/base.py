@@ -18,6 +18,7 @@ class Task:
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         registry[cls.priority].append(cls)
+        logger.debug(f"registered {cls} with priority {cls.priority}")
 
     def need_run(self, change_list: list[Change]) -> bool:
         return False
