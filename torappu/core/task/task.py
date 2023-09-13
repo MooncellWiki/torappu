@@ -12,7 +12,6 @@ registry: defaultdict[int, list[type["Task"]]] = defaultdict(list)
 
 
 class Task:
-    name: ClassVar[str]
     priority: ClassVar[int] = 1
 
     def __init_subclass__(cls, **kwargs):

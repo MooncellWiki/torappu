@@ -26,8 +26,6 @@ def ensure_item_exists(item_demand, item_name, char_id, char_detail, skill_num):
 
 
 class ItemDemand(Task):
-    name = "ItemDemand"
-
     def need_run(self, change_list: list[Change]) -> bool:
         return True
 
