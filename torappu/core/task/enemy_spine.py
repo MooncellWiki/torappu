@@ -5,7 +5,7 @@ from UnityPy.classes import PPtr, Material, TextAsset, GameObject, MonoBehaviour
 from torappu.log import logger
 from torappu.consts import STORAGE_DIR
 
-from .base import Task
+from .task import Task
 from ..client import Change
 from .utils import material2img, build_container_path
 

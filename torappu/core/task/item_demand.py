@@ -5,7 +5,7 @@ import httpx
 
 from torappu.consts import BASE_DIR
 
-from .base import Task
+from .task import Task
 from ..client import Change
 from .utils import trans_prof
 

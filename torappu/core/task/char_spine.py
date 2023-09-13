@@ -6,7 +6,7 @@ from loguru import logger
 from pydantic import BaseModel
 
 from torappu.consts import STORAGE_DIR
-from torappu.core.task.base import Task
+from torappu.core.task.task import Task
 from torappu.core.task.utils import material2img, build_container_path
 
 if TYPE_CHECKING:
