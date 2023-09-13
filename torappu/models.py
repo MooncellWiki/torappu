@@ -1,11 +1,12 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field, BaseModel
 
 
 class Version(BaseModel):
     res_version: str
     client_version: str
+
 
 class ABInfo(BaseModel):
     name: str = ""
@@ -29,4 +30,4 @@ class HotUpdateInfo(BaseModel):
 
 class Change(BaseModel):
     kind: Literal["add", "change", "remove"]
-    abPath: str
+    ab_path: str

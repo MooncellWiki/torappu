@@ -54,14 +54,14 @@ class Client:
         result = []
         if self.prev_hot_update_list is None:
             return [
-                Change(kind="add", abPath=info.name)
+                Change(kind="add", ab_path=info.name)
                 for info in self.hot_update_list.abInfos
             ]
 
         cur_map = {info.name: info.md5 for info in self.hot_update_list.abInfos}
         for info in self.prev_hot_update_list.abInfos:
             if info.name not in cur_map:
-                result.append(Change(kind="remove", abPath=info.name))
+                result.append(Change(kind="remove", ab_path=info.name))
                 continue
 
             sign = cur_map[info.name]
@@ -69,10 +69,10 @@ class Client:
             if sign == info.md5:
                 continue
 
-            result.append(Change(kind="change", abPath=info.name))
+            result.append(Change(kind="change", ab_path=info.name))
 
         for k, v in cur_map.items():
-            result.append(Change(kind="add", abPath=k))
+            result.append(Change(kind="add", ab_path=k))
 
         return result
 
