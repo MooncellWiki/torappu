@@ -190,7 +190,7 @@ class CharSpine(Task):
 
     async def unpack(self, ab_path: str):
         logger.debug(f"start unpack {ab_path}")
-        real_path = await self.client.resolve_ab(ab_path)
+        real_path = await self.client.resolve_ab(ab_path[:-3])
         await self.unpack_ab(real_path)
         logger.debug(f"unpacked {ab_path}")
 
