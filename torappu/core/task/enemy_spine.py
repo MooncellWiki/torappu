@@ -1,3 +1,4 @@
+import asyncio
 import UnityPy
 from UnityPy.classes import PPtr, Material, TextAsset, GameObject, MonoBehaviour
 
@@ -22,7 +23,7 @@ class EnemySpine(Task):
 
         return len(self.ab_list) > 0
 
-    def unpack_ab(self, real_path):
+    async def unpack_ab(self, real_path):
         env = UnityPy.load(real_path)
 
         container_map = build_container_path(env)
@@ -66,10 +67,12 @@ class EnemySpine(Task):
                             unpack(data, path)
                             break
 
+    async def unpack(self, ab_path: str):
+        logger.debug(f"start unpack {ab_path}")
+        real_path = await self.client.resolve_ab(ab_path)
+        await self.unpack_ab(real_path)
+        logger.debug(f"unpacked {ab_path}")
+
     async def inner_run(self):
-        for ab in self.ab_list:
-            ab_path = ab[:-3]
-            logger.info(f"start unpack {ab_path}")
-            real_path = await self.client.resolve_ab(ab_path)
-            self.unpack_ab(real_path)
-            logger.info(f"unpacked {ab_path}")
+        await asyncio.gather(*(self.client.resolve_ab(ab[:-3]) for ab in self.ab_list))
+        await asyncio.gather(*(self.unpack(ab) for ab in self.ab_list))

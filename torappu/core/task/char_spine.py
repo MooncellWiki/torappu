@@ -222,6 +222,7 @@ class CharSpine(Task):
             real_path = await self.client.resolve_ab(ab_path)
             self.unpack_ab(real_path)
             logger.info(f"unpacked {ab_path}")
+
         for config in self.changed_char:
             if config in self.char_map:
                 await self.client.wiki.edit(
