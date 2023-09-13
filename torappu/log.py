@@ -1,17 +1,16 @@
 import sys
 import logging
+from typing import TYPE_CHECKING
 
-from loguru import logger
+import loguru
 
+from torappu import get_config
 
-class Filter:
-    def __init__(self) -> None:
-        self.level = "DEBUG"
+if TYPE_CHECKING:
+    from loguru import Logger, Record
 
-    def __call__(self, record):
-        record["name"] = record["name"].split(".")[0]
-        levelno = logger.level(self.level).no
-        return record["level"].no >= levelno
+# logger = logging.getLogger("nonebot")
+logger: "Logger" = loguru.logger
 
 
 class LoguruHandler(logging.Handler):
@@ -31,8 +30,14 @@ class LoguruHandler(logging.Handler):
         )
 
 
+def default_filter(record: "Record"):
+    """默认的日志过滤器，根据 `config.log_level` 配置改变日志等级。"""
+    log_level = record["extra"].get("log_level", "INFO")
+    levelno = logger.level(log_level).no if isinstance(log_level, str) else log_level
+    return record["level"].no >= levelno
+
+
 logger.remove()
-default_filter = Filter()
 default_format = (
     "<g>{time:MM-DD HH:mm:ss}</g> "
     "[<lvl>{level}</lvl>] "
@@ -47,3 +52,4 @@ logger_id = logger.add(
     filter=default_filter,
     format=default_format,
 )
+logger.configure(extra={"log_level": get_config().log_level})
