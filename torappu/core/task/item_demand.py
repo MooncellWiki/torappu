@@ -1,5 +1,6 @@
 import json
 import itertools
+from typing import ClassVar
 
 import httpx
 
@@ -26,6 +27,8 @@ def ensure_item_exists(item_demand, item_name, char_id, char_detail, skill_num):
 
 
 class ItemDemand(Task):
+    priority: ClassVar[int] = 1
+
     def need_run(self, change_list: list[Change]) -> bool:
         return True
 

@@ -1,6 +1,6 @@
 import re
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import UnityPy
 from loguru import logger
@@ -27,6 +27,8 @@ class SpineConfig(BaseModel):
 
 
 class CharSpine(Task):
+    priority: ClassVar[int] = 2
+
     ab_list: set[str]
     changed_char: dict[str, SpineConfig]
     char_map: dict[str, str]

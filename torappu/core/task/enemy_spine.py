@@ -1,4 +1,5 @@
 import asyncio
+from typing import ClassVar
 
 import UnityPy
 from UnityPy.classes import PPtr, Material, TextAsset, GameObject, MonoBehaviour
@@ -12,6 +13,8 @@ from .utils import material2img, build_container_path
 
 
 class EnemySpine(Task):
+    priority: ClassVar[int] = 2
+
     ab_list: set[str]
 
     def need_run(self, change_list: list[Change]) -> bool:

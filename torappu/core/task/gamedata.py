@@ -4,6 +4,7 @@ import base64
 import shutil
 import asyncio
 import subprocess
+from typing import ClassVar
 
 import bson
 import UnityPy
@@ -73,7 +74,7 @@ chat_mask = "UITpAi82pHAWwnzqHRMCwPonJLIB3WCl"
 
 
 class GameData(Task):
-    priority = 0
+    priority: ClassVar[int] = 0
 
     def __init__(self, client: Client) -> None:
         super().__init__(client)
