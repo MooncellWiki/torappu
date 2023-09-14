@@ -20,7 +20,7 @@ def init_sentry(*, headless: bool):
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for performance monitoring.
     # We recommend adjusting this value in production.
-    integrations = [AsyncioIntegration, LoguruIntegration, HttpxIntegration]
+    integrations = [AsyncioIntegration(), LoguruIntegration(), HttpxIntegration()]
     asgi_integrations = [
         FastApiIntegration(transaction_style="endpoint"),
         StarletteIntegration(transaction_style="endpoint"),
