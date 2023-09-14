@@ -9,7 +9,6 @@ from torappu import get_config
 if TYPE_CHECKING:
     from loguru import Logger, Record
 
-# logger = logging.getLogger("nonebot")
 logger: "Logger" = loguru.logger
 
 
