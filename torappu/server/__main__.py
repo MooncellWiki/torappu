@@ -5,12 +5,13 @@ from loguru import logger
 from pydantic import BaseModel
 from fastapi import FastAPI, BackgroundTasks
 
-from torappu.core import main
+from torappu.core import main, init_sentry
 
 from .. import get_config
 from ..models import Version
 
 config = get_config()
+init_sentry(headless=False)
 app = FastAPI()
 
 running: ContextVar[int] = ContextVar("running", default=False)

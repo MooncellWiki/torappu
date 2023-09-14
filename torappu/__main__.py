@@ -5,9 +5,11 @@ import click
 
 from torappu.log import logger
 from torappu import __version__
-from torappu.core import main
+from torappu.core import main, init_sentry
 
 from .models import Version
+
+init_sentry(headless=True)
 
 
 @click.group(

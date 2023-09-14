@@ -4,6 +4,8 @@ import sentry_sdk
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
 
 from ..log import logger
 from .. import get_config
@@ -14,17 +16,19 @@ from .client import Change, Client
 config = get_config()
 
 
-def init_sentry():
+def init_sentry(*, headless: bool):
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for performance monitoring.
     # We recommend adjusting this value in production.
+    integrations = [AsyncioIntegration, LoguruIntegration, HttpxIntegration]
+    asgi_integrations = [FastApiIntegration, StarletteIntegration]
+    if headless:
+        integrations.extend(asgi_integrations)
     sentry_sdk.init(
         config.sentry_dsn,
         traces_sample_rate=1.0,
-        integrations=[
-            LoguruIntegration(),
-        ],
         environment=config.environment,
+        integrations=integrations,
     )
 
 
@@ -43,9 +47,6 @@ async def main(version: Version, prev: Version | None):
     if prev == version:
         logger.info("version not change")
         return
-
-    if config.sentry_dsn:
-        init_sentry()
 
     client = Client(version, prev, config)
     try:
