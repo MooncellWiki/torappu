@@ -5,6 +5,7 @@ from typing import ClassVar
 import httpx
 
 from torappu.consts import BASE_DIR
+from torappu.log import logger
 
 from .task import Task
 from ..client import Change
@@ -35,7 +36,8 @@ class ItemDemand(Task):
     async def inner_run(self):
         demand = self.get_item_demand()
         if self.client.config.backend_endpoint:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=10) as client:
+                logger.debug("uploading item demand json")
                 await client.post(
                     self.client.config.backend_endpoint + "/api/v1/item/demand",
                     headers={"torappu-auth": self.client.config.token},

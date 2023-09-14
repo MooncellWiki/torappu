@@ -228,10 +228,12 @@ class CharSpine(Task):
         await asyncio.gather(*(self.client.resolve_ab(ab[:-3]) for ab in self.ab_list))
         await asyncio.gather(*(self.unpack(ab) for ab in self.ab_list))
 
-        for config in self.changed_char:
-            if config in self.char_map:
-                await self.client.wiki.edit(
-                    self.char_map[config] + "/spine",
-                    text=self.changed_char[config].model_dump_json(),
-                    contentmodel="json",
-                )
+        for char in filter(lambda c: c in self.char_map, self.changed_char):
+            page_name = self.char_map[char] + "/spine"
+            logger.debug(f"editing {page_name}")
+            await self.client.wiki.edit(
+                page_name,
+                text=self.changed_char[char].model_dump_json(),
+                contentmodel="json",
+            )
+            logger.debug(f"editing {page_name} done")
