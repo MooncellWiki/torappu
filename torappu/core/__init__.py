@@ -22,8 +22,6 @@ def init_sentry():
         config.sentry_dsn,
         traces_sample_rate=1.0,
         integrations=[
-            AsyncioIntegration(),
-            HttpxIntegration(),
             LoguruIntegration(),
         ],
         environment=config.environment,
