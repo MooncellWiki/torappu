@@ -6,23 +6,23 @@ settings:
 
 devDependencies:
   pyright:
-    specifier: ^1.1.320
-    version: 1.1.320
+    specifier: ^1.1.327
+    version: 1.1.327
 
 packages:
 
-  /fsevents@2.3.2:
-    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+  /fsevents@2.3.3:
+    resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
     requiresBuild: true
     dev: true
     optional: true
 
-  /pyright@1.1.320:
-    resolution: {integrity: sha512-YO5GuZTJuSeQBxYPOD+Ih3vfmNcnvc/VafxTG8cObuY5Zu5y+Dq4E0gcdhyGVeg3w29tFL9OvlEO23C6+CjqNw==}
+  /pyright@1.1.327:
+    resolution: {integrity: sha512-2OgKe3//ortVz7thxoiaVSjACVtUn+hOIanrlLZCEkagdKMheLcftu6GmoLjgibV/E2SvZZ//izidxTB5vN8dQ==}
     engines: {node: '>=12.0.0'}
     hasBin: true
     optionalDependencies:
-      fsevents: 2.3.2
+      fsevents: 2.3.3
     dev: true
