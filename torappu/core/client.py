@@ -32,7 +32,7 @@ class Client:
         self.version = version
         self.prev_version = prev_version
         self.config = config
-        self.http_client = httpx.AsyncClient()
+        self.http_client = httpx.AsyncClient(timeout=config.timeout)
         self.wiki = Wiki(WIKI_API_ENDPOINT, self.config)
 
     async def init(self):
@@ -85,19 +85,16 @@ class Client:
 
     @retry(stop=stop_after_attempt(3))
     async def download_hot_update_list(self, res_version: str) -> HotUpdateInfo:
-        async with httpx.AsyncClient(
-            timeout=10.0,
-        ) as client:
-            url = f"{HG_CN_BASEURL}{res_version}/hot_update_list.json"
+        url = f"{HG_CN_BASEURL}{res_version}/hot_update_list.json"
 
-            logger.debug(f"downloading hot_update_list.json res_version:{res_version}")
-            resp = await client.get(
-                url,
-                headers=HEADERS,
-            )
-            result = resp.json()
+        logger.debug(f"downloading hot_update_list.json res_version:{res_version}")
+        resp = await self.http_client.get(
+            url,
+            headers=HEADERS,
+        )
+        result = resp.json()
 
-            return HotUpdateInfo.model_validate(result)
+        return HotUpdateInfo.model_validate(result)
 
     async def load_hot_update_list(self, res_version: str) -> HotUpdateInfo:
         if (result := self._try_load_hot_update_list(res_version)) is not None:

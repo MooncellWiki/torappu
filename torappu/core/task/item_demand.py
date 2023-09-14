@@ -2,10 +2,8 @@ import json
 import itertools
 from typing import ClassVar
 
-import httpx
-
-from torappu.consts import BASE_DIR
 from torappu.log import logger
+from torappu.consts import BASE_DIR
 
 from .task import Task
 from ..client import Change
@@ -36,13 +34,12 @@ class ItemDemand(Task):
     async def inner_run(self):
         demand = self.get_item_demand()
         if self.client.config.backend_endpoint:
-            async with httpx.AsyncClient(timeout=10) as client:
-                logger.debug("uploading item demand json")
-                await client.post(
-                    self.client.config.backend_endpoint + "/api/v1/item/demand",
-                    headers={"torappu-auth": self.client.config.token},
-                    json=demand,
-                )
+            logger.debug("uploading item demand json")
+            await self.client.http_client.post(
+                self.client.config.backend_endpoint + "/api/v1/item/demand",
+                headers={"torappu-auth": self.client.config.token},
+                json=demand,
+            )
         else:
             dest = BASE_DIR / "itemDemand.json"
             dest.write_text(json.dumps(demand, ensure_ascii=False))
