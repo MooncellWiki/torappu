@@ -97,7 +97,7 @@ class CharSpine(Task):
                     mat: Material = mat_pptr.read()
                     img, name = material2img(mat)
                     img.save(base_dir / (name.replace("#", "_") + ".png"))
-            logger.info(f"{base_dir} saved")
+            logger.trace(f"{base_dir} saved")
             return result
 
         for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
@@ -189,10 +189,10 @@ class CharSpine(Task):
                         break
 
     async def unpack(self, ab_path: str):
-        logger.debug(f"start unpack {ab_path}")
+        logger.trace(f"starting to unpack {ab_path}")
         real_path = await self.client.resolve_ab(ab_path[:-3])
         await self.unpack_ab(real_path)
-        logger.debug(f"unpacked {ab_path}")
+        logger.trace(f"unpacked {ab_path}")
 
     async def inner_run(self):
         self.changed_char = {}

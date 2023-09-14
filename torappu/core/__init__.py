@@ -41,15 +41,13 @@ def init_sentry():
 
 async def check_and_run_task(instance: Task, diff: list[Change]):
     if not instance.need_run(diff):
-        logger.debug(f"skipping task {instance}")
+        logger.info(f"skipping task {instance}")
         return
 
     try:
         await instance.run()
     except Exception as e:
-        logger.opt(colors=True, exception=e).error(
-            f"<r><bg #f8bbd0>Running {instance} failed.</bg #f8bbd0></r>"
-        )
+        logger.opt(exception=e).error(f"Running {instance} failed.")
 
 
 async def main(version: Version, prev: Version | None):
@@ -69,7 +67,7 @@ async def main(version: Version, prev: Version | None):
 
     diff = client.diff()
     for priority in sorted(registry.keys()):
-        logger.debug(f"Checking for tasks in priority {priority}...")
+        logger.info(f"Checking for tasks in priority {priority}...")
         pending_tasks = [
             check_and_run_task(task(client), diff) for task in registry[priority]
         ]

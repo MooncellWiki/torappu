@@ -23,7 +23,7 @@ def material2img(mat: Material) -> tuple[Image.Image, str]:
         raise Exception("rgb texture not found")
 
     if atexture is None:
-        logger.info(f"{rgbtexture.name} alpha texture not found, use rgb texture")
+        logger.debug(f"{rgbtexture.name} alpha texture not found, use rgb texture")
 
         return (rgbtexture.image, rgbtexture.name)
 

@@ -37,7 +37,7 @@ async def start_task(
     info: VersionInfo,
     background_tasks: BackgroundTasks,
 ) -> Response:
-    logger.info(f"try start task: {info}")
+    logger.info(f"starting task: {info}")
 
     if running.get():
         return Response(code=1, message="all tasks already started")
