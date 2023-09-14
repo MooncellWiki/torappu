@@ -4,7 +4,6 @@ import sentry_sdk
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
-from sentry_sdk.integrations.logging import EventHandler, BreadcrumbHandler
 
 from ..log import logger
 from .. import get_config
@@ -28,14 +27,6 @@ def init_sentry():
             LoguruIntegration(),
         ],
         environment=config.environment,
-    )
-    logger.add(
-        EventHandler("ERROR"),
-        filter=lambda r: r["level"].no >= logger.level("ERROR").no,
-    )
-    logger.add(
-        BreadcrumbHandler("INFO"),
-        filter=lambda r: r["level"].no >= logger.level("INFO").no,
     )
 
 
