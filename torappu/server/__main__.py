@@ -11,6 +11,7 @@ from .. import get_config
 from ..models import Version
 
 config = get_config()
+
 init_sentry(headless=False)
 app = FastAPI()
 

@@ -21,8 +21,11 @@ def init_sentry(*, headless: bool):
     # of transactions for performance monitoring.
     # We recommend adjusting this value in production.
     integrations = [AsyncioIntegration, LoguruIntegration, HttpxIntegration]
-    asgi_integrations = [FastApiIntegration, StarletteIntegration]
-    if headless:
+    asgi_integrations = [
+        FastApiIntegration(transaction_style="endpoint"),
+        StarletteIntegration(transaction_style="endpoint"),
+    ]
+    if not headless:
         integrations.extend(asgi_integrations)
     sentry_sdk.init(
         config.sentry_dsn,
