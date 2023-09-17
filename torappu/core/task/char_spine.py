@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 import UnityPy
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.task.task import Task
@@ -21,7 +21,7 @@ class FileConfig(BaseModel):
 
 
 class SpineConfig(BaseModel):
-    prefix: str = "https://torappu.prts.wiki/assets/charSpine/"
+    prefix: str
     name: str
     skin: dict[str, dict[str, FileConfig]]
 
@@ -52,8 +52,18 @@ class CharSpine(Task):
 
         return len(self.ab_list) > 0
 
-    def update_config(self, name: str, skin: str, side: str):
-        self.changed_char.setdefault(name, SpineConfig(name=name, skin={}))
+    def update_config(self, name: str, skin: str, side: str, filename: str):
+        if name not in self.char_map:
+            logger.error(f"{name} not found in gamedata, skipped")
+            return
+        self.changed_char.setdefault(
+            name,
+            SpineConfig(
+                name=self.char_map[name],
+                skin={},
+                prefix=f"https://torappu.prts.wiki/assets/charSpine/{name}/",
+            ),
+        )
         skin_name = "默认" if skin == "defaultskin" else self.skin_map.get(skin, None)
         assert skin_name is not None, f"skin {skin} not found"
         self.changed_char[name].skin.setdefault(skin_name, {})
@@ -65,7 +75,7 @@ class CharSpine(Task):
             "build": "基建",
         }
         self.changed_char[name].skin[skin_name][side_map[side]] = FileConfig(
-            file=f"{name}/{skin}/{side}"
+            file=f"{skin}/{side}/{filename}"
         )
 
     async def unpack_ab(self, real_path):
@@ -76,14 +86,14 @@ class CharSpine(Task):
         def unpack(
             data: "MonoBehaviour",
             path: str,
-        ) -> bool:
-            result = False
+        ) -> str | None:
+            result = None
             base_dir = STORAGE_DIR / "asset" / "raw" / "charSpine" / path
+            skel: TextAsset = data.skeletonJSON.read()  # type: ignore
             if not base_dir.exists():
-                result = True
+                result = skel.name.replace("#", "_")[:-5]
                 base_dir.mkdir(parents=True, exist_ok=True)
 
-            skel: TextAsset = data.skeletonJSON.read()  # type: ignore
             with open(base_dir / skel.name.replace("#", "_"), "wb") as f:
                 f.write(bytes(skel.script))
             atlas_assets: list[PPtr] = data.atlasAssets  # type: ignore
@@ -186,8 +196,8 @@ class CharSpine(Task):
                         break
                     data: MonoBehaviour = skeleton_data.read()  # type: ignore
                     if data.name.endswith("_SkeletonData"):
-                        if unpack(data, f"{name}/{skin}/{side}"):
-                            self.update_config(name, skin, side)
+                        if skel_name := unpack(data, f"{name}/{skin}/{side}"):
+                            self.update_config(name, skin, side, skel_name)
                         break
 
     async def unpack(self, ab_path: str):
@@ -229,11 +239,9 @@ class CharSpine(Task):
         await asyncio.gather(*(self.unpack(ab) for ab in self.ab_list))
 
         for char in filter(lambda c: c in self.char_map, self.changed_char):
-            page_name = self.char_map[char] + "/spine"
-            logger.debug(f"editing {page_name}")
-            await self.client.wiki.edit(
-                page_name,
-                text=self.changed_char[char].model_dump_json(),
-                contentmodel="json",
-            )
-            logger.debug(f"editing {page_name} done")
+            meta_path = STORAGE_DIR / "asset" / "raw" / "charSpine" / char / "meta.json"
+            result = self.changed_char[char]
+            if meta_path.is_file():
+                spine = TypeAdapter(SpineConfig).validate_json(meta_path.read_text())
+                result.skin = {**spine.skin, **result.skin}
+            meta_path.write_text(result.model_dump_json())
