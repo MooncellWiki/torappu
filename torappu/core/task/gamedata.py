@@ -261,3 +261,8 @@ class GameData(Task):
 
         await asyncio.gather(*(self.client.resolve_ab(ab[:-3]) for ab in gamedata_abs))
         await asyncio.gather(*(self.unpack(ab) for ab in gamedata_abs))
+        STORAGE_DIR.joinpath("asset", "gamedata", "latest").unlink(True)
+        STORAGE_DIR.joinpath("asset", "gamedata", "latest").symlink_to(
+            STORAGE_DIR.joinpath("asset", "gamedata", self.client.version.res_version),
+            True,
+        )
