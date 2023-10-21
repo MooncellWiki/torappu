@@ -40,9 +40,8 @@ black = "^23.1.0"
 pre-commit = "^3.3.3"
 
 [tool.black]
+preview = true
 line-length = 88
-target-version = ["py310", "py311"]
-include = '\.pyi?$'
 extend-exclude = '''
 '''
 
@@ -72,6 +71,7 @@ executionEnvironments = [{ root = "./" }]
 
 typeCheckingMode = "basic"
 reportShadowedImports = false
+disableBytesTypePromotions = true
 
 [build-system]
 requires = ["poetry-core"]
