@@ -27,9 +27,9 @@ class Task(abc.ABC):
         raise NotImplementedError
 
     async def run(self):
-        logger.info(f"starting task {type(self).__name__}")
+        logger.info(f"Starting task {type(self).__name__}")
         await self.inner_run()
-        logger.info(f"finished task {type(self).__name__}")
+        logger.info(f"Finished task {type(self).__name__}")
 
     @abc.abstractmethod
     async def inner_run(self):

@@ -39,7 +39,7 @@ def cli(
         if prev_client_version and prev_res_version
         else None
     )
-    logger.info(f"version: {version}, prev: {prev}")
+    logger.info(f"Local version: {version!r}, incoming version: {prev!r}")
     asyncio.run(main(version, prev))
 
 

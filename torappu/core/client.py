@@ -88,7 +88,7 @@ class Client:
     async def download_hot_update_list(self, res_version: str) -> HotUpdateInfo:
         url = f"{HG_CN_BASEURL}{res_version}/hot_update_list.json"
 
-        logger.debug(f"downloading hot_update_list.json res_version:{res_version}")
+        logger.debug(f"Downloading hot_update_list.json with res_version:{res_version}")
         resp = await self.http_client.get(
             url,
             headers=HEADERS,
@@ -124,7 +124,7 @@ class Client:
         resp = await self.http_client.get(
             f"{HG_CN_BASEURL}{self.version.res_version}/{filename}"
         )
-        logger.debug(f"downloaded {filename}")
+        logger.debug(f"Downloaded {filename}")
 
         return resp.content
 

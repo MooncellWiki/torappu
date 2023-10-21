@@ -55,8 +55,6 @@ class Audio(Task):
 
     async def inner_run(self):
         paths = await self.client.resolve_abs(list(self.ab_list))
-        logger.debug("all ab downloaded")
         for ab_path, real_path in paths:
-            logger.debug(f"start unpack {ab_path}")
+            logger.debug(f"Start to unpack {ab_path}")
             self.extract(real_path)
-            logger.debug(f"unpacked {ab_path}")
