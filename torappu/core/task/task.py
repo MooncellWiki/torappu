@@ -18,7 +18,6 @@ class Task(abc.ABC):
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         registry[cls.priority].append(cls)
-        logger.debug(f"registered {cls} with priority {cls.priority}")
 
     def __init__(self, client: Client) -> None:
         self.client = client

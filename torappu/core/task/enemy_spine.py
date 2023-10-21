@@ -49,7 +49,7 @@ class EnemySpine(Task):
                     mat: Material = mat_pptr.read()
                     img, name = material2img(mat)
                     img.save(base_dir / (name + ".png"))
-            logger.trace(f"{base_dir} saved")
+            logger.debug(f"{base_dir} saved")
 
         for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
             game_obj: GameObject = obj.read()  # type: ignore
@@ -72,10 +72,10 @@ class EnemySpine(Task):
                             break
 
     async def unpack(self, ab_path: str):
-        logger.trace(f"start unpack {ab_path}")
+        logger.debug(f"start unpack {ab_path}")
         real_path = await self.client.resolve_ab(ab_path[:-3])
         await self.unpack_ab(real_path)
-        logger.trace(f"unpacked {ab_path}")
+        logger.debug(f"unpacked {ab_path}")
 
     async def inner_run(self):
         await asyncio.gather(*(self.client.resolve_ab(ab[:-3]) for ab in self.ab_list))
