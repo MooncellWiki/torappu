@@ -32,7 +32,7 @@ class Audio(Task):
         container_map = build_container_path(env)
         for obj in filter(lambda obj: obj.type.name == "AudioClip", env.objects):
             clip: AudioClip = obj.read()  # type: ignore
-            for name, data in clip.samples.items():
+            for data in clip.samples.values():
                 path = (
                     STORAGE_DIR
                     / "asset"
@@ -56,7 +56,7 @@ class Audio(Task):
     async def inner_run(self):
         paths = await self.client.resolve_abs(list(self.ab_list))
         logger.debug("all ab downloaded")
-        for [ab_path, real_path] in paths:
-            logger.trace(f"start unpack {ab_path}")
+        for ab_path, real_path in paths:
+            logger.debug(f"start unpack {ab_path}")
             self.extract(real_path)
-            logger.trace(f"unpacked {ab_path}")
+            logger.debug(f"unpacked {ab_path}")
