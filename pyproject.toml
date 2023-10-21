@@ -26,6 +26,7 @@ uvicorn = { version = ">=0.20.0,<1.0.0", extras = ["standard"] }
 # logging
 loguru = ">=0.7.0,<1.0.0"
 sentry-sdk = { version = "^1.28.1", extras = ["loguru", "httpx", "fastapi"] }
+pydub = "^0.25.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.0.282"

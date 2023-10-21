@@ -1,3 +1,4 @@
+import asyncio
 from io import BytesIO
 from hashlib import md5
 from pathlib import Path
@@ -143,6 +144,11 @@ class Client:
             md5_path.write_bytes(myzip.read(myzip.filelist[0]))
 
         return md5_path.as_posix()
+
+    # [["abpath", "real_path"]]
+    async def resolve_abs(self, path: list[str]) -> list[tuple[str, str]]:
+        result = await asyncio.gather(*(self.resolve_ab(p) for p in path))
+        return list(zip(path, result))
 
     async def load_torappu_index(self):
         path = await self.resolve_ab("torappu_index")
