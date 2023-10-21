@@ -147,7 +147,12 @@ class GameData(Task):
         container_path.mkdir(parents=True, exist_ok=True)
         json_dest_path = container_path / f"{fb_name}.json"
         json_dest_path.write_text(
-            json.dumps(jsons, indent=2, ensure_ascii=False), encoding="utf-8"
+            json.dumps(
+                jsons,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            ),
+            encoding="utf-8",
         )
         shutil.rmtree(temp_path)
 
@@ -166,8 +171,8 @@ class GameData(Task):
             res = bytes(
                 json.dumps(
                     bson.decode_document(decipher[16:], 0)[1],
-                    indent=2,
                     ensure_ascii=False,
+                    separators=(",", ":"),
                 ),
                 encoding="utf-8",
             )
@@ -194,8 +199,8 @@ class GameData(Task):
             res = bytes(
                 json.dumps(
                     bson.decode_document(decipher[16:], 0)[1],
-                    indent=2,
                     ensure_ascii=False,
+                    separators=(",", ":"),
                 ),
                 encoding="utf-8",
             )
@@ -228,13 +233,17 @@ class GameData(Task):
             output_path = output_path.with_suffix(".json")
 
         try:
-            pack_data = json.dumps(
+            decoded_data = (
                 bson.decode_document(bytes(script)[128:], 0)[1]
                 if "gamedata/levels" in path
-                else json.loads(obj.text),
-                indent=2,
-                ensure_ascii=False,
+                else json.loads(obj.text)
             )
+            pack_data = json.dumps(
+                decoded_data,
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+
         except Exception:
             pack_data = obj.text
 
