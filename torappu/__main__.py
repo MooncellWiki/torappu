@@ -5,11 +5,8 @@ import click
 
 from torappu.log import logger
 from torappu import __version__
-from torappu.core import main, init_sentry
 
 from .models import Version
-
-init_sentry(headless=True)
 
 
 @click.group(
@@ -33,6 +30,10 @@ def cli(
     prev_client_version: str,
     prev_res_version: str,
 ):
+    from torappu.core import main, init_sentry
+
+    init_sentry(headless=True)
+
     version = Version(res_version=res_version, client_version=client_version)
     prev = (
         Version(res_version=prev_res_version, client_version=prev_client_version)
