@@ -14,9 +14,9 @@ def material2img(mat: Material) -> tuple[Image.Image, str]:
     atexture: Texture2D | None = None
     rgbtexture: Texture2D | None = None
     for key, tex in mat.m_SavedProperties.m_TexEnvs.items():
-        if key == "_AlphaTex":
+        if key == "_AlphaTex" and tex.m_Texture:
             atexture = tex.m_Texture.read()
-        if key == "_MainTex":
+        if key == "_MainTex" and tex.m_Texture:
             rgbtexture = tex.m_Texture.read()
 
     if rgbtexture is None:
