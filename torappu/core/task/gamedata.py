@@ -168,7 +168,7 @@ class GameData(Task):
             cipher_data[i] ^= iv[i]
 
         cipher = AES.new(key, AES.MODE_CBC)
-        decipher = unpad(bytearray(cipher.decrypt(cipher_data)), 16)
+        decipher = unpad(bytes(cipher.decrypt(cipher_data)), 16)
         try:
             res = bytes(
                 json.dumps(
