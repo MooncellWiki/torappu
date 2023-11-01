@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import base64
 import shutil
@@ -260,6 +261,7 @@ class GameData(Task):
 
         except Exception as e:
             logger.opt(exception=e).error("Failed to unpack gamedata")
+            sys.exit(1)
 
     async def inner_run(self):
         gamedata_abs = [
