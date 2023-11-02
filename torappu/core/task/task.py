@@ -3,8 +3,7 @@ import json
 from typing import ClassVar
 from collections import defaultdict
 
-from loguru import logger
-
+from torappu.log import logger
 from torappu.consts import GAMEDATA_DIR
 
 from ..client import Change, Client

@@ -3,12 +3,13 @@ import asyncio
 from typing import TYPE_CHECKING, ClassVar
 
 import UnityPy
-from loguru import logger
 from pydantic import BaseModel, TypeAdapter
 
+from torappu.log import logger
 from torappu.consts import STORAGE_DIR
-from torappu.core.task.task import Task
-from torappu.core.task.utils import material2img, build_container_path
+
+from . import Task
+from .utils import material2img, build_container_path
 
 if TYPE_CHECKING:
     from UnityPy.classes import PPtr, Material, TextAsset, GameObject, MonoBehaviour

@@ -1,10 +1,10 @@
 from contextvars import ContextVar
 
 import uvicorn
-from loguru import logger
 from pydantic import BaseModel
 from fastapi import FastAPI, BackgroundTasks
 
+from torappu.log import logger
 from torappu.core import main, init_sentry
 
 from .. import get_config
