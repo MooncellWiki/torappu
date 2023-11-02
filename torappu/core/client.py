@@ -1,3 +1,4 @@
+import asyncio
 from io import BytesIO
 from hashlib import md5
 from pathlib import Path
@@ -87,7 +88,7 @@ class Client:
     async def download_hot_update_list(self, res_version: str) -> HotUpdateInfo:
         url = f"{HG_CN_BASEURL}{res_version}/hot_update_list.json"
 
-        logger.debug(f"downloading hot_update_list.json res_version:{res_version}")
+        logger.debug(f"Downloading hot_update_list.json with res_version:{res_version}")
         resp = await self.http_client.get(
             url,
             headers=HEADERS,
@@ -123,7 +124,7 @@ class Client:
         resp = await self.http_client.get(
             f"{HG_CN_BASEURL}{self.version.res_version}/{filename}"
         )
-        logger.debug(f"downloaded {filename}")
+        logger.debug(f"Downloaded {filename}")
 
         return resp.content
 
@@ -143,6 +144,11 @@ class Client:
             md5_path.write_bytes(myzip.read(myzip.filelist[0]))
 
         return md5_path.as_posix()
+
+    # [["abpath", "real_path"]]
+    async def resolve_abs(self, path: list[str]) -> list[tuple[str, str]]:
+        result = await asyncio.gather(*(self.resolve_ab(p) for p in path))
+        return list(zip(path, result))
 
     async def load_torappu_index(self):
         path = await self.resolve_ab("torappu_index")

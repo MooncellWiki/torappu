@@ -37,7 +37,7 @@ def init_sentry(*, headless: bool):
 
 async def check_and_run_task(instance: Task, diff: list[Change]):
     if not instance.need_run(diff):
-        logger.info(f"skipping task {instance}")
+        logger.info(f"Skipping task {instance}")
         return
 
     try:
@@ -48,7 +48,7 @@ async def check_and_run_task(instance: Task, diff: list[Change]):
 
 async def main(version: Version, prev: Version | None):
     if prev == version:
-        logger.info("version not change")
+        logger.info("Version did not change, skipping running")
         return
 
     client = Client(version, prev, config)

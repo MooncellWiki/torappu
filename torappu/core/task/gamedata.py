@@ -4,6 +4,7 @@ import json
 import base64
 import shutil
 import asyncio
+import platform
 import subprocess
 from typing import ClassVar
 
@@ -167,7 +168,7 @@ class GameData(Task):
             cipher_data[i] ^= iv[i]
 
         cipher = AES.new(key, AES.MODE_CBC)
-        decipher = unpad(bytearray(cipher.decrypt(cipher_data)), 16)
+        decipher = unpad(bytes(cipher.decrypt(cipher_data)), 16)
         try:
             res = bytes(
                 json.dumps(
@@ -272,8 +273,10 @@ class GameData(Task):
 
         await asyncio.gather(*(self.client.resolve_ab(ab[:-3]) for ab in gamedata_abs))
         await asyncio.gather(*(self.unpack(ab) for ab in gamedata_abs))
-        STORAGE_DIR.joinpath("asset", "gamedata", "latest").unlink(True)
-        STORAGE_DIR.joinpath("asset", "gamedata", "latest").symlink_to(
-            f"./{self.client.version.res_version}",
-            True,
-        )
+
+        if platform.system() != "Windows":
+            STORAGE_DIR.joinpath("asset", "gamedata", "latest").unlink(True)
+            STORAGE_DIR.joinpath("asset", "gamedata", "latest").symlink_to(
+                f"./{self.client.version.res_version}",
+                True,
+            )
