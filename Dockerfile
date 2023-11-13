@@ -46,7 +46,7 @@ RUN pip install --no-cache-dir --no-index --find-links=/wheel -r /wheel/requirem
 
 COPY --from=metadata-stage /tmp/VERSION /app/VERSION
 
-RUN apt-get update && apt-get -y ffmpeg
+RUN apt-get update && apt-get -y install ffmpeg
 
 COPY OpenArknightsFBS /app/OpenArknightsFBS
 
