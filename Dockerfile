@@ -46,6 +46,8 @@ RUN pip install --no-cache-dir --no-index --find-links=/wheel -r /wheel/requirem
 
 COPY --from=metadata-stage /tmp/VERSION /app/VERSION
 
+RUN apt-get update && apt-get -y ffmpeg
+
 COPY OpenArknightsFBS /app/OpenArknightsFBS
 
 COPY torappu /app/torappu
