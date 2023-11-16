@@ -31,7 +31,6 @@ class Audio(Task):
         return len(self.ab_list) > 0
 
     async def extract(self, real_path: str, ab_path: str):
-        logger.debug(f"Start to unpack {ab_path}")
         env = UnityPy.load(real_path)
         container_map = build_container_path(env)
         for obj in filter(lambda obj: obj.type.name == "AudioClip", env.objects):
@@ -43,6 +42,7 @@ class Audio(Task):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(data)
                 await self.mp3(str(path))
+        logger.debug(f"unpacked {ab_path}")
 
     async def mp3(self, path: str):
         # ffmpeg -y -f wav -i /tmp/tmp7g1n0ag2 -f mp3 /tmp/tmpywtkkjwa
@@ -76,22 +76,19 @@ class Audio(Task):
             if dist.exists():
                 continue
 
-            intro_path: None | Path = None
-            loop_path: None | Path = None
+            intro_path: None | str = None
+            loop_path: None | str = None
 
             if bank["intro"]:
-                tmp = AUDIO_DIR / (
-                    bank["intro"].lower().replace("audio/sound_beta_2/", "") + ".mp3"
-                )
-                if tmp.exists():
+                tmp = bank["intro"].lower().replace("audio/sound_beta_2/", "") + ".mp3"
+
+                if (AUDIO_DIR / tmp).exists() or (AUDIO_DIR / tmp).is_symlink():
                     intro_path = tmp
                 else:
                     logger.debug(f"intro {tmp} not exists")
             if bank["loop"]:
-                tmp = AUDIO_DIR / (
-                    bank["loop"].lower().replace("audio/sound_beta_2/", "") + ".mp3"
-                )
-                if tmp.exists():
+                tmp = bank["loop"].lower().replace("audio/sound_beta_2/", "") + ".mp3"
+                if (AUDIO_DIR / tmp).exists() or (AUDIO_DIR / tmp).is_symlink():
                     loop_path = tmp
                 else:
                     logger.debug(f"loop {tmp} not exists")
@@ -100,21 +97,21 @@ class Audio(Task):
                 continue
             if loop_path is None:
                 logger.debug(f"make link {dist} to {intro_path}")
-                dist.symlink_to(intro_path)
+                dist.symlink_to("../audio/" + intro_path)  # type: ignore
                 continue
             if intro_path is None:
                 logger.debug(f"make link {dist} to {loop_path}")
-                dist.symlink_to(loop_path)
+                dist.symlink_to("../audio/" + loop_path)
                 continue
 
             logger.debug(f"combie {intro_path} and {loop_path} to {dist}")
-            self.combie(intro_path, loop_path, dist)
+            self.combie(AUDIO_DIR / intro_path, AUDIO_DIR / loop_path, dist)
 
         for key, value in audio_data["bankAlias"].items():
             path = base_dir / (key + ".mp3")
-            if path.exists():
+            if path.exists() or path.is_symlink():
                 continue
-            source = base_dir / (value + ".mp3")
+            source = "./" + value + ".mp3"
             logger.debug(f"make link {path} to {source}")
             path.symlink_to(source)
 
