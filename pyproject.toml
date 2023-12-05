@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "torappu"
-version = "1.3.3"
+version = "1.4.0"
 description = ""
 authors = ["daflyinbed <1677759063@qq.com>"]
 readme = "README.md"
