@@ -100,9 +100,11 @@ class GameData(Task):
         return all(plaintext not in path for plaintext in plaintexts)
 
     async def _check_encrypted(self, path: str) -> bool:
-        return any(
-            encrypted in path for encrypted in encrypted_list
-        ) and await self._check_not_plaintext(path)
+        return (
+            any(encrypted in path for encrypted in encrypted_list)
+            and await self._check_not_plaintext(path)
+            and "buff_template_data" not in path
+        )
 
     async def _check_signed(self, path: str) -> bool:
         return any(signed in path for signed in signed_list)
@@ -236,8 +238,15 @@ class GameData(Task):
 
         try:
             decoded_data = (
-                bson.decode_document(bytes(script)[128:], 0)[1]
-                if "gamedata/levels" in path
+                bson.decode_document(
+                    (
+                        bytes(script)[128:]
+                        if "buff_template_data" not in path
+                        else bytes(script)
+                    ),
+                    0,
+                )[1]
+                if "gamedata/levels" in path or "buff_template_data" in path
                 else json.loads(obj.text)
             )
             pack_data = json.dumps(
