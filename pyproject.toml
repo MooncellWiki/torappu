@@ -6,24 +6,20 @@ authors = ["daflyinbed <1677759063@qq.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
 
 bson = "^0.5.10"
 pycryptodome = "^3.18.0"
-
-httpx = ">=0.24.1,<1.0.0"
+click = "^8.1.7"
 pydub = "^0.25.1"
 cashews = "^6.2.0"
 unitypy = "^1.10.1"
 tenacity = "^8.2.2"
 apscheduler = "^3.10.1"
-
-click = "^8.1.7"
+httpx = ">=0.24.1,<1.0.0"
+loguru = ">=0.7.0,<1.0.0"
 fastapi = ">=0.103.0,<1.0.0"
 pydantic-settings = "^2.0.0"
-uvicorn = { version = ">=0.20.0,<1.0.0", extras = ["standard"] }
-
-loguru = ">=0.7.0,<1.0.0"
 sentry-sdk = { version = "^1.28.1", extras = ["loguru", "httpx", "fastapi"] }
 
 [tool.poetry.group.dev.dependencies]
@@ -32,8 +28,13 @@ isort = "^5.10.1"
 black = "^23.1.0"
 pre-commit = "^3.3.3"
 
+[tool.poetry.group.deploy.dependencies]
+gunicorn = "^21.1.0"
+uvicorn = { version = ">=0.20.0,<1.0.0", extras = ["standard"] }
+
 [tool.black]
 preview = true
+target-version = ["py311", "py312"]
 line-length = 88
 extend-exclude = '''
 '''
@@ -44,21 +45,22 @@ line_length = 88
 length_sort = true
 skip_gitignore = true
 force_sort_within_sections = true
-extra_standard_library = ["typing_extensions"]
+extra_standard_library = "typing_extensions"
 
 [tool.ruff]
 select = ["E", "W", "F", "UP", "C", "T", "PYI", "PT", "Q"]
-ignore = ["E402", "C901"]
+ignore = ["E402", "C901", "UP037"]
 
 line-length = 88
-target-version = "py310"
+target-version = "py311"
 
-[tool.ruff.flake8-pytest-style]
-fixture-parentheses = false
-mark-parentheses = false
+[tool.ruff.extend-per-file-ignores]
+"./scripts/*" = ["T201"]
+"./docker/*" = ["T201"]
 
 [tool.pyright]
-pythonVersion = "3.10"
+extraPaths = ["./"]
+pythonVersion = "3.11"
 pythonPlatform = "All"
 executionEnvironments = [{ root = "./" }]
 
