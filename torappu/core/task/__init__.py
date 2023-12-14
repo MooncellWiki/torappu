@@ -3,5 +3,6 @@ from .audio import Audio as Audio
 from .task import registry as registry
 from .gamedata import GameData as GameData
 from .char_spine import CharSpine as CharSpine
+from .build_skill import BuildSkill as BuildSkill
 from .enemy_spine import EnemySpine as EnemySpine
 from .item_demand import ItemDemand as ItemDemand
