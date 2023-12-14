@@ -1,0 +1,15 @@
+.devcontainer/
+.github/
+.vscode/
+assets/
+tests/
+.dockerignore
+.editorconfig
+.gitignore
+.gitmodules
+.pre-commit-config.yaml
+.prettier*
+docker-compose.yml
+Dockerfile
+LICENSE
+*.md
