@@ -76,7 +76,7 @@ jobs:
       - name: Generate Image Name and Scope
         id: image
         run: |
-          REPO=prts/${{ github.event.repository.name }}
+          REPO=registry.cn-shanghai.aliyuncs.com/prts/${{ github.event.repository.name }}
           echo "IMAGE=${REPO,,}" >> $GITHUB_OUTPUT
           echo "SCOPE=${{ env.GITHUB_REF_NAME }}-${{ matrix.platform }}" >> $GITHUB_OUTPUT
 
