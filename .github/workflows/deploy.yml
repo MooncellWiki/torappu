@@ -175,7 +175,8 @@ jobs:
       deployments: write
     if: |-
       ${{
-        always()
+        always() &&
+        startsWith(github.ref, 'refs/tags/v')
       }}
 
     steps:
