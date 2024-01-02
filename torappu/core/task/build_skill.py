@@ -15,6 +15,7 @@ BASE_PATH = STORAGE_DIR / "asset" / "raw" / "buildSkillIcon"
 
 class BuildSkill(Task):
     priority: ClassVar[int] = 1
+    name = "build_skill"
 
     ab_list: set[str]
 

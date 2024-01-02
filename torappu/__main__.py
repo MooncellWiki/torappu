@@ -24,11 +24,21 @@ from .models import Version
 @click.argument("res_version")
 @click.option("--prev_client_version", help="prev client version")
 @click.option("--prev_res_version", help="prev res version")
+@click.option("--disable_audio", is_flag=True)
+@click.option("--disable_char_spine", is_flag=True)
+@click.option("--disable_build_skill", is_flag=True)
+@click.option("--disable_enemy_spine", is_flag=True)
+@click.option("--disable_item_demand", is_flag=True)
 def cli(
     client_version: str,
     res_version: str,
     prev_client_version: str,
     prev_res_version: str,
+    disable_audio: bool,
+    disable_char_spine: bool,
+    disable_build_skill: bool,
+    disable_enemy_spine: bool,
+    disable_item_demand: bool,
 ):
     from torappu.core import main, init_sentry
 
@@ -40,8 +50,16 @@ def cli(
         if prev_client_version and prev_res_version
         else None
     )
+    disabled = {
+        "audio": disable_audio,
+        "char_spine": disable_char_spine,
+        "build_skill": disable_build_skill,
+        "enemy_spine": disable_enemy_spine,
+        "item_demand": disable_item_demand,
+    }
+
     logger.info(f"Incoming version: {version!r}, local version: {prev!r}")
-    asyncio.run(main(version, prev))
+    asyncio.run(main(version, prev, disabled))
 
 
 if __name__ == "__main__":

@@ -19,6 +19,8 @@ AUDIO_DIR = STORAGE_DIR / "asset" / "raw" / "audio"
 
 class Audio(Task):
     priority: ClassVar[int] = 3
+    name = "audio"
+
     ab_list: set[str]
 
     def need_run(self, change_list: list[Change]) -> bool:

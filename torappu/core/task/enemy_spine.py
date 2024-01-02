@@ -14,6 +14,7 @@ from .utils import material2img, build_container_path
 
 class EnemySpine(Task):
     priority: ClassVar[int] = 2
+    name = "enemy_spine"
 
     ab_list: set[str]
 

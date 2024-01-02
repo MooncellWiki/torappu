@@ -46,7 +46,7 @@ async def check_and_run_task(instance: Task, diff: list[Change]):
         logger.opt(exception=e).error(f"Running {instance} failed.")
 
 
-async def main(version: Version, prev: Version | None):
+async def main(version: Version, prev: Version | None, disabled: dict[str, bool] = {}):
     if prev == version:
         logger.info("Version did not change, skipping running")
         return
@@ -62,7 +62,9 @@ async def main(version: Version, prev: Version | None):
     for priority in sorted(registry.keys()):
         logger.info(f"Checking for tasks in priority {priority}...")
         pending_tasks = [
-            check_and_run_task(task(client), diff) for task in registry[priority]
+            check_and_run_task(task(client), diff)
+            for task in registry[priority]
+            if not disabled.get(task.name)
         ]
         results = await asyncio.gather(*pending_tasks, return_exceptions=True)
         for result in results:
