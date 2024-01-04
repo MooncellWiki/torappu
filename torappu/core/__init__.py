@@ -10,6 +10,7 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 from ..log import logger
 from .. import get_config
 from ..models import Version
+from .utils import snake_case
 from .task import Task, registry
 from .client import Change, Client
 
@@ -64,7 +65,7 @@ async def main(version: Version, prev: Version | None, exclude: list[str] = []):
         pending_tasks = [
             check_and_run_task(task(client), diff)
             for task in registry[priority]
-            if task.name not in exclude
+            if snake_case(task.__name__) not in exclude
         ]
         results = await asyncio.gather(*pending_tasks, return_exceptions=True)
         for result in results:

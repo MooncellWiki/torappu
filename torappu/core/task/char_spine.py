@@ -29,7 +29,6 @@ class SpineConfig(BaseModel):
 
 class CharSpine(Task):
     priority: ClassVar[int] = 2
-    name = "char_spine"
 
     ab_list: set[str]
     changed_char: dict[str, SpineConfig]
