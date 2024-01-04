@@ -7,7 +7,8 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-
+# pin anyio v3 due to fastapi incompatibility
+anyio = "^3.7.1"
 bson = "^0.5.10"
 pycryptodome = "^3.18.0"
 click = "^8.1.7"
@@ -23,7 +24,7 @@ pydantic-settings = "^2.0.0"
 sentry-sdk = { version = "^1.28.1", extras = ["loguru", "httpx", "fastapi"] }
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.0.282"
+ruff = "^0.1.0"
 isort = "^5.10.1"
 black = "^23.1.0"
 pre-commit = "^3.3.3"
