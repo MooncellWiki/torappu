@@ -24,11 +24,17 @@ from .models import Version
 @click.argument("res_version")
 @click.option("--prev_client_version", help="prev client version")
 @click.option("--prev_res_version", help="prev res version")
+@click.option(
+    "--exclude",
+    default="",
+    help="audio build_skill char_spine enemy_spine item_demand",
+)
 def cli(
     client_version: str,
     res_version: str,
     prev_client_version: str,
     prev_res_version: str,
+    exclude: str,
 ):
     from torappu.core import main, init_sentry
 
@@ -40,8 +46,9 @@ def cli(
         if prev_client_version and prev_res_version
         else None
     )
+
     logger.info(f"Incoming version: {version!r}, local version: {prev!r}")
-    asyncio.run(main(version, prev))
+    asyncio.run(main(version, prev, exclude.split(",")))
 
 
 if __name__ == "__main__":
