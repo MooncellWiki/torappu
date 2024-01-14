@@ -47,7 +47,7 @@ class FurniturePreview(Task):
             while bottom > 0:
                 bottom -= 1
                 color = src.getpixel((int(src.width / 2), bottom))
-                if color != basicColor:
+                if color != basic_color:
                     break
 
             src.crop((0, top, src.width, bottom)).save(BASE_PATH / f"{data.name}.png")
