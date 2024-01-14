@@ -8,6 +8,11 @@ class Version(BaseModel):
     client_version: str
 
 
+class VersionInfo(BaseModel):
+    cur: Version
+    prev: Version | None
+
+
 class ABInfo(BaseModel):
     name: str = ""
     hash: str = ""

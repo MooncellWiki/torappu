@@ -1,4 +1,4 @@
-from contextvars import ContextVar
+from pathlib import Path
 
 import uvicorn
 from pydantic import BaseModel
@@ -8,19 +8,15 @@ from torappu.log import logger
 from torappu.core import main, init_sentry
 
 from .. import get_config
-from ..models import Version
-
-config = get_config()
+from ..models import VersionInfo
 
 init_sentry(headless=False)
+
+config = get_config()
 app = FastAPI()
 
-running: ContextVar[int] = ContextVar("running", default=False)
-
-
-class VersionInfo(BaseModel):
-    cur: Version
-    prev: Version | None
+if not (lockfile_path := Path("storage/task.lock")).parent.exists():
+    lockfile_path.parent.mkdir(parents=True)
 
 
 class Response(BaseModel):
@@ -29,9 +25,11 @@ class Response(BaseModel):
 
 
 async def task_main(info: VersionInfo):
-    running_token = running.set(True)
-    await main(info.cur, info.prev)
-    running.reset(running_token)
+    try:
+        await main(info.cur, info.prev)
+
+    finally:
+        lockfile_path.unlink()
 
 
 @app.post("/task")
@@ -39,18 +37,23 @@ async def start_task(
     info: VersionInfo,
     background_tasks: BackgroundTasks,
 ) -> Response:
-    logger.info(f"Got version info: {info}")
+    logger.info(f"Received version info: {info}")
 
-    if running.get():
+    if lockfile_path.exists():
+        logger.info("Task already started, skipping request")
+
         return Response(code=1, message="all tasks already started")
 
-    background_tasks.add_task(task_main, info)
+    else:
+        lockfile_path.touch(exist_ok=True)
+        background_tasks.add_task(task_main, info)
 
-    return Response(code=0, message="started")
+        return Response(code=0, message="started")
 
 
 def run():
     logger.info("Starting torappu application")
+
     uvicorn.run(
         app,
         host=str(config.host),
