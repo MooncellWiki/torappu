@@ -9,6 +9,7 @@ from torappu.log import logger
 from torappu.consts import STORAGE_DIR
 
 from . import Task
+from ..client import Client
 from .utils import material2img, build_container_path
 
 if TYPE_CHECKING:
@@ -34,6 +35,13 @@ class CharSpine(Task):
     changed_char: dict[str, SpineConfig]
     char_map: dict[str, str]
     skin_map: dict[str, str]
+
+    def __init__(self, client: Client) -> None:
+        super().__init__(client)
+
+        self.changed_char = {}
+        self.char_map = {}
+        self.skin_map = {}
 
     def need_run(self, change_list: list["Change"]) -> bool:
         change_set = {change.ab_path for change in change_list}
@@ -207,9 +215,6 @@ class CharSpine(Task):
         await self.unpack_ab(real_path)
 
     async def inner_run(self):
-        self.changed_char = {}
-        self.char_map = {}
-        self.skin_map = {}
         char_table = self.get_gamedata("excel/character_table.json")
         for char in char_table:
             self.char_map[char] = char_table[char]["name"]
@@ -241,7 +246,9 @@ class CharSpine(Task):
         for char in filter(lambda c: c in self.char_map, self.changed_char):
             meta_path = STORAGE_DIR / "asset" / "raw" / "charSpine" / char / "meta.json"
             result = self.changed_char[char]
+
             if meta_path.is_file():
                 spine = TypeAdapter(SpineConfig).validate_json(meta_path.read_text())
                 result.skin = {**spine.skin, **result.skin}
-            meta_path.write_text(result.model_dump_json())
+
+            meta_path.write_text(result.model_dump_json(), encoding="utf-8")
