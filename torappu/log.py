@@ -19,7 +19,7 @@ class LoguruHandler(logging.Handler):
         except ValueError:
             level = record.levelno
 
-        frame, depth = logging.currentframe(), 2
+        frame, depth = sys._getframe(6), 6
         while frame and frame.f_code.co_filename == logging.__file__:
             frame = frame.f_back
             depth += 1
@@ -46,7 +46,7 @@ default_format = (
 )
 logger_id = logger.add(
     sys.stdout,
-    colorize=False,
+    level=0,
     diagnose=False,
     filter=default_filter,
     format=default_format,
