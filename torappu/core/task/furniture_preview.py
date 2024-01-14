@@ -37,7 +37,7 @@ class FurniturePreview(Task):
             src = data.image
             bottom = src.height - 1
             top = 0
-            basicColor = src.getpixel((int(src.width / 2), 0))
+            basic_color = src.getpixel((int(src.width / 2), 0))
             while top < src.height:
                 top += 1
                 color = src.getpixel((int(src.width / 2), top))
