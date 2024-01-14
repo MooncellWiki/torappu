@@ -46,7 +46,7 @@ certfile = os.getenv("CERTFILE", None)
 
 logconfig_dict = {
     "root": {"level": "INFO", "handlers": ["default"]},
-    "handlers": {"default": {"class": "nonebot.log.LoguruHandler"}},
+    "handlers": {"default": {"class": "torappu.log.LoguruHandler"}},
     "loggers": {
         "gunicorn.error": {
             "level": "INFO",
