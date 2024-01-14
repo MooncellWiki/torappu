@@ -41,7 +41,7 @@ class FurniturePreview(Task):
             while top < src.height:
                 top += 1
                 color = src.getpixel((int(src.width / 2), top))
-                if color != basicColor:
+                if color != basic_color:
                     break
 
             while bottom > 0:
