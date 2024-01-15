@@ -2,7 +2,6 @@ import os
 import sys
 import json
 import base64
-import shutil
 import asyncio
 import platform
 import subprocess
@@ -18,7 +17,7 @@ from UnityPy.classes import TextAsset
 
 from torappu.log import logger
 from torappu.core.utils import run_sync
-from torappu.consts import FBS_DIR, TEMP_DIR, STORAGE_DIR
+from torappu.consts import FBS_DIR, STORAGE_DIR
 
 from .task import Task
 from ..client import Change, Client
