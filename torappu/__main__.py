@@ -1,5 +1,5 @@
 import sys
-import asyncio
+import anyio
 
 import click
 
@@ -47,8 +47,8 @@ def cli(
         else None
     )
 
-    logger.info(f"Incoming version: {version!r}, local version: {prev!r}")
-    asyncio.run(main(version, prev, exclude.split(",")))
+    logger.info(f"Remote version: {version!r}, Local version: {prev!r}")
+    anyio.run(main, version, prev, exclude.split(","))
 
 
 if __name__ == "__main__":

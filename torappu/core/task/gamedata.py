@@ -2,11 +2,12 @@ import os
 import sys
 import json
 import base64
-import shutil
 import asyncio
 import platform
 import subprocess
+from pathlib import Path
 from typing import ClassVar
+from tempfile import TemporaryDirectory
 
 import bson
 import UnityPy
@@ -15,7 +16,8 @@ from Crypto.Util.Padding import unpad
 from UnityPy.classes import TextAsset
 
 from torappu.log import logger
-from torappu.consts import FBS_DIR, TEMP_DIR, STORAGE_DIR
+from torappu.core.utils import run_sync
+from torappu.consts import FBS_DIR, STORAGE_DIR
 
 from .task import Task
 from ..client import Change, Client
@@ -94,34 +96,36 @@ class GameData(Task):
             ],
         ]
 
-        return matched[0] if matched and await self._check_not_plaintext(path) else None
+        return matched[0] if matched and self._check_not_plaintext(path) else None
 
-    async def _check_not_plaintext(self, path: str):
+    def _check_not_plaintext(self, path: str):
         return all(plaintext not in path for plaintext in plaintexts)
 
-    async def _check_encrypted(self, path: str) -> bool:
+    def _check_encrypted(self, path: str) -> bool:
         return (
             any(encrypted in path for encrypted in encrypted_list)
-            and await self._check_not_plaintext(path)
+            and self._check_not_plaintext(path)
             and "buff_template_data" not in path
         )
 
-    async def _check_signed(self, path: str) -> bool:
+    def _check_signed(self, path: str) -> bool:
         return any(signed in path for signed in signed_list)
 
-    async def _decode_flatbuffer(self, path: str, obj: TextAsset, fb_name: str):
-        flatbuffer_data_path = TEMP_DIR / f"{fb_name}.bytes"
-        temp_path = TEMP_DIR / os.path.dirname(
-            path.replace("assets/torappu/dynamicassets/gamedata/", "")
-        )
+    @run_sync
+    def _decode_flatbuffer(self, path: str, obj: TextAsset, fb_name: str):
+        tmp_dir = TemporaryDirectory()
+        tmp_path = Path(tmp_dir.name)
 
-        flatbuffer_data_path.parent.mkdir(parents=True, exist_ok=True)
+        flatbuffer_data_path = tmp_path.joinpath(f"{fb_name}.bytes")
+        output_path = tmp_path.joinpath(
+            os.path.dirname(path.replace("assets/torappu/dynamicassets/gamedata/", ""))
+        )
         flatbuffer_data_path.write_bytes(bytes(obj.script)[128:])
 
         params = [
             self.client.config.flatc_path,
             "-o",
-            temp_path,
+            output_path.resolve(),
             "--no-warnings",
             "--json",
             "--strict-json",
@@ -130,11 +134,11 @@ class GameData(Task):
             "--raw-binary",
             f"{FBS_DIR}/{fb_name}.fbs",
             "--",
-            flatbuffer_data_path,
+            flatbuffer_data_path.resolve(),
         ]
         subprocess.run(params)
-        os.remove(flatbuffer_data_path)
-        json_path = temp_path / f"{fb_name}.json"
+        flatbuffer_data_path.unlink()
+        json_path = output_path / f"{fb_name}.json"
         jsons = json.loads(json_path.read_text(encoding="utf-8"))
         if fb_name == "activity_table":
             for k, v in jsons["dynActs"].items():
@@ -158,9 +162,11 @@ class GameData(Task):
             ),
             encoding="utf-8",
         )
-        shutil.rmtree(temp_path)
 
-    async def _decrypt(self, path: str, obj: TextAsset, is_signed: bool):
+        tmp_dir.cleanup()
+
+    @run_sync
+    def _decrypt(self, path: str, obj: TextAsset, is_signed: bool):
         key: bytes = chat_mask[:16].encode()
         iv = chat_mask[16:].encode()
         cipher_data = (
@@ -215,8 +221,8 @@ class GameData(Task):
 
     async def _unpack_gamedata(self, path: str, obj: TextAsset):
         script: bytes = obj.script
-        is_signed = await self._check_signed(path)
-        is_encrypted = await self._check_encrypted(path)
+        is_signed = self._check_signed(path)
+        is_encrypted = self._check_encrypted(path)
         fb_name = await self._get_flatbuffer_name(path)
 
         if fb_name is not None:

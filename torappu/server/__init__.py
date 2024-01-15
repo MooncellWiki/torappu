@@ -26,8 +26,7 @@ class Response(BaseModel):
 
 async def task_main(info: VersionInfo):
     try:
-        await main(info.cur, info.prev)
-
+        await main(info.cur, info.prev, [])
     finally:
         lockfile_path.unlink()
 
