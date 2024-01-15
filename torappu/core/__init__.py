@@ -1,4 +1,4 @@
-import asyncio
+import anyio
 
 import sentry_sdk
 from sentry_sdk.integrations.httpx import HttpxIntegration
@@ -62,14 +62,8 @@ async def main(version: Version, prev: Version | None, exclude: list[str] = []):
     diff = client.diff()
     for priority in sorted(registry.keys()):
         logger.info(f"Checking for tasks in priority {priority}...")
-        pending_tasks = [
-            check_and_run_task(task(client), diff)
-            for task in registry[priority]
-            if snake_case(task.__name__) not in exclude
-        ]
-        results = await asyncio.gather(*pending_tasks, return_exceptions=True)
-        for result in results:
-            if not isinstance(result, Exception):
-                continue
-            else:
-                logger.opt(exception=result).error("Failed checking task")
+
+        async with anyio.create_task_group() as tg:
+            for task in registry[priority]:
+                if snake_case(task.__name__) not in exclude:
+                    tg.start_soon(check_and_run_task, task(client), diff)
