@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 import base64
 import asyncio
@@ -15,7 +14,6 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from UnityPy.classes import TextAsset
 
-from torappu.log import logger
 from torappu.core.utils import run_sync
 from torappu.consts import FBS_DIR, STORAGE_DIR
 
@@ -60,7 +58,7 @@ flatbuffer_list = [
     "skill_table",
     "stage_table",
     "extra_battlelog_table",
-    "sandbox_perm_table"
+    "sandbox_perm_table",
 ]
 encrypted_list = [
     "[uc]lua",
