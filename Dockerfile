@@ -47,7 +47,7 @@ ENV PYTHONPATH=/app
 
 EXPOSE 8000
 
-ENV APP_MODULE torappu.server.__main__:app
+ENV APP_MODULE torappu.server:app
 
 # RUN mv /etc/apt/sources.list /etc/apt/sources.list.bak &&\
 #   echo "deb http://mirrors.aliyun.com/debian/ buster main" >> /etc/apt/sources.list\
