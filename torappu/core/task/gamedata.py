@@ -270,14 +270,9 @@ class GameData(Task):
     async def unpack(self, ab_path: str):
         real_path = await self.client.resolve_ab(ab_path[:-3])
         env = UnityPy.load(real_path)
-        try:
-            for path, object in env.container.items():
-                if isinstance((asset := object.read()), TextAsset):
-                    await self._unpack_gamedata(path, asset)
-
-        except Exception as e:
-            logger.opt(exception=e).error("Failed to unpack gamedata")
-            sys.exit(1)
+        for path, object in env.container.items():
+            if isinstance((asset := object.read()), TextAsset):
+                await self._unpack_gamedata(path, asset)
 
     async def inner_run(self):
         gamedata_abs = [
