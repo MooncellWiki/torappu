@@ -7,7 +7,10 @@ from contextlib import contextmanager, asynccontextmanager
 import httpx
 
 from torappu.config import Config
-from torappu.core.wiki.typing import (
+
+from .response import Response
+from .exception import RequestError, RequestFailed, RequestTimeout
+from .typing import (
     URLTypes,
     CookieTypes,
     HeaderTypes,
@@ -15,9 +18,6 @@ from torappu.core.wiki.typing import (
     RequestFiles,
     QueryParamTypes,
 )
-
-from .response import Response
-from .exception import RequestError, RequestFailed, RequestTimeout
 
 T = TypeVar("T")
 
