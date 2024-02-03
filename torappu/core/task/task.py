@@ -4,9 +4,10 @@ from typing import ClassVar
 from collections import defaultdict
 
 from torappu.log import logger
+from torappu.models import Diff
 from torappu.consts import GAMEDATA_DIR
 
-from ..client import Change, Client
+from ..client import Client
 
 registry: defaultdict[int, list[type["Task"]]] = defaultdict(list)
 
@@ -22,16 +23,16 @@ class Task(abc.ABC):
         self.client = client
 
     @abc.abstractmethod
-    def need_run(self, change_list: list[Change]) -> bool:
+    def check(self, diff_list: list[Diff]) -> bool:
         raise NotImplementedError
 
     async def run(self):
         logger.info(f"Starting task {type(self).__name__}")
-        await self.inner_run()
+        await self.start()
         logger.info(f"Finished task {type(self).__name__}")
 
     @abc.abstractmethod
-    async def inner_run(self):
+    async def start(self):
         raise NotImplementedError
 
     def get_gamedata(self, path: str):

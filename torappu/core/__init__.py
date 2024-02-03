@@ -1,5 +1,4 @@
 import anyio
-
 import sentry_sdk
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
@@ -9,10 +8,10 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 
 from ..log import logger
 from .. import get_config
-from ..models import Version
+from .client import Client
 from .utils import snake_case
 from .task import Task, registry
-from .client import Change, Client
+from ..models import Diff, Version
 
 config = get_config()
 
@@ -36,8 +35,8 @@ def init_sentry(*, headless: bool):
     )
 
 
-async def check_and_run_task(instance: Task, diff: list[Change]):
-    if not instance.need_run(diff):
+async def check_and_run_task(instance: Task, diff: list[Diff]):
+    if not instance.check(diff):
         logger.info(f"Skipping task {instance}")
         return
 

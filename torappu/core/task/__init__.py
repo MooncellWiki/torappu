@@ -6,6 +6,7 @@ from .char_spine import CharSpine as CharSpine
 from .build_skill import BuildSkill as BuildSkill
 from .enemy_spine import EnemySpine as EnemySpine
 from .item_demand import ItemDemand as ItemDemand
+from .char_portrait import CharPortrait as CharPortrait
 from .furniture_icon import FurnitureIcon as FurnitureIcon
 from .furniture_theme import FurnitureTheme as FurnitureTheme
 from .furniture_preview import FurniturePreview as FurniturePreview

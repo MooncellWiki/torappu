@@ -3,10 +3,10 @@ import itertools
 from typing import ClassVar
 
 from torappu.log import logger
+from torappu.models import Diff
 from torappu.consts import BASE_DIR
 
 from .task import Task
-from ..client import Change
 from .utils import trans_prof
 
 
@@ -28,10 +28,10 @@ def ensure_item_exists(item_demand, item_name, char_id, char_detail, skill_num):
 class ItemDemand(Task):
     priority: ClassVar[int] = 1
 
-    def need_run(self, change_list: list[Change]) -> bool:
+    def check(self, diff_list: list[Diff]) -> bool:
         return True
 
-    async def inner_run(self):
+    async def start(self):
         demand = self.get_item_demand()
         if self.client.config.backend_endpoint:
             logger.debug("uploading item demand json")

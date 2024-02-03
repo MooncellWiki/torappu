@@ -8,10 +8,10 @@ from pydub import AudioSegment
 from UnityPy.classes import AudioClip
 
 from torappu.log import logger
+from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
 
 from .task import Task
-from ..client import Change
 from .utils import build_container_path
 
 AUDIO_DIR = STORAGE_DIR / "asset" / "raw" / "audio"
@@ -21,12 +21,12 @@ class Audio(Task):
     priority: ClassVar[int] = 3
     ab_list: set[str]
 
-    def need_run(self, change_list: list[Change]) -> bool:
-        change_set = {change.ab_path for change in change_list}
+    def check(self, diff_list: list[Diff]) -> bool:
+        diff_set = {change.ab_path for change in diff_list}
         self.ab_list = {
             bundle[:-3]
             for asset, bundle in self.client.asset_to_bundle.items()
-            if asset.startswith("audio/sound_beta_2/") and (bundle in change_set)
+            if asset.startswith("audio/sound_beta_2/") and (bundle in diff_set)
         }
         return len(self.ab_list) > 0
 
@@ -115,7 +115,7 @@ class Audio(Task):
             logger.debug(f"make link {path} to {source}")
             path.symlink_to(source)
 
-    async def inner_run(self):
+    async def start(self):
         paths = await self.client.resolve_abs(list(self.ab_list))
         await asyncio.gather(
             *(self.extract(real_path, ab_path) for ab_path, real_path in paths)

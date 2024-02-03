@@ -33,6 +33,6 @@ class HotUpdateInfo(BaseModel):
     packInfos: list[ABInfo]
 
 
-class Change(BaseModel):
+class Diff(BaseModel):
     kind: Literal["add", "change", "remove"]
     ab_path: str

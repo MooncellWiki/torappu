@@ -14,11 +14,12 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from UnityPy.classes import TextAsset
 
+from torappu.models import Diff
 from torappu.core.utils import run_sync
 from torappu.consts import FBS_DIR, STORAGE_DIR
 
 from .task import Task
-from ..client import Change, Client
+from ..client import Client
 
 flatbuffer_list = [
     "ep_breakbuff_table",
@@ -82,7 +83,7 @@ class GameData(Task):
     def __init__(self, client: Client) -> None:
         super().__init__(client)
 
-    def need_run(self, change_list: list[Change]) -> bool:
+    def check(self, diff_list: list[Diff]) -> bool:
         return True
 
     async def _get_flatbuffer_name(self, path: str):
@@ -273,7 +274,7 @@ class GameData(Task):
             if isinstance((asset := object.read()), TextAsset):
                 await self._unpack_gamedata(path, asset)
 
-    async def inner_run(self):
+    async def start(self):
         gamedata_abs = [
             info.name
             for info in self.client.hot_update_list.abInfos

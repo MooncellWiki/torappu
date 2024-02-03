@@ -5,10 +5,10 @@ import UnityPy
 from UnityPy.classes import PPtr, Material, TextAsset, GameObject, MonoBehaviour
 
 from torappu.log import logger
+from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
 
 from .task import Task
-from ..client import Change
 from .utils import material2img, build_container_path
 
 
@@ -17,12 +17,12 @@ class EnemySpine(Task):
 
     ab_list: set[str]
 
-    def need_run(self, change_list: list[Change]) -> bool:
-        change_set = {change.ab_path for change in change_list}
+    def check(self, diff_list: list[Diff]) -> bool:
+        diff_set = {change.ab_path for change in diff_list}
         self.ab_list = {
             bundle
             for asset, bundle in self.client.asset_to_bundle.items()
-            if asset.startswith("battle/prefabs/enemies/") and (bundle in change_set)
+            if asset.startswith("battle/prefabs/enemies/") and (bundle in diff_set)
         }
 
         return len(self.ab_list) > 0
@@ -75,6 +75,6 @@ class EnemySpine(Task):
         real_path = await self.client.resolve_ab(ab_path[:-3])
         await self.unpack_ab(real_path)
 
-    async def inner_run(self):
+    async def start(self):
         await asyncio.gather(*(self.client.resolve_ab(ab[:-3]) for ab in self.ab_list))
         await asyncio.gather(*(self.unpack(ab) for ab in self.ab_list))

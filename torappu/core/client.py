@@ -12,7 +12,7 @@ from tenacity import retry, stop_after_attempt
 from .wiki import Wiki
 from ..log import logger
 from ..config import Config
-from ..models import ABInfo, Change, Version, HotUpdateInfo
+from ..models import Diff, ABInfo, Version, HotUpdateInfo
 from ..consts import HEADERS, STORAGE_DIR, HG_CN_BASEURL, WIKI_API_ENDPOINT
 
 
@@ -51,18 +51,18 @@ class Client:
     def _get_hot_update_list_path(self, res: str) -> Path:
         return STORAGE_DIR / "HotUpdateInfo" / f"{res}.json"
 
-    def diff(self) -> list[Change]:
+    def diff(self) -> list[Diff]:
         result = []
         if self.prev_hot_update_list is None:
             return [
-                Change(kind="add", ab_path=info.name)
+                Diff(kind="add", ab_path=info.name)
                 for info in self.hot_update_list.abInfos
             ]
 
         cur_map = {info.name: info.md5 for info in self.hot_update_list.abInfos}
         for info in self.prev_hot_update_list.abInfos:
             if info.name not in cur_map:
-                result.append(Change(kind="remove", ab_path=info.name))
+                result.append(Diff(kind="remove", ab_path=info.name))
                 continue
 
             sign = cur_map[info.name]
@@ -70,10 +70,10 @@ class Client:
             if sign == info.md5:
                 continue
 
-            result.append(Change(kind="change", ab_path=info.name))
+            result.append(Diff(kind="change", ab_path=info.name))
 
         for k, v in cur_map.items():
-            result.append(Change(kind="add", ab_path=k))
+            result.append(Diff(kind="add", ab_path=k))
 
         return result
 

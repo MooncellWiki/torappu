@@ -1,16 +1,14 @@
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 import UnityPy
 from UnityPy.classes import Sprite
 
+from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
 
 from . import Task
 
-if TYPE_CHECKING:
-    from torappu.core.client import Change
-
-BASE_PATH = STORAGE_DIR / "asset" / "raw" / "buildSkillIcon"
+BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "buildSkillIcon")
 
 
 class BuildSkill(Task):
@@ -18,12 +16,12 @@ class BuildSkill(Task):
 
     ab_list: set[str]
 
-    def need_run(self, change_list: list["Change"]) -> bool:
-        change_set = {change.ab_path for change in change_list}
+    def check(self, diff_list: list[Diff]) -> bool:
+        diff_set = {change.ab_path for change in diff_list}
         self.ab_list = {
             bundle[:-3]
             for asset, bundle in self.client.asset_to_bundle.items()
-            if (asset.startswith("arts/building/skills/")) and (bundle in change_set)
+            if (asset.startswith("arts/building/skills/")) and (bundle in diff_set)
         }
 
         return len(self.ab_list) > 0
@@ -34,7 +32,7 @@ class BuildSkill(Task):
             data: Sprite = obj.read()  # type: ignore
             data.image.save(BASE_PATH / f"{data.name}.png")
 
-    async def inner_run(self):
+    async def start(self):
         paths = await self.client.resolve_abs(list(self.ab_list))
         BASE_PATH.mkdir(parents=True, exist_ok=True)
         for _, ab_path in paths:

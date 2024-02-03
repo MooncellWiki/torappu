@@ -6,6 +6,7 @@ import UnityPy
 from pydantic import BaseModel, TypeAdapter
 
 from torappu.log import logger
+from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
 
 from . import Task
@@ -14,8 +15,6 @@ from .utils import material2img, build_container_path
 
 if TYPE_CHECKING:
     from UnityPy.classes import PPtr, Material, TextAsset, GameObject, MonoBehaviour
-
-    from torappu.core.client import Change
 
 
 class FileConfig(BaseModel):
@@ -43,8 +42,8 @@ class CharSpine(Task):
         self.char_map = {}
         self.skin_map = {}
 
-    def need_run(self, change_list: list["Change"]) -> bool:
-        change_set = {change.ab_path for change in change_list}
+    def check(self, diff_list: list["Diff"]) -> bool:
+        diff_set = {change.ab_path for change in diff_list}
         self.ab_list = {
             bundle
             for asset, bundle in self.client.asset_to_bundle.items()
@@ -56,7 +55,7 @@ class CharSpine(Task):
                 # token的初始
                 or asset.startswith("battle/prefabs/[uc]tokens")
             )
-            and (bundle in change_set)
+            and (bundle in diff_set)
         }
 
         return len(self.ab_list) > 0
@@ -214,7 +213,7 @@ class CharSpine(Task):
         real_path = await self.client.resolve_ab(ab_path[:-3])
         await self.unpack_ab(real_path)
 
-    async def inner_run(self):
+    async def start(self):
         char_table = self.get_gamedata("excel/character_table.json")
         for char in char_table:
             self.char_map[char] = char_table[char]["name"]
@@ -244,7 +243,7 @@ class CharSpine(Task):
         await asyncio.gather(*(self.unpack(ab) for ab in self.ab_list))
 
         for char in filter(lambda c: c in self.char_map, self.changed_char):
-            meta_path = STORAGE_DIR / "asset" / "raw" / "charSpine" / char / "meta.json"
+            meta_path = STORAGE_DIR / "asset/raw/charSpine/char/meta.json"
             result = self.changed_char[char]
 
             if meta_path.is_file():

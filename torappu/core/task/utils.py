@@ -10,7 +10,30 @@ def trans_prof(profession):
     return PROFESSIONS[profession]
 
 
-def material2img(mat: Material) -> tuple[Image.Image, str]:
+def merge_alpha(alpha_texture: Texture2D | None, rgb_texture: Texture2D | None):
+    if rgb_texture is None:
+        raise Exception("rgb texture not found")
+
+    if alpha_texture is None:
+        logger.debug(f"{rgb_texture.name} alpha texture not found, use rgb texture")
+
+        return (rgb_texture.image, rgb_texture.name)
+
+    r, g, b = rgb_texture.image.split()[:3]
+    if (
+        alpha_texture.m_Width != rgb_texture.m_Width
+        or alpha_texture.m_Height != rgb_texture.m_Height
+    ):
+        (a, *_) = alpha_texture.image.resize(
+            (rgb_texture.m_Width, rgb_texture.m_Height)
+        ).split()
+    else:
+        a, *_ = alpha_texture.image.split()
+
+    return Image.merge("RGBA", (r, g, b, a)), rgb_texture.name
+
+
+def material2img(mat: Material):
     atexture: Texture2D | None = None
     rgbtexture: Texture2D | None = None
     for key, tex in mat.m_SavedProperties.m_TexEnvs.items():
@@ -19,26 +42,7 @@ def material2img(mat: Material) -> tuple[Image.Image, str]:
         if key == "_MainTex" and tex.m_Texture:
             rgbtexture = tex.m_Texture.read()
 
-    if rgbtexture is None:
-        raise Exception("rgb texture not found")
-
-    if atexture is None:
-        logger.debug(f"{rgbtexture.name} alpha texture not found, use rgb texture")
-
-        return (rgbtexture.image, rgbtexture.name)
-
-    r, g, b = rgbtexture.image.split()[:3]
-    if (
-        atexture.m_Width != rgbtexture.m_Width
-        or atexture.m_Height != rgbtexture.m_Height
-    ):
-        (a, *_) = atexture.image.resize(
-            (rgbtexture.m_Width, rgbtexture.m_Height)
-        ).split()
-    else:
-        a, *_ = atexture.image.split()
-
-    return Image.merge("RGBA", (r, g, b, a)), rgbtexture.name
+    return merge_alpha(atexture, rgbtexture)
 
 
 # https://github.com/Perfare/AssetStudio/blob/master/AssetStudioGUI/Studio.cs#L210
