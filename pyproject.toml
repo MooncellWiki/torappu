@@ -1,8 +1,11 @@
 [tool.poetry]
 name = "torappu"
-version = "1.5.5"
+version = "1.6.0"
 description = "unpacker for a game"
-authors = ["daflyinbed <1677759063@qq.com>"]
+authors = [
+  "daflyinbed <1677759063@qq.com>",
+  "StarHeartHunt <starheart233@gmail.com>",
+]
 readme = "README.md"
 
 [tool.poetry.dependencies]
