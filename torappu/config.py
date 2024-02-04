@@ -23,7 +23,7 @@ class Config(BaseSettings):
     log_level: int | str = "INFO"
 
     token: str = ""
-    timeout: int = 10
+    timeout: int = 60
 
     backend_endpoint: str = ""
     flatc_path: Path = Path("bin/flatc.exe" if WINDOWS else "bin/flatc")
