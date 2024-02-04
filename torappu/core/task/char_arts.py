@@ -2,7 +2,7 @@ from typing import ClassVar
 
 import anyio
 import UnityPy
-from UnityPy.classes import PPtr, Sprite, Material, Texture2D, MonoBehaviour
+from UnityPy.classes import PPtr, Sprite, Texture2D, MonoBehaviour
 
 from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
