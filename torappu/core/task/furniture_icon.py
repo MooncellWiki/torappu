@@ -8,7 +8,7 @@ from torappu.consts import STORAGE_DIR
 
 from . import Task
 
-BASE_PATH = STORAGE_DIR / "asset" / "raw" / "furniture"
+BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "furniture")
 
 
 class FurnitureIcon(Task):
@@ -16,7 +16,7 @@ class FurnitureIcon(Task):
 
     ab_list: set[str]
 
-    def check(self, diff_list: list["Diff"]) -> bool:
+    def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {change.ab_path for change in diff_list}
         self.ab_list = {
             bundle[:-3]

@@ -8,7 +8,7 @@ from torappu.consts import STORAGE_DIR
 
 from . import Task
 
-BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "buildSkillIcon")
+BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "build_skill_icon")
 
 
 class BuildSkill(Task):

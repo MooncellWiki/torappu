@@ -42,7 +42,7 @@ class CharSpine(Task):
         self.char_map = {}
         self.skin_map = {}
 
-    def check(self, diff_list: list["Diff"]) -> bool:
+    def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {change.ab_path for change in diff_list}
         self.ab_list = {
             bundle
@@ -69,7 +69,7 @@ class CharSpine(Task):
             SpineConfig(
                 name=self.char_map[name],
                 skin={},
-                prefix=f"https://torappu.prts.wiki/assets/charSpine/{name}/",
+                prefix=f"https://torappu.prts.wiki/assets/char_spine/{name}/",
             ),
         )
         skin_name = "默认" if skin == "defaultskin" else self.skin_map.get(skin, None)
@@ -96,7 +96,7 @@ class CharSpine(Task):
             path: str,
         ) -> str | None:
             result = None
-            base_dir = STORAGE_DIR / "asset" / "raw" / "charSpine" / path
+            base_dir = STORAGE_DIR / "asset" / "raw" / "char_spine" / path
             skel: TextAsset = data.skeletonJSON.read()  # type: ignore
             if not base_dir.exists():
                 result = skel.name.replace("#", "_")[:-5]
@@ -243,7 +243,7 @@ class CharSpine(Task):
         await asyncio.gather(*(self.unpack(ab) for ab in self.ab_list))
 
         for char in filter(lambda c: c in self.char_map, self.changed_char):
-            meta_path = STORAGE_DIR / "asset/raw/charSpine/char/meta.json"
+            meta_path = STORAGE_DIR / "asset/raw/char_spine/char/meta.json"
             result = self.changed_char[char]
 
             if meta_path.is_file():

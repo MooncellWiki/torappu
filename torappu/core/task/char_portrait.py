@@ -10,7 +10,7 @@ from torappu.consts import STORAGE_DIR
 from .task import Task
 from .utils import merge_alpha
 
-BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "charPortrait")
+BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "char_portrait")
 
 
 class Rect4D(TypedDict):
@@ -46,6 +46,7 @@ class CharPortrait(Task):
             atlas_dest = BASE_PATH / "atlas"
             atlas_dest.mkdir(parents=True, exist_ok=True)
             texture.save(atlas_dest / f"{data.name}.png")
+
             # unpack sprites
             sprites: list[SpriteMetadata] = data._sprites  # type: ignore
             for sprite in sprites:

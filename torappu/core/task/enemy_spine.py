@@ -33,7 +33,7 @@ class EnemySpine(Task):
         container_map = build_container_path(env)
 
         def unpack(data: "MonoBehaviour", path: str):
-            base_dir = STORAGE_DIR / "asset" / "raw" / "enemySpine" / path
+            base_dir = STORAGE_DIR / "asset" / "raw" / "enemy_spine" / path
             base_dir.mkdir(parents=True, exist_ok=True)
             skel: TextAsset = data.skeletonJSON.read()  # type: ignore
             with open(base_dir / skel.name, "wb") as f:

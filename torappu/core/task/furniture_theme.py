@@ -8,7 +8,7 @@ from torappu.consts import STORAGE_DIR
 
 from . import Task
 
-BASE_PATH = STORAGE_DIR / "asset" / "raw" / "furnitureTheme"
+BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "furniture_theme")
 
 
 class FurnitureTheme(Task):
