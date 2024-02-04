@@ -12,6 +12,7 @@ from tenacity import retry, stop_after_attempt
 from .wiki import Wiki
 from ..log import logger
 from ..config import Config
+from .utils import run_sync, run_async
 from ..models import Diff, ABInfo, Version, HotUpdateInfo
 from ..consts import HEADERS, STORAGE_DIR, HG_CN_BASEURL, WIKI_API_ENDPOINT
 
@@ -129,16 +130,16 @@ class Client:
         return resp.content
 
     # .ab的路径
-    async def resolve_ab(self, path: str) -> str:
+    @run_sync
+    def resolve_ab(self, path: str) -> str:
         info = self.get_abinfo_by_path(path + ".ab")
 
-        if (
-            md5_path := STORAGE_DIR / "assetBundle" / f"{info.md5}.ab"
-        ).exists() and info.md5 == md5(md5_path.read_bytes()).hexdigest():
+        md5_path = STORAGE_DIR.joinpath("assetBundle", f"{info.md5}.ab")
+        if md5_path.exists() and info.md5 == md5(md5_path.read_bytes()).hexdigest():
             return md5_path.as_posix()
 
         md5_path.parent.mkdir(parents=True, exist_ok=True)
-        content = await self.download_ab(path)
+        content = run_async(self.download_ab)(path)
 
         with ZipFile(BytesIO(content)) as myzip:
             md5_path.write_bytes(myzip.read(myzip.filelist[0]))
