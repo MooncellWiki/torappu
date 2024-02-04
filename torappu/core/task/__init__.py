@@ -2,6 +2,7 @@ from .task import Task as Task
 from .audio import Audio as Audio
 from .task import registry as registry
 from .gamedata import GameData as GameData
+from .char_arts import CharArts as CharArts
 from .char_spine import CharSpine as CharSpine
 from .build_skill import BuildSkill as BuildSkill
 from .char_avatar import CharAvatar as CharAvatar
