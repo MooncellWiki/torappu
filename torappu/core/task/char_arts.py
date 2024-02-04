@@ -30,10 +30,13 @@ class CharArts(Task):
                 if material_pptr.path_id != 0:
                     material = material_pptr.read()  # type: ignore
                     texture_envs = material.m_SavedProperties.m_TexEnvs
-                    rgb_texture: Texture2D = texture_envs["_MainTex"].m_Texture.read()
-                    alpha_texture: Texture2D = texture_envs[
-                        "_AlphaTex"
-                    ].m_Texture.read()
+                    rgb_texture_pptr: PPtr = texture_envs["_MainTex"].m_Texture
+                    alpha_texture_pptr: PPtr = texture_envs["_AlphaTex"].m_Texture
+                    if rgb_texture_pptr.path_id == 0 or alpha_texture_pptr.path_id == 0:
+                        continue
+
+                    rgb_texture: Texture2D = rgb_texture_pptr.read()
+                    alpha_texture: Texture2D = alpha_texture_pptr.read()
                     merged_image, _ = merge_alpha(alpha_texture, rgb_texture)
                     merged_image.save(BASE_DIR.joinpath(f"{rgb_texture.name}.png"))
                 else:
