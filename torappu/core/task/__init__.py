@@ -4,6 +4,7 @@ from .task import registry as registry
 from .gamedata import GameData as GameData
 from .char_spine import CharSpine as CharSpine
 from .build_skill import BuildSkill as BuildSkill
+from .char_avatar import CharAvatar as CharAvatar
 from .enemy_spine import EnemySpine as EnemySpine
 from .item_demand import ItemDemand as ItemDemand
 from .char_portrait import CharPortrait as CharPortrait
