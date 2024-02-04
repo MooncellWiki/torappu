@@ -29,7 +29,7 @@ class SpriteMetadata(TypedDict):
 
 
 class CharPortrait(Task):
-    priority: ClassVar[int] = 2
+    priority: ClassVar[int] = 3
 
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
