@@ -9,6 +9,7 @@ from .build_skill import BuildSkill as BuildSkill
 from .char_avatar import CharAvatar as CharAvatar
 from .enemy_spine import EnemySpine as EnemySpine
 from .item_demand import ItemDemand as ItemDemand
+from .map_preview import MapPreview as MapPreview
 from .char_portrait import CharPortrait as CharPortrait
 from .furniture_icon import FurnitureIcon as FurnitureIcon
 from .furniture_theme import FurnitureTheme as FurnitureTheme
