@@ -3,8 +3,10 @@ from .audio import Audio as Audio
 from .task import registry as registry
 from .gamedata import GameData as GameData
 from .char_arts import CharArts as CharArts
+from .medal_diy import MedalDIY as MedalDIY
 from .char_spine import CharSpine as CharSpine
 from .enemy_icon import EnemyIcon as EnemyIcon
+from .medal_icon import MedalIcon as MedalIcon
 from .build_skill import BuildSkill as BuildSkill
 from .char_avatar import CharAvatar as CharAvatar
 from .enemy_spine import EnemySpine as EnemySpine
