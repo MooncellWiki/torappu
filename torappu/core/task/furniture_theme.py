@@ -17,7 +17,7 @@ class FurnitureTheme(Task):
     ab_list: set[str]
 
     def check(self, diff_list: list[Diff]) -> bool:
-        diff_set = {change.ab_path for change in diff_list}
+        diff_set = {diff.ab_path for diff in diff_list}
         self.ab_list = {
             bundle[:-3]
             for asset, bundle in self.client.asset_to_bundle.items()
