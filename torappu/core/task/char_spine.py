@@ -30,17 +30,13 @@ class SpineConfig(BaseModel):
 class CharSpine(Task):
     priority: ClassVar[int] = 2
 
-    ab_list: set[str]
-    changed_char: dict[str, SpineConfig]
-    char_map: dict[str, str]
-    skin_map: dict[str, str]
-
     def __init__(self, client: Client) -> None:
         super().__init__(client)
 
-        self.changed_char = {}
-        self.char_map = {}
-        self.skin_map = {}
+        self.ab_list: set[str] = set()
+        self.changed_char: dict[str, SpineConfig] = {}
+        self.char_map: dict[str, str] = {}
+        self.skin_map: dict[str, str] = {}
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.ab_path for diff in diff_list}

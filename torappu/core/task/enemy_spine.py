@@ -9,13 +9,17 @@ from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
 
 from .task import Task
+from ..client import Client
 from .utils import material2img, build_container_path
 
 
 class EnemySpine(Task):
     priority: ClassVar[int] = 2
 
-    ab_list: set[str]
+    def __init__(self, client: Client) -> None:
+        super().__init__(client)
+
+        self.ab_list: set[str] = set()
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.ab_path for diff in diff_list}
