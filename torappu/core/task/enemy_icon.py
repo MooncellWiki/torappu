@@ -2,7 +2,7 @@ from typing import ClassVar
 
 import anyio
 import UnityPy
-from UnityPy.classes import Texture2D
+from UnityPy.classes import Sprite
 
 from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
@@ -17,8 +17,8 @@ class EnemyIcon(Task):
 
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
-        for obj in filter(lambda obj: obj.type.name == "Texture2D", env.objects):
-            texture: Texture2D = obj.read()  # type: ignore
+        for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
+            texture: Sprite = obj.read()  # type: ignore
             texture.image.save(BASE_DIR.joinpath(f"{texture.name}.png"))
 
     def check(self, diff_list: list[Diff]) -> bool:
