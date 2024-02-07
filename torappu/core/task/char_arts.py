@@ -19,30 +19,29 @@ class CharArts(Task):
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
 
-        for obj in env.objects:
-            if obj.type.name == "MonoBehaviour":
-                behaviour: MonoBehaviour = obj.read()  # type: ignore
-                script = behaviour.m_Script.read()
-                if script.name != "Image":
+        for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
+            behaviour: MonoBehaviour = obj.read()  # type: ignore
+            script = behaviour.m_Script.read()
+            if script.name != "Image":
+                continue
+
+            material_pptr: PPtr = behaviour.m_Material  # type: ignore
+            if material_pptr.path_id != 0:
+                material = material_pptr.read()  # type: ignore
+                texture_envs = material.m_SavedProperties.m_TexEnvs
+                rgb_texture_pptr: PPtr = texture_envs["_MainTex"].m_Texture
+                alpha_texture_pptr: PPtr = texture_envs["_AlphaTex"].m_Texture
+                if rgb_texture_pptr.path_id == 0 or alpha_texture_pptr.path_id == 0:
                     continue
 
-                material_pptr: PPtr = behaviour.m_Material  # type: ignore
-                if material_pptr.path_id != 0:
-                    material = material_pptr.read()  # type: ignore
-                    texture_envs = material.m_SavedProperties.m_TexEnvs
-                    rgb_texture_pptr: PPtr = texture_envs["_MainTex"].m_Texture
-                    alpha_texture_pptr: PPtr = texture_envs["_AlphaTex"].m_Texture
-                    if rgb_texture_pptr.path_id == 0 or alpha_texture_pptr.path_id == 0:
-                        continue
-
-                    rgb_texture: Texture2D = rgb_texture_pptr.read()
-                    alpha_texture: Texture2D = alpha_texture_pptr.read()
-                    merged_image, _ = merge_alpha(alpha_texture, rgb_texture)
-                    merged_image.save(BASE_DIR.joinpath(f"{rgb_texture.name}.png"))
-                else:
-                    sprite: Sprite = behaviour.m_Sprite.read()  # type: ignore
-                    rgb_texture: Texture2D = sprite.m_RD.texture.read()
-                    rgb_texture.image.save(BASE_DIR.joinpath(f"{rgb_texture.name}.png"))
+                rgb_texture: Texture2D = rgb_texture_pptr.read()
+                alpha_texture: Texture2D = alpha_texture_pptr.read()
+                merged_image, _ = merge_alpha(alpha_texture, rgb_texture)
+                merged_image.save(BASE_DIR.joinpath(f"{rgb_texture.name}.png"))
+            else:
+                sprite: Sprite = behaviour.m_Sprite.read()  # type: ignore
+                rgb_texture: Texture2D = sprite.m_RD.texture.read()
+                rgb_texture.image.save(BASE_DIR.joinpath(f"{rgb_texture.name}.png"))
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.ab_path for diff in diff_list}
