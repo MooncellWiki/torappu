@@ -23,7 +23,6 @@ ITEM_BACKGROUND_IMAGES = {
     "TIER_6": ASSETS_DIR.joinpath("item_bg", "sprite_item_r6.png"),
     "E_NUM": ASSETS_DIR.joinpath("item_bg", "sprite_item_r1.png"),
 }
-STANDARD_PIC_SIZE = (180, 180)
 SKIP_BG_TYPES = ["UNI_COLLECTION"]
 
 
