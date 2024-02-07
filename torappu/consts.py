@@ -7,6 +7,7 @@ BASE_DIR: Path = Path(__file__).parent.parent.absolute()
 STORAGE_DIR = BASE_DIR / "storage"
 TEMP_DIR = BASE_DIR / "temp"
 FBS_DIR = BASE_DIR / "OpenArknightsFBS" / "FBS"
+ASSETS_DIR = BASE_DIR / "assets"
 GAMEDATA_DIR = STORAGE_DIR / "asset" / "gamedata"
 HEADERS = {
     "user-agent": "Dalvik/2.1.0 (Linux; U; Android 6.0.1; vivo X9L Build/MMB29M)"

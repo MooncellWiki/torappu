@@ -1,7 +1,6 @@
 .devcontainer/
 .github/
 .vscode/
-assets/
 tests/
 .dockerignore
 .editorconfig
