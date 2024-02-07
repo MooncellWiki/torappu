@@ -61,7 +61,9 @@ class ItemIcon(Task):
             rect_offset = texture.m_RD.textureRectOffset
             position = (
                 round((bg_width - texture.m_Rect.width) / 2 + rect_offset.X),
-                round((bg_height - texture.m_Rect.height) / 2 + rect_offset.Y),
+                bg_height
+                - texture.image.height
+                - round((bg_height - texture.m_Rect.height) / 2 + rect_offset.Y),
             )
             bg.paste(
                 texture.image,
