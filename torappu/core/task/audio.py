@@ -12,6 +12,7 @@ from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
 
 from .task import Task
+from ..client import Client
 from .utils import build_container_path
 
 AUDIO_DIR = STORAGE_DIR / "asset" / "raw" / "audio"
@@ -19,7 +20,11 @@ AUDIO_DIR = STORAGE_DIR / "asset" / "raw" / "audio"
 
 class Audio(Task):
     priority: ClassVar[int] = 3
-    ab_list: set[str]
+
+    def __init__(self, client: Client) -> None:
+        super().__init__(client)
+
+        self.ab_list: set[str] = set()
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.ab_path for diff in diff_list}

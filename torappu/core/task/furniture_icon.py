@@ -7,6 +7,7 @@ from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
 
 from . import Task
+from ..client import Client
 
 BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "furniture")
 
@@ -14,7 +15,10 @@ BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "furniture")
 class FurnitureIcon(Task):
     priority: ClassVar[int] = 1
 
-    ab_list: set[str]
+    def __init__(self, client: Client) -> None:
+        super().__init__(client)
+
+        self.ab_list: set[str] = set()
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.ab_path for diff in diff_list}
