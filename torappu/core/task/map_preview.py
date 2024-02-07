@@ -8,6 +8,8 @@ from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
 
 from .task import Task
+from ..client import Client
+from ..utils import run_sync
 
 BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "map_preview")
 
@@ -15,27 +17,50 @@ BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "map_preview")
 class MapPreview(Task):
     priority: ClassVar[int] = 4
 
-    async def unpack(self, ab_path: str):
+    def __init__(self, client: Client) -> None:
+        super().__init__(client)
+
+        self.ab_list: set[str] = set()
+        self.sandbox_ab_list: set[str] = set()
+
+    @run_sync
+    def extract_image(self, ab_path: str):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
             texture: Sprite = obj.read()  # type: ignore
+            return texture
+
+    async def unpack_sandbox(self, ab_path: str):
+        if texture := await self.extract_image(ab_path):
+            texture.image.save(BASE_DIR.joinpath(f"{texture.name}.png"))
+
+    async def unpack_universal(self, ab_path: str):
+        if texture := await self.extract_image(ab_path):
             resized = texture.image.resize((1280, 720))
             resized.save(BASE_DIR.joinpath(f"{texture.name}.png"))
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.ab_path for diff in diff_list}
-        self.ab_list = {
-            bundle[:-3]
-            for asset, bundle in self.client.asset_to_bundle.items()
-            if (asset.startswith("arts/ui/stage/mappreviews")) and (bundle in diff_set)
-        }
+        for asset, bundle in self.client.asset_to_bundle.items():
+            if bundle not in diff_set:
+                continue
+
+            if asset.startswith("ui/sandboxv2/mappreview"):
+                self.sandbox_ab_list.add(bundle[:-3])
+            elif asset.startswith("arts/ui/stage/mappreviews"):
+                self.ab_list.add(bundle[:-3])
 
         return len(self.ab_list) > 0
 
     async def start(self):
         paths = await self.client.resolve_abs(list(self.ab_list))
+        sandbox_paths = await self.client.resolve_abs(list(self.sandbox_ab_list))
         BASE_DIR.mkdir(parents=True, exist_ok=True)
 
         async with anyio.create_task_group() as tg:
             for _, ab_path in paths:
-                tg.start_soon(self.unpack, ab_path)
+                tg.start_soon(self.unpack_universal, ab_path)
+
+        async with anyio.create_task_group() as tg:
+            for _, ab_path in sandbox_paths:
+                tg.start_soon(self.unpack_sandbox, ab_path)
