@@ -57,25 +57,17 @@ class ItemIcon(Task):
             if not bg_path:
                 continue
 
-            canvas = Image.new("RGBA", STANDARD_PIC_SIZE)
-            canvas_width, canvas_height = canvas.size
-            texture_width, texture_height = texture.image.size
-            position = (
-                round(canvas_width / 2 - texture_width / 2),
-                round(canvas_height / 2 - texture_height / 2),
-            )
-            canvas.paste(texture.image, position, texture.image)
-
             bg = Image.open(bg_path)
             bg_width, bg_height = bg.size
-            bg_position = (
-                round(bg_width / 2 - canvas_width / 2),
-                round(bg_height / 2 - canvas_height / 2),
+            rect_offset = texture.m_RD.textureRectOffset
+            position = (
+                round((bg_width - texture.m_Rect.width) / 2 + rect_offset.X),
+                round((bg_height - texture.m_Rect.height) / 2 + rect_offset.Y),
             )
             bg.paste(
-                canvas,
-                bg_position,
-                canvas,
+                texture.image,
+                position,
+                texture.image,
             )
 
             bg.save(BASE_DIR.joinpath(f"{texture.name}.png"))
