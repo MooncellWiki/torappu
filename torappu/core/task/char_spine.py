@@ -43,15 +43,10 @@ class CharSpine(Task):
         self.ab_list = {
             bundle
             for asset, bundle in self.client.asset_to_bundle.items()
-            if (
-                # 干员以及token的皮肤
-                asset.startswith("battle/prefabs/skins/character")
-                # 干员的基建
-                or asset.startswith("building/vault/characters")
-                # token的初始
-                or asset.startswith("battle/prefabs/[uc]tokens")
-            )
-            and (bundle in diff_set)
+            if asset.startswith("battle/prefabs/skins/character")  # 干员以及token的皮肤
+            or asset.startswith("building/vault/characters")  # 干员的基建
+            or asset.startswith("battle/prefabs/[uc]tokens")  # token的初始
+            and bundle in diff_set
         }
 
         return len(self.ab_list) > 0

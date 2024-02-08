@@ -26,7 +26,7 @@ class EnemySpine(Task):
         self.ab_list = {
             bundle
             for asset, bundle in self.client.asset_to_bundle.items()
-            if asset.startswith("battle/prefabs/enemies/") and (bundle in diff_set)
+            if asset.startswith("battle/prefabs/enemies/") and bundle in diff_set
         }
 
         return len(self.ab_list) > 0

@@ -48,7 +48,7 @@ class CharArts(Task):
         self.ab_list = {
             bundle[:-3]
             for asset, bundle in self.client.asset_to_bundle.items()
-            if (asset.startswith("arts/characters")) and (bundle in diff_set)
+            if asset.startswith("arts/characters") and bundle in diff_set
         }
 
         return len(self.ab_list) > 0
