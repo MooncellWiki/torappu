@@ -36,23 +36,25 @@ class FurniturePreview(Task):
             data: Sprite = obj.read()  # type: ignore
             if not data.name.endswith("_6"):
                 continue
-            src = data.image
-            bottom = src.height - 1
+            scan = data.image.convert("L")
+            bottom = scan.height - 1
             top = 0
-            basic_color = src.getpixel((int(src.width / 2), 0))
-            while top < src.height:
+            basic_color = scan.getpixel((int(scan.width / 2), 0))
+            while top < scan.height:
                 top += 1
-                color = src.getpixel((int(src.width / 2), top))
-                if color != basic_color:
+                color = scan.getpixel((int(scan.width / 2), top))
+                if abs(color - basic_color) >= 2:
                     break
 
             while bottom > 0:
                 bottom -= 1
-                color = src.getpixel((int(src.width / 2), bottom))
-                if color != basic_color:
+                color = scan.getpixel((int(scan.width / 2), bottom))
+                if abs(color - basic_color) >= 2:
                     break
 
-            src.crop((0, top, src.width, bottom)).save(BASE_PATH / f"{data.name}.png")
+            data.image.crop((0, top, scan.width, bottom)).save(
+                BASE_PATH / f"{data.name}.png"
+            )
             break
 
     async def start(self):
