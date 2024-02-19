@@ -14,6 +14,23 @@ from ..utils import run_sync
 BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "map_preview")
 
 
+@run_sync
+def unpack_sandbox(ab_path: str):
+    env = UnityPy.load(ab_path)
+    for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
+        texture: Sprite = obj.read()  # type: ignore
+        texture.image.save(BASE_DIR.joinpath(f"{texture.name}.png"))
+
+
+@run_sync
+def unpack_universal(ab_path: str):
+    env = UnityPy.load(ab_path)
+    for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
+        texture: Sprite = obj.read()  # type: ignore
+        resized = texture.image.resize((1280, 720))
+        resized.save(BASE_DIR.joinpath(f"{texture.name}.png"))
+
+
 class MapPreview(Task):
     priority: ClassVar[int] = 4
 
@@ -22,21 +39,6 @@ class MapPreview(Task):
 
         self.ab_list: set[str] = set()
         self.sandbox_ab_list: set[str] = set()
-
-    @run_sync
-    def unpack_sandbox(self, ab_path: str):
-        env = UnityPy.load(ab_path)
-        for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
-            texture: Sprite = obj.read()  # type: ignore
-            texture.image.save(BASE_DIR.joinpath(f"{texture.name}.png"))
-
-    @run_sync
-    def unpack_universal(self, ab_path: str):
-        env = UnityPy.load(ab_path)
-        for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
-            texture: Sprite = obj.read()  # type: ignore
-            resized = texture.image.resize((1280, 720))
-            resized.save(BASE_DIR.joinpath(f"{texture.name}.png"))
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.ab_path for diff in diff_list}
@@ -58,8 +60,8 @@ class MapPreview(Task):
 
         async with anyio.create_task_group() as tg:
             for _, ab_path in paths:
-                tg.start_soon(self.unpack_universal, ab_path)
+                tg.start_soon(unpack_universal, ab_path)
 
         async with anyio.create_task_group() as tg:
             for _, ab_path in sandbox_paths:
-                tg.start_soon(self.unpack_sandbox, ab_path)
+                tg.start_soon(unpack_sandbox, ab_path)
