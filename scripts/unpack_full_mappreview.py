@@ -25,7 +25,7 @@ async def _main():
         lines = f.readlines()
 
     files_list = []
-    for line in lines[2:]:
+    for line in lines:
         try:
             raw_path = line.replace(" | ", ",").split(",")[1]
         except ValueError:
@@ -35,6 +35,9 @@ async def _main():
         download_path = Path(path.replace("./storage/", ""))
         dest_path = Path(__file__).parent / "temp" / download_path.name
         files_list.append((path, download_path, dest_path))
+
+        if dest_path.exists():
+            continue
 
         async with anyio.create_task_group() as tg:
             tg.start_soon(download_ab, download_path.as_posix(), dest_path)
