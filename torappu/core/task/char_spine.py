@@ -39,7 +39,7 @@ class CharSpine(Task):
         self.skin_map: dict[str, str] = {}
 
     def check(self, diff_list: list[Diff]) -> bool:
-        diff_set = {diff.ab_path for diff in diff_list}
+        diff_set = {diff.path for diff in diff_list}
         self.ab_list = {
             bundle
             for asset, bundle in self.client.asset_to_bundle.items()

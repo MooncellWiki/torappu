@@ -14,7 +14,13 @@ from ..log import logger
 from ..config import Config
 from .utils import run_sync, run_async
 from ..models import Diff, ABInfo, Version, HotUpdateInfo
-from ..consts import HEADERS, STORAGE_DIR, HG_CN_BASEURL, WIKI_API_ENDPOINT
+from ..consts import (
+    HEADERS,
+    STORAGE_DIR,
+    HG_CN_BASEURL,
+    WIKI_API_ENDPOINT,
+    HOT_UPDATE_LIST_DIR,
+)
 
 
 class Client:
@@ -49,21 +55,18 @@ class Client:
         if self.config.is_production():
             await self.wiki.login(self.config.wiki_username, self.config.wiki_password)
 
-    def _get_hot_update_list_path(self, res: str) -> Path:
-        return STORAGE_DIR / "HotUpdateInfo" / f"{res}.json"
-
     def diff(self) -> list[Diff]:
         result = []
         if self.prev_hot_update_list is None:
             return [
-                Diff(kind="add", ab_path=info.name)
-                for info in self.hot_update_list.abInfos
+                Diff(type="create", path=info.name)
+                for info in self.hot_update_list.ab_infos
             ]
 
-        cur_map = {info.name: info.md5 for info in self.hot_update_list.abInfos}
-        for info in self.prev_hot_update_list.abInfos:
+        cur_map = {info.name: info.md5 for info in self.hot_update_list.ab_infos}
+        for info in self.prev_hot_update_list.ab_infos:
             if info.name not in cur_map:
-                result.append(Diff(kind="remove", ab_path=info.name))
+                result.append(Diff(type="delete", path=info.name))
                 continue
 
             sign = cur_map[info.name]
@@ -71,59 +74,58 @@ class Client:
             if sign == info.md5:
                 continue
 
-            result.append(Diff(kind="change", ab_path=info.name))
+            result.append(Diff(type="update", path=info.name))
 
         for k, v in cur_map.items():
-            result.append(Diff(kind="add", ab_path=k))
+            result.append(Diff(type="create", path=k))
 
         return result
 
-    def _try_load_hot_update_list(self, res: str) -> HotUpdateInfo | None:
+    def load_local_hot_update_list(self, res_version: str) -> HotUpdateInfo | None:
+        path = HOT_UPDATE_LIST_DIR.joinpath(res_version)
+
         return (
-            HotUpdateInfo.model_validate_json(path.read_text("utf-8"))
-            if (path := self._get_hot_update_list_path(res)).exists()
+            HotUpdateInfo.model_validate_json(path.read_text(encoding="utf-8"))
+            if path.exists()
             else None
         )
 
     @retry(stop=stop_after_attempt(3))
-    async def download_hot_update_list(self, res_version: str) -> HotUpdateInfo:
-        url = f"{HG_CN_BASEURL}{res_version}/hot_update_list.json"
+    async def load_remote_hot_update_list(self, res_version: str) -> HotUpdateInfo:
+        logger.debug(f"Downloading hot update list (res_version: {res_version})")
 
-        logger.debug(f"Downloading hot_update_list.json with res_version:{res_version}")
-        resp = await self.http_client.get(
-            url,
+        response = await self.http_client.get(
+            HG_CN_BASEURL.join(f"{res_version}/hot_update_list.json"),
             headers=HEADERS,
         )
-        result = resp.json()
+        result = response.json()
+
+        dest_path = HOT_UPDATE_LIST_DIR.joinpath(res_version)
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        dest_path.write_text(response.text, encoding="utf-8")
 
         return HotUpdateInfo.model_validate(result)
 
     async def load_hot_update_list(self, res_version: str) -> HotUpdateInfo:
-        if (result := self._try_load_hot_update_list(res_version)) is not None:
-            return result
-
-        result = await self.download_hot_update_list(res_version)
-        p = self._get_hot_update_list_path(res_version)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(result.model_dump_json(), "utf-8")
-
-        return result
+        return self.load_local_hot_update_list(
+            res_version
+        ) or await self.load_remote_hot_update_list(res_version)
 
     def get_abinfo_by_path(self, path: str) -> ABInfo:
         return next(
-            filter(lambda info: info.name == path, self.hot_update_list.abInfos)
+            filter(lambda info: info.name == path, self.hot_update_list.ab_infos)
         )
 
     @staticmethod
-    def path2url(path: str) -> str:
+    def hg_normalize_url(path: str) -> str:
         return path.replace("\\", "/").replace("/", "_").replace("#", "__")
 
     @retry(stop=stop_after_attempt(3))
     async def download_ab(self, path: str) -> bytes:
-        filename = f"{self.path2url(path)}.dat"
+        filename = f"{self.hg_normalize_url(path)}.dat"
 
         resp = await self.http_client.get(
-            f"{HG_CN_BASEURL}{self.version.res_version}/{filename}"
+            HG_CN_BASEURL.join(f"{self.version.res_version}/{filename}")
         )
         logger.debug(f"Downloaded {filename}")
 
@@ -134,7 +136,7 @@ class Client:
     def resolve_ab(self, path: str) -> str:
         info = self.get_abinfo_by_path(path + ".ab")
 
-        md5_path = STORAGE_DIR.joinpath("assetBundle", f"{info.md5}.ab")
+        md5_path = STORAGE_DIR.joinpath("assetbundle", f"{info.md5}.ab")
         if md5_path.exists() and info.md5 == md5(md5_path.read_bytes()).hexdigest():
             return md5_path.as_posix()
 

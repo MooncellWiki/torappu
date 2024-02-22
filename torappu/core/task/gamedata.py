@@ -277,7 +277,7 @@ class GameData(Task):
     async def start(self):
         gamedata_abs = [
             info.name
-            for info in self.client.hot_update_list.abInfos
+            for info in self.client.hot_update_list.ab_infos
             if info.name.startswith("gamedata")
         ]
 

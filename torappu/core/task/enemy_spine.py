@@ -4,7 +4,6 @@ from typing import ClassVar
 import UnityPy
 from UnityPy.classes import PPtr, Material, TextAsset, GameObject, MonoBehaviour
 
-from torappu.log import logger
 from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
 
@@ -22,7 +21,7 @@ class EnemySpine(Task):
         self.ab_list: set[str] = set()
 
     def check(self, diff_list: list[Diff]) -> bool:
-        diff_set = {diff.ab_path for diff in diff_list}
+        diff_set = {diff.path for diff in diff_list}
         self.ab_list = {
             bundle
             for asset, bundle in self.client.asset_to_bundle.items()

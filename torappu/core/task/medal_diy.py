@@ -83,7 +83,7 @@ class MedalDIY(Task):
             resized.save(BASE_DIR / f"{texture.name}.png")
 
     def check(self, diff_list: list[Diff]) -> bool:
-        diff_set = {diff.ab_path for diff in diff_list}
+        diff_set = {diff.path for diff in diff_list}
         self.ab_list = {
             bundle[:-3]
             for asset, bundle in self.client.asset_to_bundle.items()
@@ -93,11 +93,13 @@ class MedalDIY(Task):
         return len(self.ab_list) > 0
 
     async def get_metadata_paths(self):
-        asset_bundle_paths = list({
-            bundle[:-3]
-            for asset, bundle in self.client.asset_to_bundle.items()
-            if asset.startswith("ui/medal/[uc]groupframe")
-        })
+        asset_bundle_paths = list(
+            {
+                bundle[:-3]
+                for asset, bundle in self.client.asset_to_bundle.items()
+                if asset.startswith("ui/medal/[uc]groupframe")
+            }
+        )
 
         return await self.client.resolve_abs(asset_bundle_paths)
 

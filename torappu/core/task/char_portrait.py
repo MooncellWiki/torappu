@@ -54,12 +54,14 @@ class CharPortrait(Task):
                 # Hypergryph's coordinate system is first dimension
                 # different from Pillow's fourth dimension
                 # so we need to flip the y-axis
-                cropped = texture.crop((
-                    rect["x"],
-                    size - rect["y"] - rect["h"],
-                    rect["x"] + rect["w"],
-                    size - rect["y"],
-                ))
+                cropped = texture.crop(
+                    (
+                        rect["x"],
+                        size - rect["y"] - rect["h"],
+                        rect["x"] + rect["w"],
+                        size - rect["y"],
+                    )
+                )
                 if sprite["rotate"] == 1:
                     # 90 degree clockwise
                     cropped = cropped.rotate(-90, expand=True)
@@ -74,7 +76,7 @@ class CharPortrait(Task):
                 tg.start_soon(self.unpack, ab_path)
 
     def check(self, diff_list: list[Diff]) -> bool:
-        diff_set = {diff.ab_path for diff in diff_list}
+        diff_set = {diff.path for diff in diff_list}
         self.ab_list = {
             bundle[:-3]
             for asset, bundle in self.client.asset_to_bundle.items()

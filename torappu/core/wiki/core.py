@@ -23,7 +23,7 @@ T = TypeVar("T")
 
 
 class WikiCore:
-    def __init__(self, api_url: str, config: Config):
+    def __init__(self, api_url: httpx.URL, config: Config):
         self.config = config or Config()
         self.api_url = api_url
         self.cookies: CookieTypes | None = None

@@ -41,7 +41,7 @@ class MapPreview(Task):
         self.sandbox_ab_list: set[str] = set()
 
     def check(self, diff_list: list[Diff]) -> bool:
-        diff_set = {diff.ab_path for diff in diff_list}
+        diff_set = {diff.path for diff in diff_list}
         for asset, bundle in self.client.asset_to_bundle.items():
             if bundle not in diff_set:
                 continue

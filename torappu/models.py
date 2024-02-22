@@ -1,6 +1,7 @@
 from typing import Literal
 
-from pydantic import Field, BaseModel
+from pydantic.alias_generators import to_camel
+from pydantic import Field, BaseModel, ConfigDict
 
 
 class Version(BaseModel):
@@ -14,25 +15,29 @@ class VersionInfo(BaseModel):
 
 
 class ABInfo(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel)
+
     name: str = ""
     hash: str = ""
     md5: str = ""
-    totalSize: int = 0
-    abSize: int = 0
+    total_size: int = 0
+    ab_size: int = 0
     type: str = ""
-    typeHash: str = Field(default="", alias="thash")
-    packId: str = Field(default="", alias="pid")
+    type_hash: str = Field(default="", alias="thash")
+    pack_id: str = Field(default="", alias="pid")
     code: int = Field(default=-1, alias="cid")
 
 
 class HotUpdateInfo(BaseModel):
-    fullPack: ABInfo
-    versionId: str
-    abInfos: list[ABInfo]
-    countOfTypedRes: int
-    packInfos: list[ABInfo]
+    model_config = ConfigDict(alias_generator=to_camel)
+
+    full_pack: ABInfo
+    version_id: str
+    ab_infos: list[ABInfo]
+    count_of_typed_res: int
+    pack_infos: list[ABInfo]
 
 
 class Diff(BaseModel):
-    kind: Literal["add", "change", "remove"]
-    ab_path: str
+    type: Literal["create", "update", "delete"]
+    path: str
