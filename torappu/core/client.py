@@ -1,7 +1,6 @@
 import asyncio
 from io import BytesIO
 from hashlib import md5
-from pathlib import Path
 from zipfile import ZipFile
 
 import httpx
