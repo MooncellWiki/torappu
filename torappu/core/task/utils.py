@@ -2,7 +2,6 @@ from PIL import Image
 from UnityPy import Environment
 from UnityPy.classes import Material, Texture2D
 
-from torappu.log import logger
 from torappu.consts import PROFESSIONS
 
 
@@ -15,8 +14,6 @@ def merge_alpha(alpha_texture: Texture2D | None, rgb_texture: Texture2D | None):
         raise Exception("rgb texture not found")
 
     if alpha_texture is None:
-        logger.debug(f"{rgb_texture.name} alpha texture not found, use rgb texture")
-
         return (rgb_texture.image, rgb_texture.name)
 
     r, g, b = rgb_texture.image.split()[:3]

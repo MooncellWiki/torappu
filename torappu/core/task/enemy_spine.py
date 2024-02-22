@@ -75,7 +75,6 @@ class EnemySpine(Task):
                             break
 
     async def unpack(self, ab_path: str):
-        logger.debug(f"Start to unpack {ab_path}")
         real_path = await self.client.resolve_ab(ab_path[:-3])
         await self.unpack_ab(real_path)
 
