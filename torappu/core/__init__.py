@@ -37,13 +37,13 @@ def init_sentry(*, headless: bool):
 
 async def check_and_run_task(instance: Task, diff: list[Diff]):
     if not instance.check(diff):
-        logger.info(f"Skipping task {instance}")
+        logger.info(f"Skipping task {type(instance).__name__}")
         return
 
     try:
         await instance.run()
     except Exception as e:
-        logger.opt(exception=e).error(f"Running {instance} failed.")
+        logger.opt(exception=e).error(f"Running {type(instance).__name__} failed.")
 
 
 async def main(version: Version, prev: Version | None, exclude: list[str] = []):
