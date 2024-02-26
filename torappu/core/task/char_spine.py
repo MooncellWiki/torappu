@@ -233,7 +233,9 @@ class CharSpine(Task):
         await asyncio.gather(*(self.unpack(ab) for ab in self.ab_list))
 
         for char in filter(lambda c: c in self.char_map, self.changed_char):
-            meta_path = STORAGE_DIR.joinpath("asset", "raw", "char_spine", char, "meta.json")
+            meta_path = STORAGE_DIR.joinpath(
+                "asset", "raw", "char_spine", char, "meta.json"
+            )
             result = self.changed_char[char]
 
             if meta_path.is_file():
