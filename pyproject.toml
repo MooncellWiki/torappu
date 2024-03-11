@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "torappu"
-version = "1.11.0"
+version = "1.11.1"
 description = "unpacker for a game"
 authors = [
   "daflyinbed <1677759063@qq.com>",
