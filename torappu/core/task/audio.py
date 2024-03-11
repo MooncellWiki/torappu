@@ -74,7 +74,7 @@ class Audio(Task):
 
     def make_banks(self):
         audio_data = self.get_gamedata("excel/audio_data.json")
-        base_dir = STORAGE_DIR / "asset" / "raw" / "audioBank"
+        base_dir = STORAGE_DIR / "asset" / "raw" / "audio_bank"
         base_dir.mkdir(parents=True, exist_ok=True)
         for bank in audio_data["bgmBanks"]:
             dist = base_dir / (bank["name"] + ".mp3")
