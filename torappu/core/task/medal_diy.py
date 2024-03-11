@@ -99,7 +99,7 @@ class MedalDIY(Task):
                         for medal in medal_pos_list
                     ],
                     resized,
-                ).save(TRIM_DIR / f"{texture.name}_advanced.png")
+                ).save(TRIM_DIR / f"{texture.name}.png")
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
