@@ -9,7 +9,6 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 from ..log import logger
 from .. import get_config
 from .client import Client
-from .utils import snake_case
 from .task import Task, registry
 from ..models import Diff, Version
 
@@ -46,7 +45,12 @@ async def check_and_run_task(instance: Task, diff: list[Diff]):
         logger.opt(exception=e).error(f"Running {type(instance).__name__} failed.")
 
 
-async def main(version: Version, prev: Version | None, exclude: list[str] = []):
+async def main(
+    version: Version,
+    prev: Version | None,
+    exclude: list[str] = [],
+    include: list[str] = [],
+):
     if prev == version:
         logger.info("Version did not change, skipping running")
         return
@@ -64,5 +68,11 @@ async def main(version: Version, prev: Version | None, exclude: list[str] = []):
 
         async with anyio.create_task_group() as tg:
             for task in registry[priority]:
-                if snake_case(task.__name__) not in exclude:
-                    tg.start_soon(check_and_run_task, task(client), diff)
+                input_name = task.__name__
+                if input_name in exclude:
+                    continue
+
+                if include and input_name not in include:
+                    continue
+
+                tg.start_soon(check_and_run_task, task(client), diff)

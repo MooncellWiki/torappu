@@ -1,12 +1,16 @@
 import sys
-import anyio
 
+import anyio
 import click
 
 from torappu.log import logger
 from torappu import __version__
+from torappu.core import registry
 
 from .models import Version
+
+TASKS_LIST = [task.__name__ for tasks in registry.values() for task in tasks]
+TASKS_LIST_STRING = " ".join(TASKS_LIST)
 
 
 @click.group(
@@ -24,17 +28,15 @@ from .models import Version
 @click.argument("res_version")
 @click.option("--prev_client_version", help="prev client version")
 @click.option("--prev_res_version", help="prev res version")
-@click.option(
-    "--exclude",
-    default="",
-    help="audio build_skill char_spine enemy_spine item_demand",
-)
+@click.option("--exclude", default="", help=TASKS_LIST_STRING)
+@click.option("--include", default="", help=TASKS_LIST_STRING)
 def cli(
     client_version: str,
     res_version: str,
     prev_client_version: str,
     prev_res_version: str,
     exclude: str,
+    include: str,
 ):
     from torappu.core import main, init_sentry
 
@@ -48,7 +50,7 @@ def cli(
     )
 
     logger.info(f"Remote version: {version!r}, Local version: {prev!r}")
-    anyio.run(main, version, prev, exclude.split(","))
+    anyio.run(main, version, prev, exclude.split(","), include.split(","))
 
 
 if __name__ == "__main__":
