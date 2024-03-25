@@ -1,5 +1,6 @@
 from .task import Task as Task
 from .audio import Audio as Audio
+from .skill import Skill as Skill
 from .task import registry as registry
 from .gamedata import GameData as GameData
 from .char_arts import CharArts as CharArts
