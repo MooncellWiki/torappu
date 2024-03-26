@@ -7,6 +7,7 @@ from .char_arts import CharArts as CharArts
 from .item_icon import ItemIcon as ItemIcon
 from .medal_diy import MedalDIY as MedalDIY
 from .char_spine import CharSpine as CharSpine
+from .elite_icon import EliteIcon as EliteIcon
 from .enemy_icon import EnemyIcon as EnemyIcon
 from .medal_icon import MedalIcon as MedalIcon
 from .build_skill import BuildSkill as BuildSkill
@@ -14,10 +15,12 @@ from .char_avatar import CharAvatar as CharAvatar
 from .enemy_spine import EnemySpine as EnemySpine
 from .item_demand import ItemDemand as ItemDemand
 from .map_preview import MapPreview as MapPreview
+from .rarity_icon import RarityIcon as RarityIcon
 from .char_portrait import CharPortrait as CharPortrait
 from .uniequip_type import UniEquipType as UniEquipType
 from .uniequip_img import UniEquipImage as UniEquipImage
 from .furniture_icon import FurnitureIcon as FurnitureIcon
+from .potential_icon import PotentialIcon as PotentialIcon
 from .furniture_theme import FurnitureTheme as FurnitureTheme
 from .furniture_preview import FurniturePreview as FurniturePreview
 from .subprofession_icon import SubProfessionIcon as SubProfessionIcon
