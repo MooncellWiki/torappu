@@ -1,5 +1,4 @@
 import json
-from urllib.parse import quote
 
 from tenacity import retry, stop_after_attempt
 
@@ -184,46 +183,3 @@ class Wiki(WikiCore):
                     else:
                         post_data[key] = args[key]
             return await client.post(self.api_url, data=post_data)
-
-    @retry(stop=stop_after_attempt(3))
-    async def upload(self, filepath, filename, comment=None, text=None):
-        """
-        :param filepath:文件路径
-        :param filename:目标文件名
-        :param comment:上传注释。如果没有指定text，那么它也被用于新文件的初始页面文本。
-        :param text:用于新文件的初始页面文本。
-        :return:
-        """
-        args = locals().copy()
-        args.pop("self")
-
-        async with self.get_async_client() as client:
-            token = await client.get(
-                self.api_url,
-                params={
-                    "format": "json",
-                    "action": "query",
-                    "meta": "tokens",
-                },
-            )
-            upload_data = {
-                "format": "json",
-                "action": "upload",
-                "filename": filename,
-                "ignorewarnings": "1",
-                "token": token.json()["query"]["tokens"]["csrftoken"],
-            }
-            header = {
-                "Content-Disposition": 'form-data; name="data"; filename="%s"'
-                % quote(filename)
-            }
-            for key in args:
-                if args[key] is not None:
-                    upload_data[key] = args[key]
-            r = await client.post(
-                self.api_url,
-                data=upload_data,
-                files={"file": (quote(filename), open(filepath, "rb"))},
-                headers=header,
-            )
-            return r

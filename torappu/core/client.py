@@ -31,8 +31,6 @@ class Client:
     prev_version: Version | None
     prev_hot_update_list: HotUpdateInfo | None
 
-    asset_to_bundle: dict[str, str] = {}
-
     def __init__(
         self, version: Version, prev_version: Version | None, config: Config
     ) -> None:
@@ -41,6 +39,7 @@ class Client:
         self.config = config
         self.http_client = httpx.AsyncClient(timeout=config.timeout)
         self.wiki = Wiki(WIKI_API_ENDPOINT, self.config)
+        self.asset_to_bundle: dict[str, str] = {}
 
     async def init(self):
         self.hot_update_list = await self.load_hot_update_list(self.version.res_version)

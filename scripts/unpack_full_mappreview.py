@@ -13,16 +13,18 @@ async def download_ab(path: str, dest_path: Path):
 
     if response.status_code == 200:
         print(f"Downloading {path}")
-        with open(dest_path, "wb") as f:
-            f.write(response.content)
+        async with await anyio.open_file(dest_path, "wb") as f:
+            await f.write(response.content)
 
     else:
         print(f"Failed to download {path}")
 
 
 async def _main():
-    with open(Path(__file__).parent / "data" / "map_preview_list.txt") as f:
-        lines = f.readlines()
+    async with await anyio.open_file(
+        Path(__file__).parent / "data" / "map_preview_list.txt"
+    ) as f:
+        lines = await f.readlines()
 
     files_list = []
     for line in lines:

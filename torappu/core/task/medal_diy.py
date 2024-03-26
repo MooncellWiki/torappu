@@ -131,7 +131,7 @@ class MedalDIY(Task):
         self.dict_advanced = {
             medal["medalId"]: medal["advancedMedal"]
             for medal in icon_data["medalList"]
-            if "advancedMedal" in medal and medal["advancedMedal"]
+            if medal.get("advancedMedal")
         }
         metadata_paths = await self.get_metadata_paths()
         async with anyio.create_task_group() as tg:
