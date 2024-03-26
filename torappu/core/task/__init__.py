@@ -20,5 +20,7 @@ from .uniequip_img import UniEquipImage as UniEquipImage
 from .furniture_icon import FurnitureIcon as FurnitureIcon
 from .furniture_theme import FurnitureTheme as FurnitureTheme
 from .furniture_preview import FurniturePreview as FurniturePreview
+from .subprofession_icon import SubProfessionIcon as SubProfessionIcon
 from .uniequip_direction import UniEquipDirection as UniEquipDirection
 from .uniequip_extratype import UniEquipExtraType as UniEquipExtraType
+from .profession_large_icon import ProfessionLargeIcon as ProfessionLargeIcon
