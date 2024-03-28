@@ -17,6 +17,7 @@ from .item_demand import ItemDemand as ItemDemand
 from .map_preview import MapPreview as MapPreview
 from .rarity_icon import RarityIcon as RarityIcon
 from .char_portrait import CharPortrait as CharPortrait
+from .player_avatar import PlayerAvatar as PlayerAvatar
 from .uniequip_type import UniEquipType as UniEquipType
 from .uniequip_img import UniEquipImage as UniEquipImage
 from .furniture_icon import FurnitureIcon as FurnitureIcon
