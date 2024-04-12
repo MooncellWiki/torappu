@@ -8,18 +8,11 @@ import UnityPy
 from UnityPy.classes import MonoBehaviour
 from tenacity import retry, stop_after_attempt
 
-from .wiki import Wiki
 from ..log import logger
 from ..config import Config
 from .utils import run_sync, run_async
 from ..models import Diff, ABInfo, Version, HotUpdateInfo
-from ..consts import (
-    HEADERS,
-    STORAGE_DIR,
-    HG_CN_BASEURL,
-    WIKI_API_ENDPOINT,
-    HOT_UPDATE_LIST_DIR,
-)
+from ..consts import HEADERS, STORAGE_DIR, HG_CN_BASEURL, HOT_UPDATE_LIST_DIR
 
 
 class Client:
@@ -38,7 +31,6 @@ class Client:
         self.prev_version = prev_version
         self.config = config
         self.http_client = httpx.AsyncClient(timeout=config.timeout)
-        self.wiki = Wiki(WIKI_API_ENDPOINT, self.config)
         self.asset_to_bundle: dict[str, str] = {}
 
     async def init(self):
@@ -50,8 +42,6 @@ class Client:
         else:
             self.prev_hot_update_list = None
         await self.load_torappu_index()
-        if self.config.is_production():
-            await self.wiki.login(self.config.wiki_username, self.config.wiki_password)
 
     def diff(self) -> list[Diff]:
         result = []
