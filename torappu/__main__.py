@@ -28,15 +28,15 @@ TASKS_LIST_STRING = " ".join(TASKS_LIST)
 @click.argument("res_version")
 @click.option("--prev_client_version", help="prev client version")
 @click.option("--prev_res_version", help="prev res version")
-@click.option("--exclude", default="", help=TASKS_LIST_STRING)
-@click.option("--include", default="", help=TASKS_LIST_STRING)
+@click.option("--exclude", help=TASKS_LIST_STRING)
+@click.option("--include", help=TASKS_LIST_STRING)
 def cli(
     client_version: str,
     res_version: str,
-    prev_client_version: str,
-    prev_res_version: str,
-    exclude: str,
-    include: str,
+    prev_client_version: str | None,
+    prev_res_version: str | None,
+    exclude: str | None,
+    include: str | None,
 ):
     from torappu.core import main, init_sentry
 
@@ -50,7 +50,14 @@ def cli(
     )
 
     logger.info(f"Remote version: {version!r}, Local version: {prev!r}")
-    anyio.run(main, version, prev, exclude.split(","), include.split(","))
+
+    anyio.run(
+        main,
+        version,
+        prev,
+        exclude and exclude.split(",") or [],
+        include and include.split(",") or [],
+    )
 
 
 if __name__ == "__main__":

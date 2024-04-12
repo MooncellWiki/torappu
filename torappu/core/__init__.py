@@ -48,8 +48,8 @@ async def check_and_run_task(instance: Task, diff: list[Diff]):
 async def main(
     version: Version,
     prev: Version | None,
-    exclude: list[str] = [],
-    include: list[str] = [],
+    exclude: list[str],
+    include: list[str],
 ):
     if prev == version:
         logger.info("Version did not change, skipping running")
@@ -69,10 +69,9 @@ async def main(
         async with anyio.create_task_group() as tg:
             for task in registry[priority]:
                 input_name = task.__name__
-                if input_name in exclude:
-                    continue
-
-                if include and input_name not in include:
+                if (exclude and input_name in exclude) or (
+                    include and input_name not in include
+                ):
                     continue
 
                 tg.start_soon(check_and_run_task, task(client), diff)
