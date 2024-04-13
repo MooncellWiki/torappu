@@ -43,13 +43,13 @@ class FurniturePreview(Task):
             while top < scan.height:
                 top += 1
                 color = scan.getpixel((int(scan.width / 2), top))
-                if abs(color - basic_color) >= 2:
+                if abs(color - basic_color) > 2:
                     break
 
             while bottom > 0:
                 bottom -= 1
                 color = scan.getpixel((int(scan.width / 2), bottom))
-                if abs(color - basic_color) >= 2:
+                if abs(color - basic_color) > 2:
                     break
 
             data.image.crop((0, top, scan.width, bottom)).save(
