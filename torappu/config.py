@@ -32,7 +32,7 @@ class Config(BaseSettings):
     wiki_password: str = ""
 
     sentry_dsn: str = (
-        "https://a743fee458854a24b86356cb8520a975@ingest.sentry.mooncell.wiki/9"
+        "https://d0c1327b212bddd94bc363f8ffa99d64@ingest.sentry.mooncell.wiki/9"
     )
 
     def is_production(self):
