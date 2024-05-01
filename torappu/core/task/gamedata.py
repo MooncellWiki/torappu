@@ -60,6 +60,7 @@ flatbuffer_list = [
     "stage_table",
     "extra_battlelog_table",
     "sandbox_perm_table",
+    "cooperate_battle_table",
 ]
 encrypted_list = [
     "[uc]lua",
