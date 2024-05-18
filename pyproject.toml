@@ -21,16 +21,16 @@ httpx = ">=0.24.1,<1.0.0"
 loguru = ">=0.7.0,<1.0.0"
 fastapi = ">=0.103.0,<1.0.0"
 pydantic-settings = "^2.0.0"
-sentry-sdk = { version = "^1.28.1", extras = ["loguru", "httpx", "fastapi"] }
+sentry-sdk = { version = "^1.45.0", extras = ["loguru", "httpx", "fastapi"] }
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.3.0"
+ruff = "^0.4.0"
 isort = "^5.10.1"
 black = "^24.2.0"
 pre-commit = "^3.3.3"
 
 [tool.poetry.group.deploy.dependencies]
-gunicorn = "^21.1.0"
+gunicorn = "^22.0.0"
 uvicorn = { version = ">=0.20.0,<1.0.0", extras = ["standard"] }
 
 [tool.black]
