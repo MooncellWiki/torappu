@@ -39,16 +39,16 @@ class FurniturePreview(Task):
             scan = data.image.convert("L")
             bottom = scan.height - 1
             top = 0
-            basic_color = scan.getpixel((int(scan.width / 2), 0))
+            basic_color: float = scan.getpixel((int(scan.width / 2), 0))  # type: ignore
             while top < scan.height:
                 top += 1
-                color = scan.getpixel((int(scan.width / 2), top))
+                color: float = scan.getpixel((int(scan.width / 2), top))  # type: ignore
                 if abs(color - basic_color) > 2:
                     break
 
             while bottom > 0:
                 bottom -= 1
-                color = scan.getpixel((int(scan.width / 2), bottom))
+                color = scan.getpixel((int(scan.width / 2), bottom))  # type: ignore
                 if abs(color - basic_color) > 2:
                     break
 
