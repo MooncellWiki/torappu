@@ -1137,13 +1137,13 @@ files = [
 
 [[package]]
 name = "sentry-sdk"
-version = "1.45.1"
+version = "2.13.0"
 description = "Python client for Sentry (https://sentry.io)"
 optional = false
-python-versions = "*"
+python-versions = ">=3.6"
 files = [
-    {file = "sentry_sdk-1.45.1-py2.py3-none-any.whl", hash = "sha256:608887855ccfe39032bfd03936e3a1c4f4fc99b3a4ac49ced54a4220de61c9c1"},
-    {file = "sentry_sdk-1.45.1.tar.gz", hash = "sha256:a16c997c0f4e3df63c0fc5e4207ccb1ab37900433e0f72fef88315d317829a26"},
+    {file = "sentry_sdk-2.13.0-py2.py3-none-any.whl", hash = "sha256:6beede8fc2ab4043da7f69d95534e320944690680dd9a963178a49de71d726c6"},
+    {file = "sentry_sdk-2.13.0.tar.gz", hash = "sha256:8d4a576f7a98eb2fdb40e13106e41f330e5c79d72a68be1316e7852cf4995260"},
 ]
 
 [package.dependencies]
@@ -1151,10 +1151,11 @@ certifi = "*"
 fastapi = {version = ">=0.79.0", optional = true, markers = "extra == \"fastapi\""}
 httpx = {version = ">=0.16.0", optional = true, markers = "extra == \"httpx\""}
 loguru = {version = ">=0.5", optional = true, markers = "extra == \"loguru\""}
-urllib3 = {version = ">=1.26.11", markers = "python_version >= \"3.6\""}
+urllib3 = ">=1.26.11"
 
 [package.extras]
 aiohttp = ["aiohttp (>=3.5)"]
+anthropic = ["anthropic (>=0.16)"]
 arq = ["arq (>=0.23)"]
 asyncpg = ["asyncpg (>=0.23)"]
 beam = ["apache-beam (>=2.12)"]
@@ -1167,13 +1168,16 @@ django = ["django (>=1.8)"]
 falcon = ["falcon (>=1.4)"]
 fastapi = ["fastapi (>=0.79.0)"]
 flask = ["blinker (>=1.1)", "flask (>=0.11)", "markupsafe"]
-grpcio = ["grpcio (>=1.21.1)"]
+grpcio = ["grpcio (>=1.21.1)", "protobuf (>=3.8.0)"]
 httpx = ["httpx (>=0.16.0)"]
 huey = ["huey (>=2)"]
+huggingface-hub = ["huggingface-hub (>=0.22)"]
+langchain = ["langchain (>=0.0.210)"]
+litestar = ["litestar (>=2.0.0)"]
 loguru = ["loguru (>=0.5)"]
 openai = ["openai (>=1.0.0)", "tiktoken (>=0.3.0)"]
 opentelemetry = ["opentelemetry-distro (>=0.35b0)"]
-opentelemetry-experimental = ["opentelemetry-distro (>=0.40b0,<1.0)", "opentelemetry-instrumentation-aiohttp-client (>=0.40b0,<1.0)", "opentelemetry-instrumentation-django (>=0.40b0,<1.0)", "opentelemetry-instrumentation-fastapi (>=0.40b0,<1.0)", "opentelemetry-instrumentation-flask (>=0.40b0,<1.0)", "opentelemetry-instrumentation-requests (>=0.40b0,<1.0)", "opentelemetry-instrumentation-sqlite3 (>=0.40b0,<1.0)", "opentelemetry-instrumentation-urllib (>=0.40b0,<1.0)"]
+opentelemetry-experimental = ["opentelemetry-distro"]
 pure-eval = ["asttokens", "executing", "pure-eval"]
 pymongo = ["pymongo (>=3.1)"]
 pyspark = ["pyspark (>=2.4.4)"]
@@ -1183,7 +1187,7 @@ sanic = ["sanic (>=0.8)"]
 sqlalchemy = ["sqlalchemy (>=1.2)"]
 starlette = ["starlette (>=0.19.1)"]
 starlite = ["starlite (>=1.48)"]
-tornado = ["tornado (>=5)"]
+tornado = ["tornado (>=6)"]
 
 [[package]]
 name = "six"
@@ -1277,6 +1281,14 @@ files = [
     {file = "texture2ddecoder-1.0.4-cp311-cp311-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:f39bab4319e8b7f024d19590f0e550eadf74c80a784537baa09ef0974ed00411"},
     {file = "texture2ddecoder-1.0.4-cp311-cp311-win32.whl", hash = "sha256:72675e5017b1144df694cf50e5bd0b3032a91400021809148ae4a14f9333ed38"},
     {file = "texture2ddecoder-1.0.4-cp311-cp311-win_amd64.whl", hash = "sha256:d908546f527ff7b36920b2ea498c94ee19c5a568de18e2486c8e889709b30b92"},
+    {file = "texture2ddecoder-1.0.4-cp312-cp312-macosx_10_9_universal2.whl", hash = "sha256:f03ccbad7acce60481412faa29ae9ccffde47803395efa14f8766622df8c4412"},
+    {file = "texture2ddecoder-1.0.4-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:68c37dc763738366c41dc96e2e2281b703c045979ea54fea3b35e523e912f2bf"},
+    {file = "texture2ddecoder-1.0.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:f0a555a7f909645a42eefdc25565073d7c91177b3e1edbc9b94fdbe2937bd6fc"},
+    {file = "texture2ddecoder-1.0.4-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9a64ec8db4d9564541bd9657a30348257a81032194c43c23c73b055e734e7a23"},
+    {file = "texture2ddecoder-1.0.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d9a0f342bed12a03ca92527989a31c9586ebca29d1625aa6c2ffce9c8166b805"},
+    {file = "texture2ddecoder-1.0.4-cp312-cp312-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:50294be1f80b117daf5fd7b979d8fd7f6eb389428849ed56c8464dc1ba0c4f59"},
+    {file = "texture2ddecoder-1.0.4-cp312-cp312-win32.whl", hash = "sha256:a3e6fccb5b986ac1b3b780d41a019cf5f9788f654d98bd4f58992fc40431ebe8"},
+    {file = "texture2ddecoder-1.0.4-cp312-cp312-win_amd64.whl", hash = "sha256:62544a8544a88507c16481d375bb240ad6d58281db4820753d47607001716215"},
     {file = "texture2ddecoder-1.0.4-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d1ee77f46b8779e67af5ee628857233b67bc08321c8c242008f227f66b8ea6ad"},
     {file = "texture2ddecoder-1.0.4-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e1e2348e1643b01e9a28a2b714ef9daae43061e567bde5f33af810eff8341295"},
     {file = "texture2ddecoder-1.0.4-cp36-cp36m-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:8a74cfa8deadd4008bbc920a7a81f6cd28087df833a3b36d7a3826922c0baa41"},
@@ -1715,4 +1727,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "1d412091c48280208ed61215fd13c264f0ae507e575a8faaf626cba8626aba19"
+content-hash = "347bfac18845ee790bdaf506dc0341e08ebfbbd8689f18f6a9118ce30f0e2c28"
