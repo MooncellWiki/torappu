@@ -27,10 +27,12 @@ def init_sentry(*, headless: bool):
     if not headless:
         integrations.extend(asgi_integrations)
     sentry_sdk.init(
-        config.sentry_dsn,
+        dsn=config.sentry_dsn,
         traces_sample_rate=1.0,
         environment=config.environment,
         integrations=integrations,
+        profiles_sample_rate=1.0,
+        profiler_mode="thread",
     )
 
 
