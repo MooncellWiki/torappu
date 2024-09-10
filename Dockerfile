@@ -51,4 +51,4 @@ RUN apt-get update && apt-get -y install ffmpeg
 COPY . /app/
 RUN chmod -R +x /app/bin
 
-CMD ["fastapi", "run", "server/__main__.py", "--port", "80"]
+CMD ["python", "-m", "torappu.server"]

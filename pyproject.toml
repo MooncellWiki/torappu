@@ -30,7 +30,6 @@ black = "^24.2.0"
 pre-commit = "^3.3.3"
 
 [tool.poetry.group.deploy.dependencies]
-gunicorn = "^23.0.0"
 uvicorn = { version = ">=0.20.0,<1.0.0", extras = ["standard"] }
 
 [tool.black]

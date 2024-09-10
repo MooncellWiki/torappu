@@ -54,7 +54,7 @@ def run():
     logger.info("Starting torappu application")
 
     uvicorn.run(
-        app,
+        "torappu.server:app",
         host=str(config.host),
         port=config.port,
         log_config={
@@ -73,4 +73,5 @@ def run():
                 },
             },
         },
+        workers=config.max_workers,
     )
