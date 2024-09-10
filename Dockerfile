@@ -36,16 +36,9 @@ WORKDIR /app
 ENV TZ=Asia/Shanghai
 ENV DEBIAN_FRONTEND=noninteractive
 
-COPY ./docker/start.sh /start.sh
-RUN chmod +x /start.sh
-
-COPY ./docker/gunicorn_conf.py /gunicorn_conf.py
-
 ENV PYTHONPATH=/app
 
 EXPOSE 8000
-
-ENV APP_MODULE=torappu.server:app
 
 COPY --from=build-stage /wheel /wheel
 
@@ -58,4 +51,4 @@ RUN apt-get update && apt-get -y install ffmpeg
 COPY . /app/
 RUN chmod -R +x /app/bin
 
-CMD ["/start.sh"]
+CMD ["fastapi", "run", "server/__main__.py", "--port", "80"]
