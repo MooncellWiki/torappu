@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.11-bookworm as requirements-stage
+FROM python:3.11-bookworm AS requirements-stage
 
 WORKDIR /tmp
 
@@ -12,17 +12,15 @@ COPY ./pyproject.toml ./poetry.lock* /tmp/
 
 RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --with deploy
 
-FROM python:3.11-bookworm as build-stage
+FROM python:3.11-bookworm AS build-stage
 
 WORKDIR /wheel
 
 COPY --from=requirements-stage /tmp/requirements.txt /wheel/requirements.txt
 
-# RUN python3 -m pip config set global.index-url https://mirrors.aliyun.com/pypi/simple
-
 RUN pip wheel --wheel-dir=/wheel --no-cache-dir --requirement /wheel/requirements.txt
 
-FROM python:3.11-bookworm as metadata-stage
+FROM python:3.11-bookworm AS metadata-stage
 
 WORKDIR /tmp
 
@@ -35,8 +33,8 @@ FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
-ENV TZ Asia/Shanghai
-ENV DEBIAN_FRONTEND noninteractive
+ENV TZ=Asia/Shanghai
+ENV DEBIAN_FRONTEND=noninteractive
 
 COPY ./docker/start.sh /start.sh
 RUN chmod +x /start.sh
@@ -47,12 +45,7 @@ ENV PYTHONPATH=/app
 
 EXPOSE 8000
 
-ENV APP_MODULE torappu.server:app
-
-# RUN mv /etc/apt/sources.list /etc/apt/sources.list.bak &&\
-#   echo "deb http://mirrors.aliyun.com/debian/ buster main" >> /etc/apt/sources.list\
-#   && echo "deb http://mirrors.aliyun.com/debian/ buster-updates main" >> /etc/apt/sources.list\
-#   && echo "deb http://mirrors.aliyun.com/debian-security/ buster/updates main" >> /etc/apt/sources.list
+ENV APP_MODULE=torappu.server:app
 
 COPY --from=build-stage /wheel /wheel
 
