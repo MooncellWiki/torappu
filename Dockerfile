@@ -46,6 +46,10 @@ COPY --from=build-stage /wheel /wheel
 
 RUN pip install --no-cache-dir --no-index --find-links=/wheel -r /wheel/requirements.txt && rm -rf /wheel
 
+# temporary solution for no simd etcpak
+
+RUN pip uninstall etcpak
+
 RUN pip install https://github.com/MooncellWiki/etcpak/releases/download/v0.9.10/etcpak-0.9.9-cp311-cp311-linux_x86_64.whl
 
 COPY --from=metadata-stage /tmp/VERSION /app/VERSION
