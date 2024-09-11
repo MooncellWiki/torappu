@@ -7,5 +7,5 @@
     ":semanticCommitTypeAll(chore)"
   ],
   "labels": ["dependencies"],
-  "rangeStrategy": "bump"
+  "rangeStrategy": "replace"
 }
