@@ -16,6 +16,8 @@ from .utils import material2img, build_container_path
 if TYPE_CHECKING:
     from UnityPy.classes import PPtr, Material, TextAsset, GameObject, MonoBehaviour
 
+from UnityPy.enums import ClassIDType
+
 
 class FileConfig(BaseModel):
     file: str
@@ -90,10 +92,10 @@ class CharSpine(Task):
             base_dir = STORAGE_DIR / "asset" / "raw" / "char_spine" / path
             skel: TextAsset = data.skeletonJSON.read()  # type: ignore
             if not base_dir.exists():
-                result = skel.name.replace("#", "_")[:-5]
+                result = skel.m_Name.replace("#", "_")[:-5]
                 base_dir.mkdir(parents=True, exist_ok=True)
 
-            with open(base_dir / skel.name.replace("#", "_"), "wb") as f:
+            with open(base_dir / skel.m_Name.replace("#", "_"), "wb") as f:
                 f.write(bytes(skel.script))
             atlas_assets: list[PPtr] = data.atlasAssets  # type: ignore
             for pptr in atlas_assets:
@@ -101,7 +103,7 @@ class CharSpine(Task):
                 atlas: TextAsset = atlas_mono_behaviour.atlasFile.read()  # type: ignore
                 # 文件名上不能有`#`，都替换成`_`
                 atlas_content = re.sub(r"#([^.]*\.png)", r"_\1", atlas.text)
-                with open(base_dir / atlas.name.replace("#", "_"), "w") as f:
+                with open(base_dir / atlas.m_Name.replace("#", "_"), "w") as f:
                     f.write(atlas_content)
                 materials: list[PPtr] = atlas_mono_behaviour.materials  # type: ignore
                 for mat_pptr in materials:
@@ -114,10 +116,10 @@ class CharSpine(Task):
         for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
             game_obj: GameObject = obj.read()  # type: ignore
             if (
-                game_obj.name != "Spine"
-                and game_obj.name != "Front"
-                and game_obj.name != "Back"
-                and game_obj.name != "Down"
+                game_obj.m_Name != "Spine"
+                and game_obj.m_Name != "Front"
+                and game_obj.m_Name != "Back"
+                and game_obj.m_Name != "Down"
             ):
                 continue
             name = None
@@ -130,7 +132,7 @@ class CharSpine(Task):
                 "Down": "down",
             }
             side = None
-            container_path = container_map[game_obj.path_id]
+            container_path = container_map[game_obj.object_reader.path_id]
             # 基建
             if container_path.startswith(
                 "assets/torappu/dynamicassets/building/vault/characters"
@@ -170,7 +172,7 @@ class CharSpine(Task):
                 )
                 name = tmp[0]
                 skin = tmp[1]
-                side = side_map[game_obj.name]
+                side = side_map[game_obj.m_Name]
             if container_path.startswith(
                 "assets/torappu/dynamicassets/battle/prefabs/[uc]tokens/"
             ):
@@ -181,12 +183,12 @@ class CharSpine(Task):
                     .replace(".prefab", "")
                     .replace("#", "_")
                 )
-                side = side_map[game_obj.name]
+                side = side_map[game_obj.m_Name]
             if name is None or side is None:
                 continue
             for comp in filter(
-                lambda comp: comp.type.name == "MonoBehaviour",
-                game_obj.m_Components,
+                lambda comp: comp.component.type.name == ClassIDType.MonoBehaviour,
+                game_obj.m_Component,
             ):
                 skeleton_animation: MonoBehaviour = comp.read()
                 if skeleton_animation.has_struct_member("skeletonDataAsset"):
@@ -194,7 +196,7 @@ class CharSpine(Task):
                     if skeleton_data is None:
                         break
                     data: MonoBehaviour = skeleton_data.read()  # type: ignore
-                    if data.name.endswith("_SkeletonData"):
+                    if data.m_Name.endswith("_SkeletonData"):
                         if skel_name := unpack(data, f"{name}/{skin}/{side}"):
                             self.update_config(name, skin, side, skel_name)
                         break

@@ -39,14 +39,14 @@ class EnemySpine(Task):
             base_dir = STORAGE_DIR / "asset" / "raw" / "enemy_spine" / path
             base_dir.mkdir(parents=True, exist_ok=True)
             skel: TextAsset = data.skeletonJSON.read()  # type: ignore
-            with open(base_dir / skel.name, "wb") as f:
-                f.write(bytes(skel.script))
+            with open(base_dir / skel.m_Name, "wb") as f:
+                f.write(skel.m_Script.encode("utf-8", "surrogateescape"))
             atlas_assets: list[PPtr] = data.atlasAssets  # type: ignore
             for pptr in atlas_assets:
                 atlas_mono_behaviour: MonoBehaviour = pptr.read()
                 atlas: TextAsset = atlas_mono_behaviour.atlasFile.read()  # type: ignore
-                with open(base_dir / atlas.name, "wb") as f:
-                    f.write(bytes(atlas.script))
+                with open(base_dir / atlas.m_Name, "wb") as f:
+                    f.write(bytes(atlas.m_Script.encode("utf-8", "surrogateescape")))
                 materials: list[PPtr] = atlas_mono_behaviour.materials  # type: ignore
                 for mat_pptr in materials:
                     mat: Material = mat_pptr.read()
@@ -55,9 +55,9 @@ class EnemySpine(Task):
 
         for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
             game_obj: GameObject = obj.read()  # type: ignore
-            if game_obj.name == "Spine":
+            if game_obj.m_Name == "Spine":
                 path = (
-                    container_map[game_obj.path_id]
+                    container_map[game_obj.object_reader.path_id]
                     .replace("assets/torappu/dynamicassets/battle/prefabs/enemies/", "")
                     .replace(".prefab", "")
                 )
@@ -69,7 +69,7 @@ class EnemySpine(Task):
                     if skeleton_animation.has_struct_member("skeletonDataAsset"):
                         skeleton_data = skeleton_animation.skeletonDataAsset
                         data: MonoBehaviour = skeleton_data.read()  # type: ignore
-                        if data.name.endswith("_SkeletonData"):
+                        if data.m_Name.endswith("_SkeletonData"):
                             unpack(data, path)
                             break
 

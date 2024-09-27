@@ -121,7 +121,9 @@ class GameData(Task):
         output_path = tmp_path.joinpath(
             os.path.dirname(path.replace("assets/torappu/dynamicassets/gamedata/", ""))
         )
-        flatbuffer_data_path.write_bytes(bytes(obj.script)[128:])
+        flatbuffer_data_path.write_bytes(
+            obj.m_Script.encode("utf-8", "surrogateescape")[128:]
+        )
 
         params = [
             self.client.config.flatc_path,
@@ -171,7 +173,9 @@ class GameData(Task):
         key: bytes = chat_mask[:16].encode()
         iv = chat_mask[16:].encode()
         cipher_data = (
-            bytearray(obj.script)[128:] if is_signed else bytearray(obj.script)
+            bytearray(obj.m_Script.encode("utf-8", "surrogateescape"))[128:]
+            if is_signed
+            else bytearray(obj.m_Script.encode("utf-8", "surrogateescape"))
         )
         for i in range(16):
             cipher_data[i] ^= iv[i]
@@ -198,7 +202,7 @@ class GameData(Task):
         )
 
         if temp_path.name.endswith(".lua.bytes"):
-            temp_path = temp_path.parent.joinpath(obj.name)
+            temp_path = temp_path.parent.joinpath(obj.m_Name)
         elif temp_path.name.endswith(".bytes"):
             temp_path = temp_path.with_suffix(".json")
         else:
@@ -221,7 +225,7 @@ class GameData(Task):
         return temp_path.write_bytes(res)
 
     async def _unpack_gamedata(self, path: str, obj: TextAsset):
-        script: bytes = obj.script
+        script: bytes = obj.m_Script.encode("utf-8", "surrogateescape")
         is_signed = self._check_signed(path)
         is_encrypted = self._check_encrypted(path)
         fb_name = await self._get_flatbuffer_name(path)
@@ -254,7 +258,7 @@ class GameData(Task):
                     0,
                 )[1]
                 if "gamedata/levels" in path or "buff_template_data" in path
-                else json.loads(obj.text)
+                else json.loads(obj.m_Script)
             )
             pack_data = json.dumps(
                 decoded_data,
@@ -263,7 +267,7 @@ class GameData(Task):
             )
 
         except Exception:
-            pack_data = obj.text
+            pack_data = obj.m_Script
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(pack_data, encoding="utf-8")

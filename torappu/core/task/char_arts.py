@@ -22,7 +22,7 @@ class CharArts(Task):
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
             behaviour: MonoBehaviour = obj.read()  # type: ignore
             script = behaviour.m_Script.read()
-            if script.name != "Image":
+            if script.m_Name != "Image":
                 continue
 
             material_pptr: PPtr = behaviour.m_Material  # type: ignore
@@ -37,11 +37,11 @@ class CharArts(Task):
                 rgb_texture: Texture2D = rgb_texture_pptr.read()
                 alpha_texture: Texture2D = alpha_texture_pptr.read()
                 merged_image, _ = merge_alpha(alpha_texture, rgb_texture)
-                merged_image.save(BASE_DIR.joinpath(f"{rgb_texture.name}.png"))
+                merged_image.save(BASE_DIR.joinpath(f"{rgb_texture.m_Name}.png"))
             else:
                 sprite: Sprite = behaviour.m_Sprite.read()  # type: ignore
                 rgb_texture: Texture2D = sprite.m_RD.texture.read()
-                rgb_texture.image.save(BASE_DIR.joinpath(f"{rgb_texture.name}.png"))
+                rgb_texture.image.save(BASE_DIR.joinpath(f"{rgb_texture.m_Name}.png"))
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}

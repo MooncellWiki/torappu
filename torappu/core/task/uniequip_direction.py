@@ -26,7 +26,7 @@ class UniEquipDirection(Task):
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
             texture: Sprite = obj.read()  # type: ignore
             texture.image.save(
-                BASE_DIR.joinpath(f"{self.hub_config[texture.name]}.png")
+                BASE_DIR.joinpath(f"{self.hub_config[texture.m_Name]}.png")
             )
 
     async def unpack_hub(self, ab_path: str):

@@ -14,7 +14,7 @@ def merge_alpha(alpha_texture: Texture2D | None, rgb_texture: Texture2D | None):
         raise Exception("rgb texture not found")
 
     if alpha_texture is None:
-        return (rgb_texture.image, rgb_texture.name)
+        return (rgb_texture.image, rgb_texture.m_Name)
 
     r, g, b = rgb_texture.image.split()[:3]
     if (
@@ -27,7 +27,7 @@ def merge_alpha(alpha_texture: Texture2D | None, rgb_texture: Texture2D | None):
     else:
         a, *_ = alpha_texture.image.split()
 
-    return Image.merge("RGBA", (r, g, b, a)), rgb_texture.name
+    return Image.merge("RGBA", (r, g, b, a)), rgb_texture.m_Name
 
 
 def material2img(mat: Material):

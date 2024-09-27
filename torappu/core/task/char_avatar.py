@@ -19,7 +19,7 @@ class CharAvatar(Task):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "Texture2D", env.objects):
             texture: Texture2D = obj.read()  # type: ignore
-            texture.image.save(BASE_DIR.joinpath(f"{texture.name}.png"))
+            texture.image.save(BASE_DIR.joinpath(f"{texture.m_Name}.png"))
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}

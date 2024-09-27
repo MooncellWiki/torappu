@@ -19,7 +19,7 @@ def unpack_sandbox(ab_path: str):
     env = UnityPy.load(ab_path)
     for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
         texture: Sprite = obj.read()  # type: ignore
-        texture.image.save(BASE_DIR.joinpath(f"{texture.name}.png"))
+        texture.image.save(BASE_DIR.joinpath(f"{texture.m_Name}.png"))
 
 
 @run_sync
@@ -28,7 +28,7 @@ def unpack_universal(ab_path: str):
     for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
         texture: Sprite = obj.read()  # type: ignore
         resized = texture.image.resize((1280, 720))
-        resized.save(BASE_DIR.joinpath(f"{texture.name}.png"))
+        resized.save(BASE_DIR.joinpath(f"{texture.m_Name}.png"))
 
 
 class MapPreview(Task):

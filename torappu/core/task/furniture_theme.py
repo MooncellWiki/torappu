@@ -34,7 +34,7 @@ class FurnitureTheme(Task):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
             data: Sprite = obj.read()  # type: ignore
-            data.image.save(BASE_PATH / f"{data.name}.png")
+            data.image.save(BASE_PATH / f"{data.m_Name}.png")
 
     async def start(self):
         paths = await self.client.resolve_abs(list(self.ab_list))

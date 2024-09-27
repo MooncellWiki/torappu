@@ -47,12 +47,12 @@ class ItemIcon(Task):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
             texture: Sprite = obj.read()  # type: ignore
-            if texture.name in self.skip_bg_items:
-                texture.image.save(BASE_DIR.joinpath(f"{texture.name}.png"))
+            if texture.m_Name in self.skip_bg_items:
+                texture.image.save(BASE_DIR.joinpath(f"{texture.m_Name}.png"))
                 continue
-            texture.image.save(RAW_DIR.joinpath(f"{texture.name}.png"))
+            texture.image.save(RAW_DIR.joinpath(f"{texture.m_Name}.png"))
 
-            bg_path = self.dict_rarity_bg.get(texture.name)
+            bg_path = self.dict_rarity_bg.get(texture.m_Name)
             if not bg_path:
                 continue
 
@@ -60,10 +60,10 @@ class ItemIcon(Task):
             bg_width, bg_height = bg.size
             rect_offset = texture.m_RD.textureRectOffset
             position = (
-                round((bg_width - texture.m_Rect.width) / 2 + rect_offset.X),
+                round((bg_width - texture.m_Rect.width) / 2 + rect_offset.x),
                 bg_height
                 - texture.image.height
-                - round((bg_height - texture.m_Rect.height) / 2 + rect_offset.Y),
+                - round((bg_height - texture.m_Rect.height) / 2 + rect_offset.y),
             )
             bg.paste(
                 texture.image,
@@ -71,7 +71,7 @@ class ItemIcon(Task):
                 texture.image,
             )
 
-            bg.save(BASE_DIR.joinpath(f"{texture.name}.png"))
+            bg.save(BASE_DIR.joinpath(f"{texture.m_Name}.png"))
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}

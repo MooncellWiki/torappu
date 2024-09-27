@@ -35,7 +35,7 @@ class CharPortrait(Task):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
             data: MonoBehaviour = obj.read()  # type: ignore
-            if data.m_Script.read().name != "UIAtlasTextureRef":
+            if data.m_Script.read().m_Name != "UIAtlasTextureRef":
                 return
 
             # unpack atlas
@@ -45,7 +45,7 @@ class CharPortrait(Task):
             texture, _ = merge_alpha(alpha_texture, rgb_texture)
             atlas_dest = BASE_PATH / "atlas"
             atlas_dest.mkdir(parents=True, exist_ok=True)
-            texture.save(atlas_dest / f"{data.name}.png")
+            texture.save(atlas_dest / f"{data.m_Name}.png")
 
             # unpack sprites
             sprites: list[SpriteMetadata] = data._sprites  # type: ignore

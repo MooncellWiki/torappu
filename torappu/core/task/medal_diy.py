@@ -44,7 +44,7 @@ class MedalDIY(Task):
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
             behaviour: MonoBehaviour = obj.read()  # type: ignore
             script: MonoScript = behaviour.m_Script.read()  # type: ignore
-            if script.name != "UIMedalGroupFrame":
+            if script.m_Name != "UIMedalGroupFrame":
                 continue
 
             medal_group_id: str = behaviour._groupId  # type: ignore
@@ -75,15 +75,15 @@ class MedalDIY(Task):
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
             texture: Sprite = obj.read()  # type: ignore
             background_image = texture.image
-            background_image.save(BKG_DIR / f"{texture.name}.png")
+            background_image.save(BKG_DIR / f"{texture.m_Name}.png")
 
-            medal_pos_list = self.dict_medal_pos.get(texture.name, None)
+            medal_pos_list = self.dict_medal_pos.get(texture.m_Name, None)
             if medal_pos_list is None:
                 continue
 
             resized = background_image.resize((1374, 459))
             self.build_up(medal_pos_list, resized).save(
-                BASE_DIR / f"{texture.name}.png"
+                BASE_DIR / f"{texture.m_Name}.png"
             )
             if any(medal["medalId"] in self.dict_advanced for medal in medal_pos_list):
                 self.build_up(
@@ -99,7 +99,7 @@ class MedalDIY(Task):
                         for medal in medal_pos_list
                     ],
                     resized,
-                ).save(TRIM_DIR / f"{texture.name}.png")
+                ).save(TRIM_DIR / f"{texture.m_Name}.png")
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}

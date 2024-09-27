@@ -34,7 +34,7 @@ class FurniturePreview(Task):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
             data: Sprite = obj.read()  # type: ignore
-            if not data.name.endswith("_6"):
+            if not data.m_Name.endswith("_6"):
                 continue
             scan = data.image.convert("L")
             bottom = scan.height - 1
@@ -53,7 +53,7 @@ class FurniturePreview(Task):
                     break
 
             data.image.crop((0, top, scan.width, bottom)).save(
-                BASE_PATH / f"{data.name}.png"
+                BASE_PATH / f"{data.m_Name}.png"
             )
             break
 
