@@ -96,13 +96,13 @@ class CharSpine(Task):
                 base_dir.mkdir(parents=True, exist_ok=True)
 
             with open(base_dir / skel.m_Name.replace("#", "_"), "wb") as f:
-                f.write(bytes(skel.script))
+                f.write(bytes(skel.m_Script.encode("utf-8", "surrogateescape")))
             atlas_assets: list[PPtr] = data.atlasAssets  # type: ignore
             for pptr in atlas_assets:
                 atlas_mono_behaviour: MonoBehaviour = pptr.read()
                 atlas: TextAsset = atlas_mono_behaviour.atlasFile.read()  # type: ignore
                 # 文件名上不能有`#`，都替换成`_`
-                atlas_content = re.sub(r"#([^.]*\.png)", r"_\1", atlas.text)
+                atlas_content = re.sub(r"#([^.]*\.png)", r"_\1", atlas.m_Script)
                 with open(base_dir / atlas.m_Name.replace("#", "_"), "w") as f:
                     f.write(atlas_content)
                 materials: list[PPtr] = atlas_mono_behaviour.materials  # type: ignore
