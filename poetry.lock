@@ -60,25 +60,6 @@ twisted = ["twisted"]
 zookeeper = ["kazoo"]
 
 [[package]]
-name = "attrs"
-version = "24.2.0"
-description = "Classes Without Boilerplate"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "attrs-24.2.0-py3-none-any.whl", hash = "sha256:81921eb96de3191c8258c199618104dd27ac608d9366f5e35d011eae1867ede2"},
-    {file = "attrs-24.2.0.tar.gz", hash = "sha256:5cfb1b9148b5b086569baec03f20d7b6bf3bcacc9a42bebf87ffaaca362f6346"},
-]
-
-[package.extras]
-benchmark = ["cloudpickle", "hypothesis", "mypy (>=1.11.1)", "pympler", "pytest (>=4.3.0)", "pytest-codspeed", "pytest-mypy-plugins", "pytest-xdist[psutil]"]
-cov = ["cloudpickle", "coverage[toml] (>=5.3)", "hypothesis", "mypy (>=1.11.1)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-xdist[psutil]"]
-dev = ["cloudpickle", "hypothesis", "mypy (>=1.11.1)", "pre-commit", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-xdist[psutil]"]
-docs = ["cogapp", "furo", "myst-parser", "sphinx", "sphinx-notfound-page", "sphinxcontrib-towncrier", "towncrier (<24.7)"]
-tests = ["cloudpickle", "hypothesis", "mypy (>=1.11.1)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-xdist[psutil]"]
-tests-mypy = ["mypy (>=1.11.1)", "pytest-mypy-plugins"]
-
-[[package]]
 name = "black"
 version = "24.8.0"
 description = "The uncompromising code formatter."
@@ -1112,29 +1093,29 @@ files = [
 
 [[package]]
 name = "ruff"
-version = "0.6.7"
+version = "0.6.8"
 description = "An extremely fast Python linter and code formatter, written in Rust."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "ruff-0.6.7-py3-none-linux_armv6l.whl", hash = "sha256:08277b217534bfdcc2e1377f7f933e1c7957453e8a79764d004e44c40db923f2"},
-    {file = "ruff-0.6.7-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:c6707a32e03b791f4448dc0dce24b636cbcdee4dd5607adc24e5ee73fd86c00a"},
-    {file = "ruff-0.6.7-py3-none-macosx_11_0_arm64.whl", hash = "sha256:533d66b7774ef224e7cf91506a7dafcc9e8ec7c059263ec46629e54e7b1f90ab"},
-    {file = "ruff-0.6.7-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:17a86aac6f915932d259f7bec79173e356165518859f94649d8c50b81ff087e9"},
-    {file = "ruff-0.6.7-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:b3f8822defd260ae2460ea3832b24d37d203c3577f48b055590a426a722d50ef"},
-    {file = "ruff-0.6.7-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:9ba4efe5c6dbbb58be58dd83feedb83b5e95c00091bf09987b4baf510fee5c99"},
-    {file = "ruff-0.6.7-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:525201b77f94d2b54868f0cbe5edc018e64c22563da6c5c2e5c107a4e85c1c0d"},
-    {file = "ruff-0.6.7-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:8854450839f339e1049fdbe15d875384242b8e85d5c6947bb2faad33c651020b"},
-    {file = "ruff-0.6.7-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:2f0b62056246234d59cbf2ea66e84812dc9ec4540518e37553513392c171cb18"},
-    {file = "ruff-0.6.7-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b1462fa56c832dc0cea5b4041cfc9c97813505d11cce74ebc6d1aae068de36b"},
-    {file = "ruff-0.6.7-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:02b083770e4cdb1495ed313f5694c62808e71764ec6ee5db84eedd82fd32d8f5"},
-    {file = "ruff-0.6.7-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:0c05fd37013de36dfa883a3854fae57b3113aaa8abf5dea79202675991d48624"},
-    {file = "ruff-0.6.7-py3-none-musllinux_1_2_i686.whl", hash = "sha256:f49c9caa28d9bbfac4a637ae10327b3db00f47d038f3fbb2195c4d682e925b14"},
-    {file = "ruff-0.6.7-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:a0e1655868164e114ba43a908fd2d64a271a23660195017c17691fb6355d59bb"},
-    {file = "ruff-0.6.7-py3-none-win32.whl", hash = "sha256:a939ca435b49f6966a7dd64b765c9df16f1faed0ca3b6f16acdf7731969deb35"},
-    {file = "ruff-0.6.7-py3-none-win_amd64.whl", hash = "sha256:590445eec5653f36248584579c06252ad2e110a5d1f32db5420de35fb0e1c977"},
-    {file = "ruff-0.6.7-py3-none-win_arm64.whl", hash = "sha256:b28f0d5e2f771c1fe3c7a45d3f53916fc74a480698c4b5731f0bea61e52137c8"},
-    {file = "ruff-0.6.7.tar.gz", hash = "sha256:44e52129d82266fa59b587e2cd74def5637b730a69c4542525dfdecfaae38bd5"},
+    {file = "ruff-0.6.8-py3-none-linux_armv6l.whl", hash = "sha256:77944bca110ff0a43b768f05a529fecd0706aac7bcce36d7f1eeb4cbfca5f0f2"},
+    {file = "ruff-0.6.8-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:27b87e1801e786cd6ede4ada3faa5e254ce774de835e6723fd94551464c56b8c"},
+    {file = "ruff-0.6.8-py3-none-macosx_11_0_arm64.whl", hash = "sha256:cd48f945da2a6334f1793d7f701725a76ba93bf3d73c36f6b21fb04d5338dcf5"},
+    {file = "ruff-0.6.8-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:677e03c00f37c66cea033274295a983c7c546edea5043d0c798833adf4cf4c6f"},
+    {file = "ruff-0.6.8-py3-none-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:9f1476236b3eacfacfc0f66aa9e6cd39f2a624cb73ea99189556015f27c0bdeb"},
+    {file = "ruff-0.6.8-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:6f5a2f17c7d32991169195d52a04c95b256378bbf0de8cb98478351eb70d526f"},
+    {file = "ruff-0.6.8-py3-none-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:5fd0d4b7b1457c49e435ee1e437900ced9b35cb8dc5178921dfb7d98d65a08d0"},
+    {file = "ruff-0.6.8-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:f8034b19b993e9601f2ddf2c517451e17a6ab5cdb1c13fdff50c1442a7171d87"},
+    {file = "ruff-0.6.8-py3-none-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:6cfb227b932ba8ef6e56c9f875d987973cd5e35bc5d05f5abf045af78ad8e098"},
+    {file = "ruff-0.6.8-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6ef0411eccfc3909269fed47c61ffebdcb84a04504bafa6b6df9b85c27e813b0"},
+    {file = "ruff-0.6.8-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:007dee844738c3d2e6c24ab5bc7d43c99ba3e1943bd2d95d598582e9c1b27750"},
+    {file = "ruff-0.6.8-py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:ce60058d3cdd8490e5e5471ef086b3f1e90ab872b548814e35930e21d848c9ce"},
+    {file = "ruff-0.6.8-py3-none-musllinux_1_2_i686.whl", hash = "sha256:1085c455d1b3fdb8021ad534379c60353b81ba079712bce7a900e834859182fa"},
+    {file = "ruff-0.6.8-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:70edf6a93b19481affd287d696d9e311388d808671bc209fb8907b46a8c3af44"},
+    {file = "ruff-0.6.8-py3-none-win32.whl", hash = "sha256:792213f7be25316f9b46b854df80a77e0da87ec66691e8f012f887b4a671ab5a"},
+    {file = "ruff-0.6.8-py3-none-win_amd64.whl", hash = "sha256:ec0517dc0f37cad14a5319ba7bba6e7e339d03fbf967a6d69b0907d61be7a263"},
+    {file = "ruff-0.6.8-py3-none-win_arm64.whl", hash = "sha256:8d3bb2e3fbb9875172119021a13eed38849e762499e3cfde9588e4b4d70968dc"},
+    {file = "ruff-0.6.8.tar.gz", hash = "sha256:a5bf44b1aa0adaf6d9d20f86162b34f7c593bfedabc51239953e446aefc8ce18"},
 ]
 
 [[package]]
@@ -1355,51 +1336,50 @@ devenv = ["check-manifest", "pytest (>=4.3)", "pytest-cov", "pytest-mock (>=3.3)
 
 [[package]]
 name = "unitypy"
-version = "1.20.2"
+version = "1.10.18"
 description = "A Unity extraction and patching package"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.6"
 files = [
-    {file = "UnityPy-1.20.2-cp310-cp310-manylinux_2_17_aarch64.whl", hash = "sha256:a457c67a52fec4f06d252a6b0a20709d3332afd9db1630fa8f70e23f5abec22a"},
-    {file = "UnityPy-1.20.2-cp310-cp310-manylinux_2_17_i686.whl", hash = "sha256:dbf9aafa8baf30551235c8742e010554d669755c6c33899a9dab6bd3ca0e8278"},
-    {file = "UnityPy-1.20.2-cp310-cp310-manylinux_2_17_x86_64.whl", hash = "sha256:0060ece6f55a8def2847c46ce8194c5972577fc5f97e584e909d6099aff11147"},
-    {file = "UnityPy-1.20.2-cp310-cp310-win32.whl", hash = "sha256:686b01787da8c82cd082cb997a92159029d34a643dfa40f2527bb63bb2a673a3"},
-    {file = "UnityPy-1.20.2-cp310-cp310-win_amd64.whl", hash = "sha256:04d5b5589fe3d791e43a56b97406116d4cca8592b25bdd50cd6bfe10f6a0f7e3"},
-    {file = "UnityPy-1.20.2-cp311-cp311-manylinux_2_17_aarch64.whl", hash = "sha256:06fa9ff1fd6cf7b1bb70ab158956c71ee46bdd55630d66fec0158a8016f86e8f"},
-    {file = "UnityPy-1.20.2-cp311-cp311-manylinux_2_17_i686.whl", hash = "sha256:37fbc523a33e96afbc726bcfe30d74a6feac8d2774ca4e14e1399b17a27f87d8"},
-    {file = "UnityPy-1.20.2-cp311-cp311-manylinux_2_17_x86_64.whl", hash = "sha256:e87afee9a2716eb8425293fc36c6dc7d85b72cda67a0add29d3a0184a35a8cc6"},
-    {file = "UnityPy-1.20.2-cp311-cp311-win32.whl", hash = "sha256:38d363073b8aa7c74b13c89f3155953a9f27d425ba8b057a8fbc50ab69fa0166"},
-    {file = "UnityPy-1.20.2-cp311-cp311-win_amd64.whl", hash = "sha256:3f1b1c9f4c841d6f2545f7eda66b2a9882832d78ae2c5b21a0c6fe0031362092"},
-    {file = "UnityPy-1.20.2-cp312-cp312-manylinux_2_17_aarch64.whl", hash = "sha256:d10c6b1790bdb38f76bcc2c8a65d45404ad737c339a4337391c853304793be5d"},
-    {file = "UnityPy-1.20.2-cp312-cp312-manylinux_2_17_i686.whl", hash = "sha256:04c43add039b4ebca79b6744f698ebe643d4fd5afe374ac66758985fdac77976"},
-    {file = "UnityPy-1.20.2-cp312-cp312-manylinux_2_17_x86_64.whl", hash = "sha256:26c5082491d97abad2bd788be54a99787348c18df85783ab28b748ad9348c1a5"},
-    {file = "UnityPy-1.20.2-cp312-cp312-win32.whl", hash = "sha256:684322cbe29eda5d94ecd128c5d8530c6d8f1112142913f944f568fd1a49d54b"},
-    {file = "UnityPy-1.20.2-cp312-cp312-win_amd64.whl", hash = "sha256:373822e276ad4c6b200f3ede5b7ee5bccdf156ebb40837c6052a6516e799216b"},
-    {file = "UnityPy-1.20.2-cp313-cp313-manylinux_2_17_aarch64.whl", hash = "sha256:675f3c030c3e4116ad8f6189dba56d27edb3c5e8d2fc335e593bb1dff2fce0dc"},
-    {file = "UnityPy-1.20.2-cp313-cp313-manylinux_2_17_i686.whl", hash = "sha256:0f515493de6a435f9a97c91eebfd34dd3e0d7363c37b708f782b380d66ea09e4"},
-    {file = "UnityPy-1.20.2-cp313-cp313-manylinux_2_17_x86_64.whl", hash = "sha256:3fd9b689088d0ee4adbaa9b88a276cc45bee43f822b8b212f1a656009ebc9b9d"},
-    {file = "UnityPy-1.20.2-cp313-cp313-win32.whl", hash = "sha256:ca36d4f9e2a81b7a795e617ab5c98ef4b98e1b9434e4e1c092b08c40b9205d0b"},
-    {file = "UnityPy-1.20.2-cp313-cp313-win_amd64.whl", hash = "sha256:9efba9777cdf21d24f6d23ad59144dcd486008065a8600ad4b9f8d0d8d2e4b80"},
-    {file = "UnityPy-1.20.2-cp37-cp37m-manylinux_2_17_aarch64.whl", hash = "sha256:28d7ea1af7dd412cfaf49c143a8424a49beee7f158e8d441f826c7b100d3d3ea"},
-    {file = "UnityPy-1.20.2-cp37-cp37m-manylinux_2_17_i686.whl", hash = "sha256:28536944712744cb40ebcda1bcd05ef0a02800ba73922a07596fd0a948366476"},
-    {file = "UnityPy-1.20.2-cp37-cp37m-manylinux_2_17_x86_64.whl", hash = "sha256:19c77121efb972ac7258f291a0b6da35b38c2991d5d49b5074a3e1e3d47371b6"},
-    {file = "UnityPy-1.20.2-cp37-cp37m-win32.whl", hash = "sha256:01d3e3ef5ba4474981cd16059b43f6db8f8b17be12893fab17f114cbb8e0943e"},
-    {file = "UnityPy-1.20.2-cp37-cp37m-win_amd64.whl", hash = "sha256:a3bc0384ce94ff4b77f44a56f57b61f22cd5221cb737a9996bbba033e92489e5"},
-    {file = "UnityPy-1.20.2-cp38-cp38-manylinux_2_17_aarch64.whl", hash = "sha256:4bea2ce9fb0e0f5264ce6562fda096bf80048d7a7757cce8479e4d5b8b73e80c"},
-    {file = "UnityPy-1.20.2-cp38-cp38-manylinux_2_17_i686.whl", hash = "sha256:51576e2e26229e1fec28dc52d875ebb8729da1fea238c68fedbff6d116d21e1e"},
-    {file = "UnityPy-1.20.2-cp38-cp38-manylinux_2_17_x86_64.whl", hash = "sha256:561d631b37f9b522cc515b1f2cb62eee0e30ac72a6ecc0ce16aeb2f149346381"},
-    {file = "UnityPy-1.20.2-cp38-cp38-win32.whl", hash = "sha256:9cf4dfc1a09c8ddb8883291b6b3f11947551cb8bd20d02a1d888a3a1504db3da"},
-    {file = "UnityPy-1.20.2-cp38-cp38-win_amd64.whl", hash = "sha256:d2a7a5c6cb651e9f2fa465b64e88de7de10dcb5328732bb72a3cce7ad5bdcd9d"},
-    {file = "UnityPy-1.20.2-cp39-cp39-manylinux_2_17_aarch64.whl", hash = "sha256:f0db68a13d2c80f3fe383e9b345093e2379a303705e0ffe998f345fa2d19cd49"},
-    {file = "UnityPy-1.20.2-cp39-cp39-manylinux_2_17_i686.whl", hash = "sha256:e56e232719679c3791da8c8ff2464c5d758dc0c04e92519ffc5c78594b27a7da"},
-    {file = "UnityPy-1.20.2-cp39-cp39-manylinux_2_17_x86_64.whl", hash = "sha256:e0656e69b6ba386e7011d3f44d0c572a31974aaf4421bb4aea57af786970ba9e"},
-    {file = "UnityPy-1.20.2-cp39-cp39-win32.whl", hash = "sha256:1a8ee0e518ca20a7f299fbb4787f61dacff1a67434bac24c826530fd9560c930"},
-    {file = "UnityPy-1.20.2-cp39-cp39-win_amd64.whl", hash = "sha256:aa6f100f7b683141194a596674c898628c06a2b2fa81c72c349b703a725ba8ce"},
-    {file = "unitypy-1.20.2.tar.gz", hash = "sha256:33ec6f5b1595c058499b5103eb380244d9c38c16799cec9522c2de3602e8ddd0"},
+    {file = "UnityPy-1.10.18-cp310-cp310-manylinux_2_17_aarch64.whl", hash = "sha256:d9c057d37374678fec41692458b269ad02686457e341790fe120be3fd42db20a"},
+    {file = "UnityPy-1.10.18-cp310-cp310-manylinux_2_17_i686.whl", hash = "sha256:26b246aa59915a284ec98ee395b7a77c83b7e4b9d0793d7c4b7ccb030a2d8f38"},
+    {file = "UnityPy-1.10.18-cp310-cp310-manylinux_2_17_x86_64.whl", hash = "sha256:0285eaf115dcb701fd6d45beaa997da6f62580dd556f00f79ac2e5a9474b6ed9"},
+    {file = "UnityPy-1.10.18-cp310-cp310-win32.whl", hash = "sha256:8414f5157ef4ea15e8aed9d825866bd4d7f7484b96a1d4b9bd7684e7d8e39ad8"},
+    {file = "UnityPy-1.10.18-cp310-cp310-win_amd64.whl", hash = "sha256:6e2b9c9bfb5b63db829d76fda478bafa27277abd1a64c96dcfd63487ef38f073"},
+    {file = "UnityPy-1.10.18-cp311-cp311-manylinux_2_17_aarch64.whl", hash = "sha256:22f6d675618315bf7b25a54c4be048c4ad1ce2c807978daa27f1f112039db789"},
+    {file = "UnityPy-1.10.18-cp311-cp311-manylinux_2_17_i686.whl", hash = "sha256:dcef8d076bbe3af8294f03c97fe4d86521932a4cd50e545695b4449bcba6edcb"},
+    {file = "UnityPy-1.10.18-cp311-cp311-manylinux_2_17_x86_64.whl", hash = "sha256:e7de213c06b1a6deb8667b2ca481832b3ac96f8b1bfbeee60a60978963f4907a"},
+    {file = "UnityPy-1.10.18-cp311-cp311-win32.whl", hash = "sha256:05b055cf56177193213fc8ac92db3369957cff7c1a8094487a7075503df96a1e"},
+    {file = "UnityPy-1.10.18-cp311-cp311-win_amd64.whl", hash = "sha256:56f8fe859636fdc10b1eef3d39bc39b6abfea95c5e152a25899d3bc904312711"},
+    {file = "UnityPy-1.10.18-cp312-cp312-manylinux_2_17_aarch64.whl", hash = "sha256:c81045005cddd037c1fda176f26dd3fe4a7f27d028e75b0c263a6f0ee8491d0b"},
+    {file = "UnityPy-1.10.18-cp312-cp312-manylinux_2_17_i686.whl", hash = "sha256:416954e4e65fd6972ae33402f629a6aad5f073da2d719c7b3e5b89ea8d9e49c7"},
+    {file = "UnityPy-1.10.18-cp312-cp312-manylinux_2_17_x86_64.whl", hash = "sha256:3544b394c0d11b0ce0c20a30638b584c2584195f2d64894fcbbda9085e81e796"},
+    {file = "UnityPy-1.10.18-cp312-cp312-win32.whl", hash = "sha256:30e65c3e259c46f0a321ba19d7f771ddc168b9c24b1cda6f722c870aefab7451"},
+    {file = "UnityPy-1.10.18-cp312-cp312-win_amd64.whl", hash = "sha256:e2aaa9b0bbfea8af60fd80bf6e5a9487c1bfa1b871861bbc461bc26dcbeaeaaf"},
+    {file = "UnityPy-1.10.18-cp313-cp313-manylinux_2_17_aarch64.whl", hash = "sha256:e6fe1001f9faab352760d15691616a138df013472769dacbbaaf9693b248e026"},
+    {file = "UnityPy-1.10.18-cp313-cp313-manylinux_2_17_i686.whl", hash = "sha256:d26cc4cb498565c737a9ba731627282e6a64906918672dead281876857781069"},
+    {file = "UnityPy-1.10.18-cp313-cp313-manylinux_2_17_x86_64.whl", hash = "sha256:b1d2e219cc1005211e5d9857347b90304b282b1736eec8480cf02ec3d15cc3fc"},
+    {file = "UnityPy-1.10.18-cp313-cp313-win32.whl", hash = "sha256:c87daee0d39798209618c48c54bbdd01d81fa38dc508b40150875c7a7a631fc4"},
+    {file = "UnityPy-1.10.18-cp313-cp313-win_amd64.whl", hash = "sha256:fe65ac96b444d836f0268de3afd343cc93349e867ee152bc7b9c75e34989722e"},
+    {file = "UnityPy-1.10.18-cp37-cp37m-manylinux_2_17_aarch64.whl", hash = "sha256:5b5f89ef75eed11b2e85449443a69b3e64482777180f35c226007fdec63821e5"},
+    {file = "UnityPy-1.10.18-cp37-cp37m-manylinux_2_17_i686.whl", hash = "sha256:962b4fb221714cf0f1b5f1e3290867ca75fedcb20fd1f63f0ee5ae2832f8ba43"},
+    {file = "UnityPy-1.10.18-cp37-cp37m-manylinux_2_17_x86_64.whl", hash = "sha256:8b59ca338d54f9618af8bdf1c8513ad0574cbf9edf22d8b663be276eb3d5f501"},
+    {file = "UnityPy-1.10.18-cp37-cp37m-win32.whl", hash = "sha256:3f8807227c7bb867b717f46f38e2580daefba817e8e994630f9dbb208a503e25"},
+    {file = "UnityPy-1.10.18-cp37-cp37m-win_amd64.whl", hash = "sha256:04dcd8339504402a414ce56507be699d08e9294dbd6ff4077841390a335e88da"},
+    {file = "UnityPy-1.10.18-cp38-cp38-manylinux_2_17_aarch64.whl", hash = "sha256:d1ab7d08a4cbfb190140ed81cfab7b047bc96cb8eb59d69e268bb24de5d78a92"},
+    {file = "UnityPy-1.10.18-cp38-cp38-manylinux_2_17_i686.whl", hash = "sha256:683762ef18c72aca4e3da25437f0dcd36b9040394033ede476c3342a3e31e8b0"},
+    {file = "UnityPy-1.10.18-cp38-cp38-manylinux_2_17_x86_64.whl", hash = "sha256:393c84e77ab867b12fd4de7a90a66748150d063674bbfb303a1164f2e00b6f09"},
+    {file = "UnityPy-1.10.18-cp38-cp38-win32.whl", hash = "sha256:235b3c56f316c6610e1967ce8bce48eea2b7cba340aa231fbc0ee19678bde2ba"},
+    {file = "UnityPy-1.10.18-cp38-cp38-win_amd64.whl", hash = "sha256:d9e734312391f452b639d46c41e704495f00528f22cdf0a0813454b9a93cdd30"},
+    {file = "UnityPy-1.10.18-cp39-cp39-manylinux_2_17_aarch64.whl", hash = "sha256:7a8978a5a35e86b8c168cf9e3a0f0b56c0a8f391cd212a496c9dd9a9c7c3e3d2"},
+    {file = "UnityPy-1.10.18-cp39-cp39-manylinux_2_17_i686.whl", hash = "sha256:db50cbb94d49b71424b26188414812733658a614e1e926cf5a93f1345d3b71af"},
+    {file = "UnityPy-1.10.18-cp39-cp39-manylinux_2_17_x86_64.whl", hash = "sha256:5aac2028000b1a2a3beb683717d1e75febc46503cabaa0d6e6d8a2eb3fb96138"},
+    {file = "UnityPy-1.10.18-cp39-cp39-win32.whl", hash = "sha256:09be19c0246fbdb782c045a819a929625248ffd6bbff1a6ac8a0d2009c4ccba8"},
+    {file = "UnityPy-1.10.18-cp39-cp39-win_amd64.whl", hash = "sha256:044a2226ecacf2523fd83f786df6b172e6c25321e2ca4fc85f4439f71d90fd22"},
+    {file = "unitypy-1.10.18.tar.gz", hash = "sha256:becea593e213ade2b92cc25eaf022154014e2c647c60710eb973de5f434ec4d6"},
 ]
 
 [package.dependencies]
-attrs = "*"
 brotli = "*"
 etcpak = "*"
 fsspec = "*"
@@ -1428,13 +1408,13 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "uvicorn"
-version = "0.30.6"
+version = "0.31.0"
 description = "The lightning-fast ASGI server."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "uvicorn-0.30.6-py3-none-any.whl", hash = "sha256:65fd46fe3fda5bdc1b03b94eb634923ff18cd35b2f084813ea79d1f103f711b5"},
-    {file = "uvicorn-0.30.6.tar.gz", hash = "sha256:4b15decdda1e72be08209e860a1e10e92439ad5b97cf44cc945fcbee66fc5788"},
+    {file = "uvicorn-0.31.0-py3-none-any.whl", hash = "sha256:cac7be4dd4d891c363cd942160a7b02e69150dcbc7a36be04d5f4af4b17c8ced"},
+    {file = "uvicorn-0.31.0.tar.gz", hash = "sha256:13bc21373d103859f68fe739608e2eb054a816dea79189bc3ca08ea89a275906"},
 ]
 
 [package.dependencies]
@@ -1497,13 +1477,13 @@ test = ["Cython (>=0.29.36,<0.30.0)", "aiohttp (==3.9.0b0)", "aiohttp (>=3.8.1)"
 
 [[package]]
 name = "virtualenv"
-version = "20.26.5"
+version = "20.26.6"
 description = "Virtual Python Environment builder"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "virtualenv-20.26.5-py3-none-any.whl", hash = "sha256:4f3ac17b81fba3ce3bd6f4ead2749a72da5929c01774948e243db9ba41df4ff6"},
-    {file = "virtualenv-20.26.5.tar.gz", hash = "sha256:ce489cac131aa58f4b25e321d6d186171f78e6cb13fafbf32a840cee67733ff4"},
+    {file = "virtualenv-20.26.6-py3-none-any.whl", hash = "sha256:7345cc5b25405607a624d8418154577459c3e0277f5466dd79c49d5e492995f2"},
+    {file = "virtualenv-20.26.6.tar.gz", hash = "sha256:280aede09a2a5c317e409a00102e7077c6432c5a38f0ef938e643805a7ad2c48"},
 ]
 
 [package.dependencies]
@@ -1722,4 +1702,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "0e537deaf0d26c9e70d49b4da4ba7d2ff0746e7fd169c40b244cee51e32763e5"
+content-hash = "5f9cdc750ddd116b8892aa58426748f63671cc1a00748abca9a3a9c289f8e2e2"
