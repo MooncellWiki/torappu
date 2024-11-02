@@ -22,6 +22,8 @@ loguru = ">=0.7.0,<1.0.0"
 fastapi = ">=0.103.0,<1.0.0"
 pydantic-settings = "^2.0.0"
 sentry-sdk = { version = "^2.13.0", extras = ["loguru", "httpx", "fastapi"] }
+fastcrc = "^0.3.2"
+
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.0"

@@ -31,10 +31,12 @@ class ABInfo(BaseModel):
 class HotUpdateInfo(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel)
 
-    full_pack: ABInfo
+    full_pack: ABInfo | None = None
     version_id: str
     ab_infos: list[ABInfo]
-    count_of_typed_res: int
+    count_of_typed_res: int | None = None
+    manifest_name: str | None = None
+    manifeset_version: str | None = None
     pack_infos: list[ABInfo]
 
 

@@ -76,7 +76,7 @@ class ItemIcon(Task):
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
         self.ab_list = {
-            bundle[:-3]
+            bundle
             for asset, bundle in self.client.asset_to_bundle.items()
             if asset.startswith("arts/items/icons")
             or asset.startswith("activity/commonassets/[uc]items")
@@ -86,7 +86,7 @@ class ItemIcon(Task):
         return len(self.ab_list) > 0
 
     async def start(self):
-        paths = await self.client.resolve_abs(list(self.ab_list))
+        paths = await self.client.resolves(list(self.ab_list))
         BASE_DIR.mkdir(parents=True, exist_ok=True)
         RAW_DIR.mkdir(parents=True, exist_ok=True)
 

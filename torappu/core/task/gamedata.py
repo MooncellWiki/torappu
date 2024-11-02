@@ -22,8 +22,10 @@ from .task import Task
 from ..client import Client
 
 flatbuffer_list = [
-    "ep_breakbuff_table",
     "activity_table",
+    "audio_data",
+    "battle_equip_table",
+    # buff_table
     "building_data",
     "campaign_table",
     "chapter_table",
@@ -34,33 +36,36 @@ flatbuffer_list = [
     "charword_table",
     "checkin_table",
     "climb_tower_table",
+    "cooperate_battle_table",
+    "enemy_database",
     "enemy_handbook_table",
+    "ep_breakbuff_table",
+    "extra_battlelog_table",
     "favor_table",
     "gacha_table",
     "gamedata_const",
+    "handbook_info_table",
+    "hotupdate_meta_table",
     "item_table",
+    "medal_table",
     "mission_table",
+    "open_server_table",
     "replicate_table",
     "retro_table",
-    "skin_table",
-    "story_review_meta_table",
-    "story_review_table",
-    "story_table",
-    "token_table",
-    "uniequip_table",
-    "zone_table",
-    "enemy_database",
-    "handbook_info_table",
-    "medal_table",
-    "open_server_table",
     "roguelike_topic_table",
+    "sandbox_perm_table",
     "sandbox_table",
     "shop_client_table",
     "skill_table",
+    "skin_table",
     "stage_table",
-    "extra_battlelog_table",
-    "sandbox_perm_table",
-    "cooperate_battle_table",
+    "story_review_meta_table",
+    "story_review_table",
+    "story_table",
+    "tip_table",
+    "token_table",
+    "uniequip_table",
+    "zone_table",
 ]
 encrypted_list = [
     "[uc]lua",
@@ -269,7 +274,7 @@ class GameData(Task):
         output_path.write_text(pack_data, encoding="utf-8")
 
     async def unpack(self, ab_path: str):
-        real_path = await self.client.resolve_ab(ab_path[:-3])
+        real_path = await self.client.resolve(ab_path)
         env = UnityPy.load(real_path)
         for path, object in env.container.items():
             if isinstance((asset := object.read()), TextAsset):
@@ -277,12 +282,12 @@ class GameData(Task):
 
     async def start(self):
         gamedata_abs = [
-            info.name
-            for info in self.client.hot_update_list.ab_infos
-            if info.name.startswith("gamedata")
+            value
+            for (key, value) in self.client.asset_to_bundle.items()
+            if key.startswith("gamedata")
         ]
-
-        await asyncio.gather(*(self.client.resolve_ab(ab[:-3]) for ab in gamedata_abs))
+        gamedata_abs = list(set(gamedata_abs))
+        await asyncio.gather(*(self.client.resolve(ab) for ab in gamedata_abs))
         await asyncio.gather(*(self.unpack(ab) for ab in gamedata_abs))
 
         if platform.system() != "Windows":

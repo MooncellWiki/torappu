@@ -104,7 +104,7 @@ class MedalDIY(Task):
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
         self.ab_list = {
-            bundle[:-3]
+            bundle
             for asset, bundle in self.client.asset_to_bundle.items()
             if asset.startswith("arts/ui/medal/suitbkg") and bundle in diff_set
         }
@@ -114,16 +114,16 @@ class MedalDIY(Task):
     async def get_metadata_paths(self):
         asset_bundle_paths = list(
             {
-                bundle[:-3]
+                bundle
                 for asset, bundle in self.client.asset_to_bundle.items()
                 if asset.startswith("ui/medal/[uc]groupframe")
             }
         )
 
-        return await self.client.resolve_abs(asset_bundle_paths)
+        return await self.client.resolves(asset_bundle_paths)
 
     async def start(self):
-        paths = await self.client.resolve_abs(list(self.ab_list))
+        paths = await self.client.resolves(list(self.ab_list))
         BASE_DIR.mkdir(parents=True, exist_ok=True)
         BKG_DIR.mkdir(exist_ok=True)
         TRIM_DIR.mkdir(exist_ok=True)

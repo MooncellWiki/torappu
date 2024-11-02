@@ -24,7 +24,7 @@ class UniEquipExtraType(Task):
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
         self.ab_list = {
-            bundle[:-3]
+            bundle
             for asset, bundle in self.client.asset_to_bundle.items()
             if asset.startswith("arts/ui/uniequipextratype") and bundle in diff_set
         }
@@ -32,7 +32,7 @@ class UniEquipExtraType(Task):
         return len(self.ab_list) > 0
 
     async def start(self):
-        paths = await self.client.resolve_abs(list(self.ab_list))
+        paths = await self.client.resolves(list(self.ab_list))
         BASE_DIR.mkdir(parents=True, exist_ok=True)
 
         async with anyio.create_task_group() as tg:

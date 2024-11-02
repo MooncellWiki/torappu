@@ -74,9 +74,9 @@ class EnemySpine(Task):
                             break
 
     async def unpack(self, ab_path: str):
-        real_path = await self.client.resolve_ab(ab_path[:-3])
+        real_path = await self.client.resolve(ab_path)
         await self.unpack_ab(real_path)
 
     async def start(self):
-        await asyncio.gather(*(self.client.resolve_ab(ab[:-3]) for ab in self.ab_list))
+        await asyncio.gather(*(self.client.resolve(ab) for ab in self.ab_list))
         await asyncio.gather(*(self.unpack(ab) for ab in self.ab_list))

@@ -29,7 +29,7 @@ class Audio(Task):
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
         self.ab_list = {
-            bundle[:-3]
+            bundle
             for asset, bundle in self.client.asset_to_bundle.items()
             if asset.startswith("audio/sound_beta_2/") and bundle in diff_set
         }
@@ -121,7 +121,7 @@ class Audio(Task):
             path.symlink_to(source)
 
     async def start(self):
-        paths = await self.client.resolve_abs(list(self.ab_list))
+        paths = await self.client.resolves(list(self.ab_list))
         await asyncio.gather(
             *(self.extract(real_path, ab_path) for ab_path, real_path in paths)
         )

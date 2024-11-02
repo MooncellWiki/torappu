@@ -47,15 +47,15 @@ class MapPreview(Task):
                 continue
 
             if asset.startswith("ui/sandboxv2/mappreview"):
-                self.sandbox_ab_list.add(bundle[:-3])
+                self.sandbox_ab_list.add(bundle)
             elif asset.startswith("arts/ui/stage/mappreviews"):
-                self.ab_list.add(bundle[:-3])
+                self.ab_list.add(bundle)
 
         return len(self.ab_list) > 0 or len(self.sandbox_ab_list) > 0
 
     async def start(self):
-        paths = await self.client.resolve_abs(list(self.ab_list))
-        sandbox_paths = await self.client.resolve_abs(list(self.sandbox_ab_list))
+        paths = await self.client.resolves(list(self.ab_list))
+        sandbox_paths = await self.client.resolves(list(self.sandbox_ab_list))
         BASE_DIR.mkdir(parents=True, exist_ok=True)
 
         async with anyio.create_task_group() as tg:
