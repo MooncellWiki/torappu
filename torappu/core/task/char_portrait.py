@@ -68,7 +68,7 @@ class CharPortrait(Task):
                 cropped.save(BASE_PATH / f"{sprite['name']}.png")
 
     async def start(self):
-        paths = await self.client.resolve_abs(list(self.ab_list))
+        paths = await self.client.resolves(list(self.ab_list))
         BASE_PATH.mkdir(parents=True, exist_ok=True)
 
         async with anyio.create_task_group() as tg:
@@ -78,7 +78,7 @@ class CharPortrait(Task):
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
         self.ab_list = {
-            bundle[:-3]
+            bundle
             for asset, bundle in self.client.asset_to_bundle.items()
             if asset.startswith("arts/charportraits") and bundle in diff_set
         }

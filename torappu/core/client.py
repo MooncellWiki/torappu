@@ -163,6 +163,10 @@ class Client:
     def resolve_ab(self, path: str) -> str:
         return run_async(self.resolve)(path + ".ab")
 
+    async def resolves(self, path: list[str]) -> list[tuple[str, str]]:
+        result = await asyncio.gather(*(self.resolve(p) for p in path))
+        return list(zip(path, result))
+
     # [["abpath", "real_path"]]
     async def resolve_abs(self, path: list[str]) -> list[tuple[str, str]]:
         result = await asyncio.gather(*(self.resolve_ab(p) for p in path))
