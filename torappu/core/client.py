@@ -36,6 +36,7 @@ class Client:
         self.config = config
         self.http_client = httpx.AsyncClient(timeout=config.timeout)
         self.asset_to_bundle: dict[str, str] = {}
+        self.downloaded: dict[str, Path] = {}
 
     async def init(self):
         self.hot_update_list = await self.load_hot_update_list(self.version.res_version)
@@ -116,7 +117,7 @@ class Client:
     def hg_normalize_url(path: str) -> str:
         return path.replace("\\", "/").replace("/", "_").replace("#", "__")
 
-    @retry(stop=stop_after_attempt(3))
+    # @retry(stop=stop_after_attempt(3))
     async def download_ab(self, path: str) -> tuple[bytes, int]:
         filename = f"{self.hg_normalize_url(path.rsplit('.')[0])}.dat"
 
@@ -127,7 +128,8 @@ class Client:
 
         return (resp.content, int(resp.headers["x-oss-hash-crc64ecma"]))
 
-    async def resolve(self, path: str) -> str:
+    @run_sync
+    def resolve(self, path: str) -> str:
         info = self.get_abinfo_by_path(path)
 
         result = STORAGE_DIR / "assetbundle" / info.md5
@@ -137,12 +139,20 @@ class Client:
             and info.md5 == md5(result.read_bytes()).hexdigest()
         ):
             return result.as_posix()
+        if (
+            len(info.md5) == 4
+            and path in self.downloaded
+            and self.downloaded[path].exists()
+        ):
+            return str(self.downloaded[path].resolve())
+
         result.parent.mkdir(parents=True, exist_ok=True)
         # 从 2.4.01 24-10-30-15-08-36-72419d 开始引入了anon/*
         # hot update list里面的md5只有四位，改用oss给的crc当文件名
-        (content, crc) = await self.download_ab(path)
+        (content, crc) = run_async(self.download_ab)(path)
         if len(info.md5) == 4:
             result = STORAGE_DIR / "assetbundle" / str(crc)
+            self.downloaded[path] = result
         with ZipFile(BytesIO(content)) as myzip:
             result.write_bytes(myzip.read(myzip.filelist[0]))
 
