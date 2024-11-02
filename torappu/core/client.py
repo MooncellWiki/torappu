@@ -68,7 +68,7 @@ class Client:
 
             sign = cur_map[info.name]
             del cur_map[info.name]
-            if sign == info.md5:
+            if len(sign) != 4 and sign == info.md5:
                 continue
 
             result.append(Diff(type="update", path=info.name))
