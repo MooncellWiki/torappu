@@ -103,10 +103,17 @@ class MedalDIY(Task):
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
+
+        has_medal_icon_diff = any(
+            asset.startswith("arts/ui/medalicon") and bundle in diff_set
+            for asset, bundle in self.client.asset_to_bundle.items()
+        )
+
         self.ab_list = {
             bundle
             for asset, bundle in self.client.asset_to_bundle.items()
-            if asset.startswith("arts/ui/medal/suitbkg") and bundle in diff_set
+            if asset.startswith("arts/ui/medal/suitbkg")
+            and (bundle in diff_set or has_medal_icon_diff)
         }
 
         return len(self.ab_list) > 0
