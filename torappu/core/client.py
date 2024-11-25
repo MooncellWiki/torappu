@@ -16,7 +16,13 @@ from ..log import logger
 from ..config import Config
 from .utils import run_sync, run_async
 from ..models import Diff, ABInfo, Version, HotUpdateInfo
-from ..consts import HEADERS, STORAGE_DIR, HG_CN_BASEURL, HOT_UPDATE_LIST_DIR
+from ..consts import (
+    HEADERS,
+    STORAGE_DIR,
+    HG_CN_BASEURL,
+    HOT_UPDATE_LIST_DIR,
+    GAMEDATA_DIR,
+)
 
 
 class Client:
@@ -48,7 +54,12 @@ class Client:
             self.prev_hot_update_list = None
         if self.hot_update_list.manifest_name is not None:
             idx_path = await self.resolve(self.hot_update_list.manifest_name)
-            self.load_idx(idx_path)
+            self.load_idx(
+                idx_path,
+                GAMEDATA_DIR.joinpath(
+                    self.version.res_version, self.hot_update_list.manifest_name
+                ),
+            )
         else:
             await self.load_torappu_index()
 
@@ -186,17 +197,16 @@ class Client:
                 for item in torappu_index.type_tree["assetToBundleList"]
             }
 
-    def load_idx(self, idx_path: str):
+    def load_idx(self, idx_path: str, decoded_path: Path):
         tmp_dir = TemporaryDirectory()
         tmp_path = Path(tmp_dir.name)
         idx = Path(idx_path).read_bytes()
         flatbuffer_data_path = tmp_path / "idx.bin"
         flatbuffer_data_path.write_bytes(idx[128:])
-        output_path = tmp_path / "idx"
         params = [
             self.config.flatc_path,
             "-o",
-            output_path.resolve(),
+            decoded_path.resolve(),
             "--no-warnings",
             "--json",
             "--strict-json",
@@ -209,7 +219,7 @@ class Client:
         ]
         subprocess.run(params)
         flatbuffer_data_path.unlink()
-        json_path = output_path / "idx.json"
+        json_path = decoded_path / "idx.json"
         jsons = json.loads(json_path.read_text(encoding="utf-8"))
         self.asset_to_bundle = {
             item["assetName"]: jsons["bundles"][item["bundleIndex"]]["name"]
