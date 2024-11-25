@@ -55,8 +55,8 @@ def cli(
         main,
         version,
         prev,
-        exclude and exclude.split(",") or [],
-        include and include.split(",") or [],
+        (exclude and exclude.split(",")) or [],
+        (include and include.split(",")) or [],
     )
 
 
