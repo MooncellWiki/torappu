@@ -78,8 +78,10 @@ class ItemIcon(Task):
         self.ab_list = {
             bundle
             for asset, bundle in self.client.asset_to_bundle.items()
-            if asset.startswith("arts/items/icons")
-            or asset.startswith("activity/commonassets/[uc]items")
+            if (
+                asset.startswith("arts/items/icons")
+                or asset.startswith("activity/commonassets/[uc]items")
+            )
             and bundle in diff_set
         }
 
