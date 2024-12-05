@@ -54,7 +54,6 @@ flatbuffer_list = [
     "retro_table",
     "roguelike_topic_table",
     "sandbox_perm_table",
-    "sandbox_table",
     "shop_client_table",
     "skill_table",
     "skin_table",
