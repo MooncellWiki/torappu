@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "torappu"
-version = "1.22.2"
+version = "1.22.3"
 description = "unpacker for a game"
 authors = [
   "daflyinbed <1677759063@qq.com>",
@@ -13,17 +13,16 @@ python = "^3.11"
 bson = "^0.5.10"
 click = "^8.1.7"
 pydub = "^0.25.1"
+fastcrc = "^0.3.2"
 unitypy = "1.10.18" # break changes in later versions
 tenacity = "^9.0.0"
 apscheduler = "^3.10.1"
 pycryptodome = "^3.18.0"
-httpx = ">=0.24.1,<1.0.0"
+httpx = ">=0.24.1,<1.0.0,!=0.28.0"
 loguru = ">=0.7.0,<1.0.0"
 fastapi = ">=0.103.0,<1.0.0"
 pydantic-settings = "^2.0.0"
 sentry-sdk = { version = "^2.13.0", extras = ["loguru", "httpx", "fastapi"] }
-fastcrc = "^0.3.2"
-
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.8.0"
