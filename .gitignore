@@ -1,7 +1,6 @@
 # ----- Project -----
 
 .idea
-.vscode
 storage
 temp
 itemDemand.json
