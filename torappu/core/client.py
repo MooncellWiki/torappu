@@ -214,7 +214,7 @@ class Client:
             "--natural-utf8",
             "--defaults-json",
             "--raw-binary",
-            "ResourceManifest.fbs",
+            "assets/ResourceManifest.fbs",
             "--",
             flatbuffer_data_path,
         ]
