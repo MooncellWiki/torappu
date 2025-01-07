@@ -26,45 +26,34 @@ sentry-sdk = { version = "^2.13.0", extras = ["loguru", "httpx", "fastapi"] }
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.8.0"
-isort = "^5.10.1"
-black = "^24.2.0"
 pre-commit = "^4.0.0"
 
 [tool.poetry.group.deploy.dependencies]
 uvicorn = { version = ">=0.20.0,<1.0.0", extras = ["standard"] }
 
-[tool.black]
-preview = true
-target-version = ["py311", "py312"]
-line-length = 88
-extend-exclude = '''
-'''
-
-[tool.isort]
-profile = "black"
-line_length = 88
-length_sort = true
-skip_gitignore = true
-force_sort_within_sections = true
-extra_standard_library = "typing_extensions"
-
 [tool.ruff]
 line-length = 88
 target-version = "py311"
 
+[tool.ruff.format]
+line-ending = "lf"
+
 [tool.ruff.lint]
 select = [
-  "F",     # Pyflakes
+  "F",     # pyflakes
   "W",     # pycodestyle warnings
   "E",     # pycodestyle errors
+  "I",     # isort
   "UP",    # pyupgrade
   "ASYNC", # flake8-async
   "C4",    # flake8-comprehensions
   "T10",   # flake8-debugger
   "T20",   # flake8-print
   "PYI",   # flake8-pyi
-  "PT",    # flake8-pytest-style
   "Q",     # flake8-quotes
+  "TC",    # flake8-type-checking
+  "TID",   # flake8-tidy-imports
+  "DTZ",   # flake8-datetimez
   "RUF",   # Ruff-specific rules
 ]
 ignore = [
@@ -75,9 +64,16 @@ ignore = [
   "RUF003", # ambiguous-unicode-character-comment
 ]
 
+[tool.ruff.lint.isort]
+known-first-party = ["torappu"]
+extra-standard-library = ["typing_extensions"]
+
 [tool.ruff.lint.extend-per-file-ignores]
 "./scripts/*" = ["T201"]
 "./docker/*" = ["T201"]
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
 
 [tool.pyright]
 extraPaths = ["./"]

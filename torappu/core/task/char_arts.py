@@ -1,14 +1,16 @@
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 import anyio
 import UnityPy
-from UnityPy.classes import PPtr, Sprite, Texture2D, MonoBehaviour
 
-from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
+from torappu.models import Diff
 
 from .task import Task
 from .utils import merge_alpha
+
+if TYPE_CHECKING:
+    from UnityPy.classes import MonoBehaviour, PPtr, Sprite, Texture2D
 
 BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "char_arts")
 

@@ -1,10 +1,10 @@
-import json
 import itertools
+import json
 from typing import ClassVar
 
+from torappu.consts import BASE_DIR
 from torappu.log import logger
 from torappu.models import Diff
-from torappu.consts import BASE_DIR
 
 from .task import Task
 from .utils import trans_prof

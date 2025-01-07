@@ -1,14 +1,16 @@
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 import anyio
 import UnityPy
-from UnityPy.classes import Sprite
 
-from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
+from torappu.models import Diff
 
 from .task import Task
+
+if TYPE_CHECKING:
+    from UnityPy.classes import Sprite
 
 BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "uniequip_direction")
 

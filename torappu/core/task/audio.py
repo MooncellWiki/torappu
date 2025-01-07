@@ -1,19 +1,21 @@
 import asyncio
 import subprocess
 from pathlib import Path
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 import UnityPy
 from pydub import AudioSegment
-from UnityPy.classes import AudioClip
 
+from torappu.consts import STORAGE_DIR
+from torappu.core.client import Client
 from torappu.log import logger
 from torappu.models import Diff
-from torappu.consts import STORAGE_DIR
 
 from .task import Task
-from ..client import Client
 from .utils import build_container_path
+
+if TYPE_CHECKING:
+    from UnityPy.classes import AudioClip
 
 AUDIO_DIR = STORAGE_DIR / "asset" / "raw" / "audio"
 

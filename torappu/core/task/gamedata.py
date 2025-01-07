@@ -1,12 +1,12 @@
-import os
-import json
-import base64
 import asyncio
+import base64
+import json
+import os
 import platform
 import subprocess
 from pathlib import Path
-from typing import ClassVar
 from tempfile import TemporaryDirectory
+from typing import ClassVar
 
 import bson
 import UnityPy
@@ -14,12 +14,12 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from UnityPy.classes import TextAsset
 
-from torappu.models import Diff
-from torappu.core.utils import run_sync
 from torappu.consts import FBS_DIR, STORAGE_DIR
+from torappu.core.client import Client
+from torappu.core.utils import run_sync
+from torappu.models import Diff
 
 from .task import Task
-from ..client import Client
 
 flatbuffer_list = [
     "activity_table",

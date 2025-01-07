@@ -1,17 +1,19 @@
-from typing import ClassVar, TypedDict
+from typing import TYPE_CHECKING, ClassVar, TypedDict
 
 import anyio
 import UnityPy
 from PIL import Image
-from UnityPy.classes import Sprite, MonoScript, MonoBehaviour
 
-from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
+from torappu.core.utils import run_sync
+from torappu.models import Diff
 
-from .task import Task
-from ..utils import run_sync
 from .medal_icon import BASE_DIR as MEDAL_ICON_DIR
+from .task import Task
+
+if TYPE_CHECKING:
+    from UnityPy.classes import MonoBehaviour, MonoScript, Sprite
 
 BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "medal_diy")
 BKG_DIR = BASE_DIR / "bkg"

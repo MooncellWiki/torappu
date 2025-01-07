@@ -1,5 +1,5 @@
-import sys
 import logging
+import sys
 from typing import TYPE_CHECKING
 
 import loguru

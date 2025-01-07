@@ -1,16 +1,17 @@
 import anyio
 import sentry_sdk
-from sentry_sdk.integrations.httpx import HttpxIntegration
-from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.httpx import HttpxIntegration
+from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
-from ..log import logger
-from .. import get_config
+from torappu import get_config
+from torappu.log import logger
+from torappu.models import Diff, Version
+
 from .client import Client
 from .task import Task, registry
-from ..models import Diff, Version
 
 config = get_config()
 

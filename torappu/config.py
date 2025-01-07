@@ -1,6 +1,6 @@
+from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Literal
-from ipaddress import IPv4Address
 
 from pydantic import Field, IPvAnyAddress
 from pydantic_settings import BaseSettings, SettingsConfigDict

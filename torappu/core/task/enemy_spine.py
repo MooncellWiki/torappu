@@ -1,15 +1,17 @@
 import asyncio
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 import UnityPy
-from UnityPy.classes import PPtr, Material, TextAsset, GameObject, MonoBehaviour
 
-from torappu.models import Diff
 from torappu.consts import STORAGE_DIR
+from torappu.core.client import Client
+from torappu.models import Diff
 
 from .task import Task
-from ..client import Client
-from .utils import material2img, build_container_path
+from .utils import build_container_path, material2img
+
+if TYPE_CHECKING:
+    from UnityPy.classes import GameObject, Material, MonoBehaviour, PPtr, TextAsset
 
 
 class EnemySpine(Task):

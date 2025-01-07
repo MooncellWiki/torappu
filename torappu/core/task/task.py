@@ -1,13 +1,12 @@
 import abc
 import json
-from typing import ClassVar
 from collections import defaultdict
+from typing import ClassVar
 
+from torappu.consts import GAMEDATA_DIR
+from torappu.core.client import Client
 from torappu.log import logger
 from torappu.models import Diff
-from torappu.consts import GAMEDATA_DIR
-
-from ..client import Client
 
 registry: defaultdict[int, list[type["Task"]]] = defaultdict(list)
 

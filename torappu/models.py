@@ -1,7 +1,7 @@
 from typing import Literal
 
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
-from pydantic import Field, BaseModel, ConfigDict
 
 
 class Version(BaseModel):

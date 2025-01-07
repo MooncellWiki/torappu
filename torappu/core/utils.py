@@ -1,9 +1,9 @@
-from typing import Any, TypeVar
-from functools import wraps, partial
-from typing_extensions import ParamSpec
 from collections.abc import Callable, Coroutine
+from functools import partial, wraps
+from typing import Any, TypeVar
+from typing_extensions import ParamSpec
 
-from anyio import to_thread, from_thread
+from anyio import from_thread, to_thread
 
 DELIMITERS = r"\. _-"
 

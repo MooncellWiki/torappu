@@ -1,28 +1,29 @@
-import json
 import asyncio
+import json
 import subprocess
-from io import BytesIO
 from hashlib import md5
+from io import BytesIO
 from pathlib import Path
-from zipfile import ZipFile
 from tempfile import TemporaryDirectory
+from zipfile import ZipFile
 
 import httpx
 import UnityPy
-from UnityPy.classes import MonoBehaviour
 from tenacity import retry, stop_after_attempt
+from UnityPy.classes import MonoBehaviour
 
-from ..log import logger
-from ..config import Config
-from .utils import run_sync, run_async
-from ..models import Diff, ABInfo, Version, HotUpdateInfo
-from ..consts import (
+from torappu.config import Config
+from torappu.consts import (
+    GAMEDATA_DIR,
     HEADERS,
-    STORAGE_DIR,
     HG_CN_BASEURL,
     HOT_UPDATE_LIST_DIR,
-    GAMEDATA_DIR,
+    STORAGE_DIR,
 )
+from torappu.log import logger
+from torappu.models import ABInfo, Diff, HotUpdateInfo, Version
+
+from .utils import run_async, run_sync
 
 
 class Client:
