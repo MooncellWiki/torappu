@@ -3,33 +3,33 @@ import sys
 import anyio
 import click
 
-from torappu.log import logger
 from torappu import __version__
 from torappu.core import registry
+from torappu.log import logger
 
 from .models import Version
 
-TASKS_LIST = [task.__name__ for tasks in registry.values() for task in tasks]
-TASKS_LIST_STRING = " ".join(TASKS_LIST)
+TASKS_LIST_STRING = " ".join(
+    [task.__name__ for tasks in registry.values() for task in tasks]
+)
 
 
-@click.group(
-    invoke_without_command=True,
+@click.command(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 @click.version_option(
     __version__,
-    "-V",
+    "-v",
     "--version",
     prog_name="torappu",
-    message="%(prog)s: torappu cli version %(version)s",
+    message="%(prog)s: version %(version)s",
 )
 @click.argument("client_version")
 @click.argument("res_version")
-@click.option("--prev_client_version", help="prev client version")
-@click.option("--prev_res_version", help="prev res version")
-@click.option("--exclude", help=TASKS_LIST_STRING)
-@click.option("--include", help=TASKS_LIST_STRING)
+@click.option("-c", "--prev-client-version", help="prev client version")
+@click.option("-r", "--prev-res-version", help="prev res version")
+@click.option("-e", "--exclude", help=TASKS_LIST_STRING)
+@click.option("-i", "--include", help=TASKS_LIST_STRING)
 def cli(
     client_version: str,
     res_version: str,
@@ -38,7 +38,7 @@ def cli(
     exclude: str | None,
     include: str | None,
 ):
-    from torappu.core import main, init_sentry
+    from torappu.core import init_sentry, main
 
     init_sentry(headless=True)
 

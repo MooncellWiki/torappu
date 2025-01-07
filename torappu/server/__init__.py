@@ -1,14 +1,13 @@
 from pathlib import Path
 
 import uvicorn
+from fastapi import BackgroundTasks, FastAPI
 from pydantic import BaseModel
-from fastapi import FastAPI, BackgroundTasks
 
+from torappu import get_config
+from torappu.core import init_sentry, main
 from torappu.log import logger
-from torappu.core import main, init_sentry
-
-from .. import get_config
-from ..models import VersionInfo
+from torappu.models import VersionInfo
 
 init_sentry(headless=False)
 
