@@ -10,7 +10,8 @@ ENV PATH="${PATH}:/root/.local/bin"
 
 COPY ./pyproject.toml ./poetry.lock* /tmp/
 
-RUN poetry export -f requirements.txt --output requirements.txt --without-hashes --with deploy
+RUN poetry self add poetry-plugin-export && \
+  poetry export -f requirements.txt --output requirements.txt --without-hashes --with deploy
 
 FROM python:3.11-bookworm AS build-stage
 
