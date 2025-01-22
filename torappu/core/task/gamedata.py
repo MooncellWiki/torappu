@@ -27,6 +27,7 @@ flatbuffer_list = [
     "battle_equip_table",
     # buff_table
     "building_data",
+    "building_local_data",
     "campaign_table",
     "chapter_table",
     "char_meta_table",
