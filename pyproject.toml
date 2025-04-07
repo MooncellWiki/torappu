@@ -63,6 +63,9 @@ ignore = [
   "RUF002", # ambiguous-unicode-character-docstring
   "RUF003", # ambiguous-unicode-character-comment
 ]
+exclude = [
+  "patches",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["torappu"]
