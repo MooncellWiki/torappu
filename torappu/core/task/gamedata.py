@@ -22,12 +22,11 @@ from torappu.models import Diff
 from .task import Task
 
 flatbuffer_list = [
+    # excel
     "activity_table",
     "audio_data",
     "battle_equip_table",
-    # buff_table
     "building_data",
-    "building_local_data",
     "campaign_table",
     "chapter_table",
     "char_meta_table",
@@ -37,18 +36,22 @@ flatbuffer_list = [
     "charword_table",
     "checkin_table",
     "climb_tower_table",
-    "cooperate_battle_table",
-    "enemy_database",
+    "clue_data",
+    "crisis_table",
+    "crisis_v2_table",
+    "display_meta_table",
     "enemy_handbook_table",
-    "ep_breakbuff_table",
-    "extra_battlelog_table",
     "favor_table",
     "gacha_table",
     "gamedata_const",
     "handbook_info_table",
+    "handbook_team_table",
     "hotupdate_meta_table",
+    "init_text",
     "item_table",
+    "main_text",
     "medal_table",
+    "meta_ui_table",
     "mission_table",
     "open_server_table",
     "replicate_table",
@@ -66,17 +69,23 @@ flatbuffer_list = [
     "token_table",
     "uniequip_table",
     "zone_table",
+    # battle
+    "cooperate_battle_table",
+    "ep_breakbuff_table",
+    "extra_battlelog_table",
+    "legion_mode_buff_table",
+    # building
+    "building_local_data",
 ]
 encrypted_list = [
     "[uc]lua",
     "gamedata/excel",
-    "buff_table",
     "gamedata/battle",
-    "enemy_database",
 ]
 flatbuffer_mappings = {
-    "/gamedata/levels/": "prts___levels",
-    "/gamedata/buff_table": "buff_table",
+    "gamedata/levels/enemydata/enemy_database": "enemy_database",
+    "gamedata/levels/": "prts___levels",
+    "gamedata/buff_table": "buff_table",
 }
 plaintexts = ["levels/levels_meta.json", "data_version.txt"]
 signed_list = ["excel", "_table", "[uc]lua"]
