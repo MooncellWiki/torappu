@@ -35,5 +35,7 @@ class Task(abc.ABC):
         raise NotImplementedError
 
     def get_gamedata(self, path: str):
-        json_path = GAMEDATA_DIR / self.client.version.res_version / "dyn" / path
+        json_path = GAMEDATA_DIR.joinpath(
+            self.client.version.res_version, "dyn", "gamedata", path
+        )
         return json.loads(json_path.read_text("utf-8"))
