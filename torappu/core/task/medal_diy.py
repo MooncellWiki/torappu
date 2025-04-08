@@ -6,7 +6,7 @@ from PIL import Image
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
-from torappu.core.utils import run_sync
+from torappu.core.utils import run_async, run_sync
 from torappu.models import Diff
 
 from .medal_icon import BASE_DIR as MEDAL_ICON_DIR
@@ -43,6 +43,9 @@ class MedalDIY(Task):
     @run_sync
     def unpack_metadata(self, ab_path: str):
         env = UnityPy.load(ab_path)
+        paths = run_async(self.client.resolve_by_prefix)("anon/")
+        env.load_files(paths)
+
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
             behaviour: MonoBehaviour = obj.read()  # type: ignore
             script: MonoScript = behaviour.m_Script.read()  # type: ignore

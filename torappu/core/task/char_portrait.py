@@ -35,6 +35,9 @@ class CharPortrait(Task):
 
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
+        paths = await self.client.resolve_by_prefix("anon/")
+        env.load_files(paths)
+
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
             data: MonoBehaviour = obj.read()  # type: ignore
             if data.m_Script.read().name != "UIAtlasTextureRef":

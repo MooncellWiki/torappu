@@ -20,6 +20,8 @@ class CharArts(Task):
 
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
+        paths = await self.client.resolve_by_prefix("anon/")
+        env.load_files(paths)
 
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
             behaviour: MonoBehaviour = obj.read()  # type: ignore
@@ -41,6 +43,9 @@ class CharArts(Task):
                 merged_image, _ = merge_alpha(alpha_texture, rgb_texture)
                 merged_image.save(BASE_DIR.joinpath(f"{rgb_texture.name}.png"))
             else:
+                if not behaviour.m_Sprite:
+                    # No texture or sprite, skip
+                    continue
                 sprite: Sprite = behaviour.m_Sprite.read()  # type: ignore
                 rgb_texture: Texture2D = sprite.m_RD.texture.read()
                 rgb_texture.image.save(BASE_DIR.joinpath(f"{rgb_texture.name}.png"))
@@ -58,6 +63,8 @@ class CharArts(Task):
     async def start(self):
         paths = await self.client.resolves(list(self.ab_list))
         BASE_DIR.mkdir(parents=True, exist_ok=True)
+        # for _, ab_path in paths:
+        #     await self.unpack(ab_path)
 
         async with anyio.create_task_group() as tg:
             for _, ab_path in paths:
