@@ -90,15 +90,16 @@ def decompress_lz4(data: bytes, uncompressed_size: int) -> bytes:  # LZ4M/LZ4HC
     return lz4.block.decompress(data, uncompressed_size)
 
 class LZ4:
-    def decompress(self, cmp: bytes, decompressed_size: int) -> bytes:
+    @classmethod
+    def decompress(cls, cmp: bytes, decompressed_size: int) -> bytes:
         dec = bytearray(decompressed_size)
         cmpPos = 0
         decPos = 0
 
         while cmpPos < len(cmp) and decPos < decompressed_size:
-            encCount, litCount, cmpPos = self.get_literal_token(cmp, cmpPos)
+            encCount, litCount, cmpPos = cls.get_literal_token(cmp, cmpPos)
 
-            litCount, cmpPos = self.get_length(litCount, cmp, cmpPos)
+            litCount, cmpPos = cls.get_length(litCount, cmp, cmpPos)
 
             # Copy literal chunk
             dec[decPos:decPos + litCount] = cmp[cmpPos:cmpPos + litCount]
@@ -109,8 +110,8 @@ class LZ4:
                 break
 
             # Get back-offset from compressed chunk
-            back, cmpPos = self.get_chunk_end(cmp, cmpPos)
-            encCount, cmpPos = self.get_length(encCount, cmp, cmpPos)
+            back, cmpPos = cls.get_chunk_end(cmp, cmpPos)
+            encCount, cmpPos = cls.get_length(encCount, cmp, cmpPos)
             encCount += 4
 
             encPos = decPos - back
@@ -127,7 +128,8 @@ class LZ4:
 
         return bytes(dec[:decPos])
 
-    def get_literal_token(self, cmp: bytes, cmpPos: int) -> tuple[int, int, int]:
+    @staticmethod
+    def get_literal_token(cmp: bytes, cmpPos: int) -> tuple[int, int, int]:
         token = cmp[cmpPos]
         cmpPos += 1
         # In base LZ4, lower nibble is encoded length and higher nibble is literal length.
@@ -135,14 +137,16 @@ class LZ4:
         litCount = (token >> 4) & 0x0F
         return encCount, litCount, cmpPos
 
-    def get_chunk_end(self, cmp: bytes, cmpPos: int) -> tuple[int, int]:
+    @staticmethod
+    def get_chunk_end(cmp: bytes, cmpPos: int) -> tuple[int, int]:
         # In base LZ4, first byte is low, second is high.
         low = cmp[cmpPos]
         high = cmp[cmpPos + 1]
         cmpPos += 2
         return (low | (high << 8)), cmpPos
 
-    def get_length(self, length: int, cmp: bytes, cmpPos: int) -> tuple[int, int]:
+    @staticmethod
+    def get_length(length: int, cmp: bytes, cmpPos: int) -> tuple[int, int]:
         if length == 0xF:
             while True:
                 extra = cmp[cmpPos]
@@ -154,11 +158,8 @@ class LZ4:
 
 
 class LZ4Inv(LZ4):
-    @classmethod
-    def instance(cls):
-        return cls()
-
-    def get_literal_token(self, cmp: bytes, cmpPos: int) -> tuple[int, int, int]:
+    @staticmethod
+    def get_literal_token(cmp: bytes, cmpPos: int) -> tuple[int, int, int]:
         token = cmp[cmpPos]
         cmpPos += 1
         # For LZ4Inv, the nibble order is swapped:
@@ -167,7 +168,8 @@ class LZ4Inv(LZ4):
         litCount = token & 0x0F
         return encCount, litCount, cmpPos
 
-    def get_chunk_end(self, cmp: bytes, cmpPos: int) -> tuple[int, int]:
+    @staticmethod
+    def get_chunk_end(cmp: bytes, cmpPos: int) -> tuple[int, int]:
         # For LZ4Inv, the order is reversed: first byte is high, second is low.
         high = cmp[cmpPos]
         low = cmp[cmpPos + 1]
@@ -177,7 +179,7 @@ class LZ4Inv(LZ4):
 
 # LZHAM
 def decompress_lzham(data: bytes, uncompressed_size: int) -> bytes:
-    return LZ4Inv.instance().decompress(data, uncompressed_size)
+    return LZ4Inv.decompress(data, uncompressed_size)
 
 
 def compress_lz4(data: bytes) -> bytes:  # LZ4M/LZ4HC
