@@ -50,7 +50,6 @@ RUN pip install --no-cache-dir --no-index --find-links=/wheel -r /wheel/requirem
 COPY --from=metadata-stage /tmp/VERSION /app/VERSION
 
 COPY ./patches/UnityPy/files/BundleFile.py /usr/local/lib/python3.11/site-packages/UnityPy/files/
-COPY ./patches/UnityPy/helpers/CompressionHelper.py /usr/local/lib/python3.11/site-packages/UnityPy/helpers/
 
 COPY . /app/
 RUN chmod -R +x /app/bin
