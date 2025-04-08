@@ -32,9 +32,7 @@ pre-commit = "^4.0.0"
 uvicorn = { version = ">=0.20.0,<1.0.0", extras = ["standard"] }
 
 [tool.ruff]
-exclude = [
-  "patches",
-]
+exclude = ["patches"]
 
 line-length = 88
 target-version = "py311"
@@ -80,9 +78,7 @@ extra-standard-library = ["typing_extensions"]
 keep-runtime-typing = true
 
 [tool.pyright]
-exclude = [
-  "patches",
-]
+exclude = ["patches"]
 
 extraPaths = ["./"]
 pythonVersion = "3.11"
