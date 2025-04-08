@@ -129,7 +129,7 @@ class Client:
     def hg_normalize_url(path: str) -> str:
         return path.replace("\\", "/").replace("/", "_").replace("#", "__")
 
-    # @retry(stop=stop_after_attempt(3))
+    @retry(stop=stop_after_attempt(5))
     async def download_ab(self, path: str) -> tuple[bytes, int]:
         filename = f"{self.hg_normalize_url(path.rsplit('.')[0])}.dat"
 
