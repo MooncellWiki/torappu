@@ -9,7 +9,7 @@ from zipfile import ZipFile
 
 import httpx
 import UnityPy
-from tenacity import retry, stop_after_attempt
+from tenacity import retry, wait_random_exponential
 from UnityPy.classes import MonoBehaviour
 
 from torappu.config import Config
@@ -99,7 +99,7 @@ class Client:
             else None
         )
 
-    @retry(stop=stop_after_attempt(3))
+    @retry(wait=wait_random_exponential(multiplier=1, max=60))
     async def load_remote_hot_update_list(self, res_version: str) -> HotUpdateInfo:
         logger.debug(f"Downloading hot update list (res_version: {res_version})")
 
@@ -129,7 +129,7 @@ class Client:
     def hg_normalize_url(path: str) -> str:
         return path.replace("\\", "/").replace("/", "_").replace("#", "__")
 
-    @retry(stop=stop_after_attempt(5))
+    @retry(wait=wait_random_exponential(multiplier=1, max=60))
     async def download_ab(self, path: str) -> tuple[bytes, int]:
         filename = f"{self.hg_normalize_url(path.rsplit('.')[0])}.dat"
 
