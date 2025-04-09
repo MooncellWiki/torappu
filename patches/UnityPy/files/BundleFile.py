@@ -2,6 +2,7 @@
 from collections import namedtuple
 import re
 from typing import Tuple, Union
+import lz4inv
 
 from . import File
 from ..enums import ArchiveFlags, ArchiveFlagsOld, CompressionFlags
@@ -527,35 +528,7 @@ class BundleFile(File.File):
                 compressed_data = self.decryptor.decrypt_block(compressed_data, index)
             return CompressionHelper.decompress_lz4(compressed_data, uncompressed_size)
         elif comp_flag == CompressionFlags.LZHAM:  # LZHAM
-            ip = 0
-            op = 0
-            AK_LITERAL_LENGTH_MASK = ((1 << 4) - 1) & 0xFF
-            AK_MATCH_LENGTH_MASK = (~AK_LITERAL_LENGTH_MASK) & 0xFF
-            fixed_compressed_data = bytearray(compressed_data)
-            while True:
-                literal_length, match_length = (
-                    fixed_compressed_data[ip] & AK_LITERAL_LENGTH_MASK,
-                    (fixed_compressed_data[ip] & AK_MATCH_LENGTH_MASK) >> 4 & 0xff,
-                )
-                fixed_compressed_data[ip] = (literal_length << 4 | match_length) & 0xFF
-                ip += 1
-                if literal_length == 15:
-                    l, ip = BundleFile.read_long_length_no_check(fixed_compressed_data, ip)
-                    literal_length += l
-                op += literal_length
-                ip += literal_length
-                if uncompressed_size == op:  # MFLIMIT end of block
-                    break
-                offset = fixed_compressed_data[ip + 1] | fixed_compressed_data[ip] << 8
-                fixed_compressed_data[ip] = offset & 0xFF
-                fixed_compressed_data[ip + 1] = (offset >> 8) & 0xFF
-                ip += 2
-                if match_length == 15:
-                    m, ip = BundleFile.read_long_length_no_check(fixed_compressed_data, ip)
-                    match_length += m
-                match_length += 4  # MINMATCH
-                op += match_length
-            return CompressionHelper.decompress_lz4(bytes(fixed_compressed_data), uncompressed_size)
+            return lz4inv.decompress(compressed_data, uncompressed_size)
         else:
             return compressed_data
 
