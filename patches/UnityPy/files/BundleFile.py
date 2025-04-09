@@ -528,7 +528,7 @@ class BundleFile(File.File):
                 compressed_data = self.decryptor.decrypt_block(compressed_data, index)
             return CompressionHelper.decompress_lz4(compressed_data, uncompressed_size)
         elif comp_flag == CompressionFlags.LZHAM:  # LZHAM
-            return lz4inv.decompress(compressed_data, uncompressed_size)
+            return lz4inv.decompress(bytes(compressed_data), uncompressed_size)
         else:
             return compressed_data
 
