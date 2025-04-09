@@ -10,7 +10,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-lz4inv = "^0.0.0"
+lz4inv = "^0.1.0"
 bson = "^0.5.10"
 click = "^8.1.7"
 pydub = "^0.25.1"
@@ -26,7 +26,7 @@ pydantic-settings = "^2.0.0"
 sentry-sdk = { version = "^2.13.0", extras = ["loguru", "httpx", "fastapi"] }
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.9.0"
+ruff = "^0.11.0"
 pre-commit = "^4.0.0"
 
 [tool.poetry.group.deploy.dependencies]
