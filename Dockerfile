@@ -45,6 +45,8 @@ RUN apt-get update && apt-get -y install ffmpeg
 
 COPY --from=build-stage /wheel /wheel
 
+# https://github.com/MooncellWiki/torappu/actions/runs/14351050234/job/40229870098
+RUN pip install wheel
 RUN pip install --no-cache-dir --no-index --find-links=/wheel -r /wheel/requirements.txt && rm -rf /wheel
 
 COPY --from=metadata-stage /tmp/VERSION /app/VERSION
