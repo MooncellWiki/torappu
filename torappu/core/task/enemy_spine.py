@@ -60,7 +60,7 @@ class EnemySpine(Task):
             if game_obj.name == "Spine":
                 path = (
                     container_map[game_obj.path_id]
-                    .replace("assets/torappu/dynamicassets/battle/prefabs/enemies/", "")
+                    .replace("dyn/battle/prefabs/enemies/", "")
                     .replace(".prefab", "")
                 )
                 for comp in filter(

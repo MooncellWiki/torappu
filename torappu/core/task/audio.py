@@ -44,7 +44,7 @@ class Audio(Task):
             clip: AudioClip = obj.read()  # type: ignore
             for data in clip.samples.values():
                 path = AUDIO_DIR / container_map[clip.path_id].replace(
-                    "assets/torappu/dynamicassets/audio/sound_beta_2/", ""
+                    "dyn/audio/sound_beta_2/", ""
                 ).replace(".ogg", ".wav").replace("#", "__")
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(data)

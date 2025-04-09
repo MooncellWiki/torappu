@@ -136,14 +136,12 @@ class CharSpine(Task):
             side = None
             container_path = container_map[game_obj.path_id]
             # 基建
-            if container_path.startswith(
-                "assets/torappu/dynamicassets/building/vault/characters"
-            ):
+            if container_path.startswith("dyn/building/vault/characters"):
                 # char_485_pallas_epoque_12 or
                 # char_485_pallas
                 fullname = (
                     container_path.replace(
-                        "assets/torappu/dynamicassets/building/vault/characters/build_",
+                        "dyn/building/vault/characters/build_",
                         "",
                     )
                     .replace(".prefab", "")
@@ -160,12 +158,10 @@ class CharSpine(Task):
                     skin = fullname
 
             # 皮肤
-            if container_path.startswith(
-                "assets/torappu/dynamicassets/battle/prefabs/skins/character/"
-            ):
+            if container_path.startswith("dyn/battle/prefabs/skins/character/"):
                 tmp = (
                     container_path.replace(
-                        "assets/torappu/dynamicassets/battle/prefabs/skins/character/",
+                        "dyn/battle/prefabs/skins/character/",
                         "",
                     )
                     .replace(".prefab", "")
@@ -175,13 +171,9 @@ class CharSpine(Task):
                 name = tmp[0]
                 skin = tmp[1]
                 side = side_map[game_obj.name]
-            if container_path.startswith(
-                "assets/torappu/dynamicassets/battle/prefabs/[uc]tokens/"
-            ):
+            if container_path.startswith("dyn/battle/prefabs/[uc]tokens/"):
                 name = (
-                    container_path.replace(
-                        "assets/torappu/dynamicassets/battle/prefabs/[uc]tokens/", ""
-                    )
+                    container_path.replace("dyn/battle/prefabs/[uc]tokens/", "")
                     .replace(".prefab", "")
                     .replace("#", "_")
                 )

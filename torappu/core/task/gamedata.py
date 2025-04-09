@@ -133,7 +133,7 @@ class GameData(Task):
 
         flatbuffer_data_path = tmp_path.joinpath(f"{fb_name}.bytes")
         output_path = tmp_path.joinpath(
-            os.path.dirname(path.replace("assets/torappu/dynamicassets/gamedata/", ""))
+            os.path.dirname(path.replace("dyn/gamedata/", ""))
         )
         flatbuffer_data_path.write_bytes(bytes(obj.script)[128:])
 
@@ -165,7 +165,7 @@ class GameData(Task):
             "asset",
             "gamedata",
             self.client.version.res_version,
-            os.path.dirname(path.replace("assets/torappu/dynamicassets/gamedata/", "")),
+            os.path.dirname(path.replace("dyn/gamedata/", "")),
         )
         container_path.mkdir(parents=True, exist_ok=True)
         json_dest_path = container_path / f"{fb_name}.json"
@@ -208,7 +208,7 @@ class GameData(Task):
             / "asset"
             / "gamedata"
             / self.client.version.res_version
-            / path.replace("assets/torappu/dynamicassets/gamedata/", "")
+            / path.replace("dyn/gamedata/", "")
         )
 
         if temp_path.name.endswith(".lua.bytes"):
@@ -250,7 +250,7 @@ class GameData(Task):
             "asset",
             "gamedata",
             self.client.version.res_version,
-            path.replace("assets/torappu/dynamicassets/gamedata/", ""),
+            path.replace("dyn/gamedata/", ""),
         )
         if output_path.name.endswith(".lua.bytes"):
             output_path = output_path.with_suffix("")
