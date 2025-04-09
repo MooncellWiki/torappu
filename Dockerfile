@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.11-bookworm AS requirements-stage
+FROM python:3.12-bookworm AS requirements-stage
 
 WORKDIR /tmp
 
@@ -13,18 +13,15 @@ COPY ./pyproject.toml ./poetry.lock* /tmp/
 RUN poetry self add poetry-plugin-export && \
   poetry export -f requirements.txt --output requirements.txt --without-hashes --with deploy
 
-FROM python:3.11-bookworm AS build-stage
+FROM python:3.12-bookworm AS build-stage
 
 WORKDIR /wheel
 
 COPY --from=requirements-stage /tmp/requirements.txt /wheel/requirements.txt
 
-# https://github.com/MooncellWiki/torappu/actions/runs/14351050234/job/40229870098
-RUN pip install wheel
-
 RUN pip wheel --wheel-dir=/wheel --no-cache-dir --requirement /wheel/requirements.txt
 
-FROM python:3.11-bookworm AS metadata-stage
+FROM python:3.12-bookworm AS metadata-stage
 
 WORKDIR /tmp
 
@@ -33,7 +30,7 @@ RUN --mount=type=bind,source=./.git/,target=/tmp/.git/ \
   || git rev-parse --short HEAD > /tmp/VERSION \
   && echo "Building version: $(cat /tmp/VERSION)"
 
-FROM python:3.11-slim-bookworm
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
