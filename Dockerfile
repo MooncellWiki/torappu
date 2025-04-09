@@ -20,7 +20,7 @@ WORKDIR /wheel
 COPY --from=requirements-stage /tmp/requirements.txt /wheel/requirements.txt
 
 # https://github.com/MooncellWiki/torappu/actions/runs/14351050234/job/40229870098
-RUN pip install wheel -y
+RUN pip install wheel
 
 RUN pip wheel --wheel-dir=/wheel --no-cache-dir --requirement /wheel/requirements.txt
 
