@@ -2,7 +2,7 @@
 name = "torappu"
 version = "1.23.15"
 description = "unpacker for an anime game"
-requires-python = ">=3.12"
+requires-python = ">=3.12, <4.0"
 dependencies = [
   "lz4inv (>=0.1.0,<0.2.0)",
   "bson (>=0.5.10,<0.6.0)",
