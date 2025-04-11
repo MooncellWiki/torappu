@@ -93,12 +93,22 @@ class CharSpine(Task):
             result = None
             base_dir = STORAGE_DIR / "asset" / "raw" / "char_spine" / path
             skel: TextAsset = data.skeletonJSON.read()  # type: ignore
+            skel_name: str = skel.name
+            skel_dest_path = base_dir / skel.name.replace("#", "_")
+
+            if skel_name.endswith(".skel"):
+                skel_name = skel_name.replace(".skel", "")
+
+            if not skel_dest_path.name.endswith(".skel"):
+                skel_dest_path = skel_dest_path.with_suffix(".skel")
+
             if not base_dir.exists():
-                result = skel.name.replace("#", "_").replace(".skel", "")
+                result = skel.name.replace("#", "_")
                 base_dir.mkdir(parents=True, exist_ok=True)
 
-            with open(base_dir / skel.name.replace("#", "_"), "wb") as f:
+            with open(skel_dest_path, "wb") as f:
                 f.write(bytes(skel.script))
+
             atlas_assets: list[PPtr] = data.atlasAssets  # type: ignore
             for pptr in atlas_assets:
                 atlas_mono_behaviour: MonoBehaviour = pptr.read()
