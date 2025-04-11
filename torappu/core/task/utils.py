@@ -1,3 +1,4 @@
+import numpy as np
 from PIL import Image
 from UnityPy import Environment
 from UnityPy.classes import Material, Texture2D
@@ -9,12 +10,27 @@ def trans_prof(profession):
     return PROFESSIONS[profession]
 
 
+def apply_premultiplied_alpha(rgba: "Image.Image"):
+    """Multiplies the RGB channels with the alpha channel.
+    Useful when handling non-PMA Spine textures.
+
+    :param rgba: Instance of RGBA image;
+    :returns: A new image instance;
+    :rtype: Image;
+    """
+    img_rgba: Image.Image = rgba.convert("RGBA")
+    data = np.array(img_rgba, dtype=np.float32)
+    data[:, :, :3] *= data[:, :, 3:] / 255.0
+    data_int = np.clip(data, 0, 255).astype(np.uint8)
+    return Image.fromarray(data_int, "RGBA")
+
+
 def merge_alpha(alpha_texture: Texture2D | None, rgb_texture: Texture2D | None):
     if rgb_texture is None:
         raise Exception("rgb texture not found")
 
     if alpha_texture is None:
-        return (rgb_texture.image, rgb_texture.name)
+        return (apply_premultiplied_alpha(rgb_texture.image), rgb_texture.name)
 
     r, g, b = rgb_texture.image.split()[:3]
     if (
