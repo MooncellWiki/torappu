@@ -16,6 +16,7 @@ from UnityPy.classes import TextAsset
 
 from torappu.consts import FBS_DIR, STORAGE_DIR
 from torappu.core.client import Client
+from torappu.core.task.utils import m_script_to_bytes
 from torappu.core.utils import run_sync
 from torappu.models import Diff
 
@@ -235,7 +236,7 @@ class GameData(Task):
         return temp_path.write_bytes(res)
 
     async def _unpack_gamedata(self, path: str, obj: TextAsset):
-        script: bytes = obj.script
+        script: bytes = m_script_to_bytes(obj.m_Script)
         is_signed = self._check_signed(path)
         is_encrypted = self._check_encrypted(path)
         fb_name = await self._get_flatbuffer_name(path)

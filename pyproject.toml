@@ -10,7 +10,7 @@ dependencies = [
   "click (>=8.1.7,<9.0.0)",
   "pydub (>=0.25.1,<0.26.0)",
   "fastcrc (>=0.3.2,<0.4.0)",
-  "unitypy (==1.10.18)", # breaking changes
+  "unitypy (==1.22.2)",
   "tenacity (>=9.0.0,<10.0.0)",
   "apscheduler (>=3.10.1,<4.0.0)",
   "pycryptodome (>=3.18.0,<4.0.0)",
