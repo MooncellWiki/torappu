@@ -4,7 +4,7 @@ version = "1.23.18"
 description = "unpacker for an anime game"
 requires-python = ">=3.12, <4.0"
 dependencies = [
-  "lz4inv (>=0.1.0,<0.2.0)",
+  "lz4inv (>=0.2.0,<0.3.0)",
   "bson (>=0.5.10,<0.6.0)",
   "numpy (>=2.2.4,<3.0.0)",
   "click (>=8.1.7,<9.0.0)",

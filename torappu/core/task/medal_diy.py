@@ -1,19 +1,19 @@
-from typing import TYPE_CHECKING, ClassVar, TypedDict
+from ctypes import cast
+from typing import ClassVar, TypedDict
 
 import anyio
 import UnityPy
 from PIL import Image
+from UnityPy.classes import MonoBehaviour, Sprite
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
+from torappu.core.task.utils import read_obj
 from torappu.core.utils import run_async, run_sync
 from torappu.models import Diff
 
 from .medal_icon import BASE_DIR as MEDAL_ICON_DIR
 from .task import Task
-
-if TYPE_CHECKING:
-    from UnityPy.classes import MonoBehaviour, MonoScript, Sprite
 
 BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "medal_diy")
 BKG_DIR = BASE_DIR / "bkg"
@@ -47,13 +47,14 @@ class MedalDIY(Task):
         env.load_files(paths)
 
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
-            behaviour: MonoBehaviour = obj.read()  # type: ignore
-            script: MonoScript = behaviour.m_Script.read()  # type: ignore
-            if script.name != "UIMedalGroupFrame":
+            if (behaviour := read_obj(MonoBehaviour, obj)) is None:
+                continue
+            script = behaviour.m_Script.deref_parse_as_object()
+            if script.m_Name != "UIMedalGroupFrame":
                 continue
 
-            medal_group_id: str = behaviour._groupId  # type: ignore
-            medal_pos_list: list[MedalPosition] = behaviour._medalPosList  # type: ignore
+            medal_group_id = cast(str, behaviour._groupId)  # type: ignore
+            medal_pos_list = cast(list[MedalPosition], behaviour._medalPosList)  # type: ignore
 
             self.dict_medal_pos[medal_group_id] = medal_pos_list
 
@@ -78,17 +79,18 @@ class MedalDIY(Task):
     def unpack_ab(self, ab_path: str):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
-            texture: Sprite = obj.read()  # type: ignore
+            if (texture := read_obj(Sprite, obj)) is None:
+                continue
             background_image = texture.image
-            background_image.save(BKG_DIR / f"{texture.name}.png")
+            background_image.save(BKG_DIR / f"{texture.m_Name}.png")
 
-            medal_pos_list = self.dict_medal_pos.get(texture.name, None)
+            medal_pos_list = self.dict_medal_pos.get(texture.m_Name, None)
             if medal_pos_list is None:
                 continue
 
             resized = background_image.resize((1374, 459))
             self.build_up(medal_pos_list, resized).save(
-                BASE_DIR / f"{texture.name}.png"
+                BASE_DIR / f"{texture.m_Name}.png"
             )
             if any(medal["medalId"] in self.dict_advanced for medal in medal_pos_list):
                 self.build_up(
@@ -104,7 +106,7 @@ class MedalDIY(Task):
                         for medal in medal_pos_list
                     ],
                     resized,
-                ).save(TRIM_DIR / f"{texture.name}.png")
+                ).save(TRIM_DIR / f"{texture.m_Name}.png")
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}

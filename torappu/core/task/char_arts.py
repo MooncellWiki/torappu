@@ -1,16 +1,24 @@
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 import anyio
 import UnityPy
+from UnityPy.classes import (
+    MonoBehaviour,
+    Sprite,
+)
 
 from torappu.consts import STORAGE_DIR
 from torappu.models import Diff
 
 from .task import Task
-from .utils import merge_alpha
+from .utils import get_tex_env_by_key, merge_alpha, read_obj
 
 if TYPE_CHECKING:
-    from UnityPy.classes import MonoBehaviour, PPtr, Sprite, Texture2D
+    from UnityPy.classes import (
+        Material,
+        PPtr,
+        Texture2D,
+    )
 
 BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "char_arts")
 
@@ -24,31 +32,38 @@ class CharArts(Task):
         env.load_files(paths)
 
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
-            behaviour: MonoBehaviour = obj.read()  # type: ignore
+            if (behaviour := read_obj(MonoBehaviour, obj)) is None:
+                continue
             script = behaviour.m_Script.read()
-            if script.name != "Image":
+            if script.m_Name != "Image":
                 continue
 
-            material_pptr: PPtr = behaviour.m_Material  # type: ignore
+            material_pptr = cast("PPtr[Material]", behaviour.m_Material)  # type: ignore
             if material_pptr.path_id != 0:
-                material = material_pptr.read()  # type: ignore
+                material: Material = material_pptr.deref_parse_as_object()
                 texture_envs = material.m_SavedProperties.m_TexEnvs
-                rgb_texture_pptr: PPtr = texture_envs["_MainTex"].m_Texture
-                alpha_texture_pptr: PPtr = texture_envs["_AlphaTex"].m_Texture
+                rgb_texture_pptr: PPtr = get_tex_env_by_key(
+                    texture_envs, "_MainTex"
+                ).m_Texture
+                alpha_texture_pptr: PPtr = get_tex_env_by_key(
+                    texture_envs, "_AlphaTex"
+                ).m_Texture
                 if rgb_texture_pptr.path_id == 0 or alpha_texture_pptr.path_id == 0:
                     continue
 
                 rgb_texture: Texture2D = rgb_texture_pptr.read()
                 alpha_texture: Texture2D = alpha_texture_pptr.read()
                 merged_image, _ = merge_alpha(alpha_texture, rgb_texture)
-                merged_image.save(BASE_DIR.joinpath(f"{rgb_texture.name}.png"))
+                merged_image.save(BASE_DIR.joinpath(f"{rgb_texture.m_Name}.png"))
             else:
-                if not behaviour.m_Sprite:
+                if not behaviour.m_Sprite:  # type: ignore
                     # No texture or sprite, skip
                     continue
-                sprite: Sprite = behaviour.m_Sprite.read()  # type: ignore
-                rgb_texture: Texture2D = sprite.m_RD.texture.read()
-                rgb_texture.image.save(BASE_DIR.joinpath(f"{rgb_texture.name}.png"))
+                sprite = cast("PPtr[Sprite]", behaviour.m_Sprite).read()
+                if isinstance(behaviour, Sprite) is False:
+                    continue
+                rgb_texture = sprite.m_RD.texture.read()  # type:ignore Type "UnityPy.classes.generated.Texture2D" is not assignable to declared type "UnityPy.classes.legacy_patch.Texture2D.Texture2D"
+                rgb_texture.image.save(BASE_DIR.joinpath(f"{rgb_texture.m_Name}.png"))
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}

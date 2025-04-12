@@ -1,7 +1,15 @@
+from typing import TypeVar
+
 import numpy as np
 from PIL import Image
 from UnityPy import Environment
-from UnityPy.classes import Material, Texture2D
+from UnityPy.classes import (
+    FastPropertyName,
+    Material,
+    Texture2D,
+    UnityTexEnv,
+)
+from UnityPy.files import ObjectReader
 
 from torappu.consts import PROFESSIONS
 
@@ -49,11 +57,15 @@ def merge_alpha(alpha_texture: Texture2D | None, rgb_texture: Texture2D | None):
 def material2img(mat: Material):
     atexture: Texture2D | None = None
     rgbtexture: Texture2D | None = None
-    for key, tex in mat.m_SavedProperties.m_TexEnvs.items():
-        if key == "_AlphaTex" and tex.m_Texture:
-            atexture = tex.m_Texture.read()
+    for key, tex in mat.m_SavedProperties.m_TexEnvs:
+        if get_name(key) == "_AlphaTex" and tex.m_Texture:
+            texture = tex.m_Texture.read()
+            if isinstance(texture, Texture2D):
+                atexture = texture
         if key == "_MainTex" and tex.m_Texture:
-            rgbtexture = tex.m_Texture.read()
+            texture = tex.m_Texture.read()
+            if isinstance(texture, Texture2D):
+                rgbtexture = texture
 
     return merge_alpha(atexture, rgbtexture)
 
@@ -77,3 +89,33 @@ def build_container_path(env: Environment) -> dict[int, str]:
 def m_script_to_bytes(script: str) -> bytes:
     """Convert m_Script to bytes"""
     return script.encode("utf-8", "surrogateescape")
+
+
+def get_tex_env_by_key(
+    src: list[tuple[FastPropertyName, UnityTexEnv]] | list[tuple[str, UnityTexEnv]],
+    key: str,
+) -> UnityTexEnv:
+    """Find tex env by key"""
+    for k, v in src:
+        if isinstance(k, FastPropertyName):
+            k = k.name
+        if k == key:
+            return v
+    raise KeyError(f"Key {key} not found in tex env")
+
+
+def get_name(src: FastPropertyName | str) -> str:
+    """Get name from FastPropertyName or str"""
+    if isinstance(src, FastPropertyName):
+        return src.name
+    return src
+
+
+T = TypeVar("T")
+
+
+def read_obj(expected_klass: type[T], obj: ObjectReader[T]) -> T | None:
+    if expected_klass == obj.get_class():
+        return obj.read()
+    else:
+        return None

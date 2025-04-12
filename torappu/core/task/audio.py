@@ -1,10 +1,11 @@
 import asyncio
 import subprocess
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 import UnityPy
 from pydub import AudioSegment
+from UnityPy.classes import AudioClip
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
@@ -12,10 +13,7 @@ from torappu.log import logger
 from torappu.models import Diff
 
 from .task import Task
-from .utils import build_container_path
-
-if TYPE_CHECKING:
-    from UnityPy.classes import AudioClip
+from .utils import build_container_path, read_obj
 
 AUDIO_DIR = STORAGE_DIR / "asset" / "raw" / "audio"
 
@@ -41,9 +39,12 @@ class Audio(Task):
         env = UnityPy.load(real_path)
         container_map = build_container_path(env)
         for obj in filter(lambda obj: obj.type.name == "AudioClip", env.objects):
-            clip: AudioClip = obj.read()  # type: ignore
+            if (clip := read_obj(AudioClip, obj)) is None:
+                continue
             for data in clip.samples.values():
-                path = AUDIO_DIR / container_map[clip.path_id].replace(
+                if clip.object_reader is None:
+                    continue
+                path = AUDIO_DIR / container_map[clip.object_reader.path_id].replace(
                     "dyn/audio/sound_beta_2/", ""
                 ).replace(".ogg", ".wav").replace("#", "__")
                 path.parent.mkdir(parents=True, exist_ok=True)
