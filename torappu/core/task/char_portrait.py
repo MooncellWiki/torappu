@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar, TypedDict, cast
+from typing import TYPE_CHECKING, ClassVar, cast
 
 import anyio
 import UnityPy
@@ -16,14 +16,14 @@ if TYPE_CHECKING:
 BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "char_portrait")
 
 
-class Rect4D(TypedDict):
+class Rect4D:
     x: int
     y: int
     w: int
     h: int
 
 
-class SpriteMetadata(TypedDict):
+class SpriteMetadata:
     name: str
     guid: str
     atlas: int
@@ -55,24 +55,24 @@ class CharPortrait(Task):
             texture.save(atlas_dest / f"{data.m_Name}.png")
 
             # unpack sprites
-            sprites: list[SpriteMetadata] = data._sprites  # type: ignore
+            sprites = cast("list[SpriteMetadata]", data._sprites)  # type: ignore
             for sprite in sprites:
-                rect = sprite["rect"]
+                rect = sprite.rect
                 # Hypergryph's coordinate system is first dimension
                 # different from Pillow's fourth dimension
                 # so we need to flip the y-axis
                 cropped = texture.crop(
                     (
-                        rect["x"],
-                        size - rect["y"] - rect["h"],
-                        rect["x"] + rect["w"],
-                        size - rect["y"],
+                        rect.x,
+                        size - rect.y - rect.h,
+                        rect.x + rect.w,
+                        size - rect.y,
                     )
                 )
-                if sprite["rotate"] == 1:
+                if sprite.rotate == 1:
                     # 90 degree clockwise
                     cropped = cropped.rotate(-90, expand=True)
-                cropped.save(BASE_PATH / f"{sprite['name']}.png")
+                cropped.save(BASE_PATH / f"{sprite.name}.png")
 
     async def start(self):
         paths = await self.client.resolves(list(self.ab_list))
