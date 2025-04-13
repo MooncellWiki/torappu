@@ -205,7 +205,7 @@ class Client:
         if torappu_index and isinstance(torappu_index, MonoBehaviour):
             self.asset_to_bundle = {
                 item["assetName"]: item["bundleName"]
-                for item in torappu_index.type_tree["assetToBundleList"]
+                for item in torappu_index.assetToBundleList  # type: ignore
             }
 
     def load_idx(self, idx_path: str, decoded_path: Path):

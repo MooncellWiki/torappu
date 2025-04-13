@@ -6,7 +6,8 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
-from UnityPy.helpers.CompressionHelper import DECOMPRESSION_MAP, CompressionFlags
+from UnityPy.enums.BundleFile import CompressionFlags
+from UnityPy.helpers.CompressionHelper import DECOMPRESSION_MAP
 
 from torappu import get_config
 from torappu.log import logger

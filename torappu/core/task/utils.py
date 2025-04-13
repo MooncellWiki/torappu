@@ -9,7 +9,7 @@ from UnityPy.classes import (
     Texture2D,
     UnityTexEnv,
 )
-from UnityPy.files import ObjectReader
+from UnityPy.files.ObjectReader import ObjectReader
 
 from torappu.consts import PROFESSIONS
 
