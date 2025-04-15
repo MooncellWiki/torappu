@@ -1,15 +1,14 @@
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 import anyio
 import UnityPy
+from UnityPy.classes import Texture2D
 
 from torappu.consts import STORAGE_DIR
+from torappu.core.task.utils import read_obj
 from torappu.models import Diff
 
 from .task import Task
-
-if TYPE_CHECKING:
-    from UnityPy.classes import Texture2D
 
 BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "char_avatar")
 
@@ -20,8 +19,8 @@ class CharAvatar(Task):
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "Texture2D", env.objects):
-            texture: Texture2D = obj.read()  # type: ignore
-            texture.image.save(BASE_DIR.joinpath(f"{texture.name}.png"))
+            if texture := read_obj(Texture2D, obj):
+                texture.image.save(BASE_DIR.joinpath(f"{texture.m_Name}.png"))
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}

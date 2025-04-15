@@ -1,15 +1,14 @@
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 import UnityPy
+from UnityPy.classes import Sprite
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
+from torappu.core.task.audio import read_obj
 from torappu.models import Diff
 
 from .task import Task
-
-if TYPE_CHECKING:
-    from UnityPy.classes import Sprite
 
 BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "build_skill_icon")
 
@@ -35,8 +34,8 @@ class BuildSkill(Task):
     def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
-            data: Sprite = obj.read()  # type: ignore
-            data.image.save(BASE_PATH / f"{data.name}.png")
+            if data := read_obj(Sprite, obj):
+                data.image.save(BASE_PATH / f"{data.m_Name}.png")
 
     async def start(self):
         paths = await self.client.resolves(list(self.ab_list))

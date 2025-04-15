@@ -1,10 +1,13 @@
 import anyio
+import lz4inv
 import sentry_sdk
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
+from UnityPy.enums.BundleFile import CompressionFlags
+from UnityPy.helpers.CompressionHelper import DECOMPRESSION_MAP
 
 from torappu import get_config
 from torappu.log import logger
@@ -13,6 +16,8 @@ from torappu.models import Diff, Version
 from .client import Client
 from .task import Task, registry
 
+# 2.5.04 25-04-03-14-16-11_4f0a01
+DECOMPRESSION_MAP[CompressionFlags.LZHAM] = lz4inv.decompress_buffer
 config = get_config()
 
 

@@ -1,31 +1,33 @@
-from typing import TYPE_CHECKING, ClassVar, TypedDict
+from dataclasses import dataclass
+from typing import ClassVar, cast
 
 import anyio
 import UnityPy
 from PIL import Image
+from UnityPy.classes import MonoBehaviour, Sprite
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
+from torappu.core.task.utils import read_obj
 from torappu.core.utils import run_async, run_sync
 from torappu.models import Diff
 
 from .medal_icon import BASE_DIR as MEDAL_ICON_DIR
 from .task import Task
 
-if TYPE_CHECKING:
-    from UnityPy.classes import MonoBehaviour, MonoScript, Sprite
-
 BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "medal_diy")
 BKG_DIR = BASE_DIR / "bkg"
 TRIM_DIR = BASE_DIR / "trim"
 
 
-class MedalPosition2DRect(TypedDict):
+@dataclass
+class MedalPosition2DRect:
     x: float
     y: float
 
 
-class MedalPosition(TypedDict):
+@dataclass
+class MedalPosition:
     medalId: str
     pos: MedalPosition2DRect
 
@@ -47,28 +49,29 @@ class MedalDIY(Task):
         env.load_files(paths)
 
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
-            behaviour: MonoBehaviour = obj.read()  # type: ignore
-            script: MonoScript = behaviour.m_Script.read()  # type: ignore
-            if script.name != "UIMedalGroupFrame":
+            if (behaviour := read_obj(MonoBehaviour, obj)) is None:
+                continue
+            script = behaviour.m_Script.deref_parse_as_object()
+            if script.m_Name != "UIMedalGroupFrame":
                 continue
 
-            medal_group_id: str = behaviour._groupId  # type: ignore
-            medal_pos_list: list[MedalPosition] = behaviour._medalPosList  # type: ignore
+            medal_group_id = cast("str", behaviour._groupId)  # type: ignore
+            medal_pos_list = cast("list[MedalPosition]", behaviour._medalPosList)  # type: ignore
 
             self.dict_medal_pos[medal_group_id] = medal_pos_list
 
     def build_up(self, pos_list: list[MedalPosition], bg: Image.Image):
         result = bg.copy()
         for medal_pos in pos_list:
-            medal_image_path = MEDAL_ICON_DIR / f"{medal_pos['medalId']}.png"
+            medal_image_path = MEDAL_ICON_DIR / f"{medal_pos.medalId}.png"
             medal_image = Image.open(medal_image_path)
 
             # flip the y axis, pillow uses bottom-right as origin
             result.paste(
                 medal_image,
                 (
-                    int(medal_pos["pos"]["x"] - medal_image.width / 2),
-                    int(bg.height - medal_pos["pos"]["y"] - medal_image.height / 2),
+                    int(medal_pos.pos.x - medal_image.width / 2),
+                    int(bg.height - medal_pos.pos.y - medal_image.height / 2),
                 ),
                 medal_image,
             )
@@ -78,33 +81,34 @@ class MedalDIY(Task):
     def unpack_ab(self, ab_path: str):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
-            texture: Sprite = obj.read()  # type: ignore
+            if (texture := read_obj(Sprite, obj)) is None:
+                continue
             background_image = texture.image
-            background_image.save(BKG_DIR / f"{texture.name}.png")
+            background_image.save(BKG_DIR / f"{texture.m_Name}.png")
 
-            medal_pos_list = self.dict_medal_pos.get(texture.name, None)
+            medal_pos_list = self.dict_medal_pos.get(texture.m_Name, None)
             if medal_pos_list is None:
                 continue
 
             resized = background_image.resize((1374, 459))
             self.build_up(medal_pos_list, resized).save(
-                BASE_DIR / f"{texture.name}.png"
+                BASE_DIR / f"{texture.m_Name}.png"
             )
-            if any(medal["medalId"] in self.dict_advanced for medal in medal_pos_list):
+            if any(medal.medalId in self.dict_advanced for medal in medal_pos_list):
                 self.build_up(
                     [
-                        {
-                            "medalId": (
-                                self.dict_advanced[medal["medalId"]]
-                                if medal["medalId"] in self.dict_advanced
-                                else medal["medalId"]
+                        MedalPosition(
+                            (
+                                self.dict_advanced[medal.medalId]
+                                if medal.medalId in self.dict_advanced
+                                else medal.medalId
                             ),
-                            "pos": medal["pos"],
-                        }
+                            medal.pos,
+                        )
                         for medal in medal_pos_list
                     ],
                     resized,
-                ).save(TRIM_DIR / f"{texture.name}.png")
+                ).save(TRIM_DIR / f"{texture.m_Name}.png")
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}

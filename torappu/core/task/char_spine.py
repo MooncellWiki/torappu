@@ -1,9 +1,10 @@
 import asyncio
 import re
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 import UnityPy
 from pydantic import BaseModel, TypeAdapter
+from UnityPy.classes import GameObject
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
@@ -11,10 +12,10 @@ from torappu.log import logger
 from torappu.models import Diff
 
 from .task import Task
-from .utils import build_container_path, material2img
+from .utils import build_container_path, m_script_to_bytes, material2img, read_obj
 
 if TYPE_CHECKING:
-    from UnityPy.classes import GameObject, Material, MonoBehaviour, PPtr, TextAsset
+    from UnityPy.classes import Material, MonoBehaviour, PPtr, TextAsset
 
 
 class FileConfig(BaseModel):
@@ -92,9 +93,9 @@ class CharSpine(Task):
         ) -> str | None:
             result = None
             base_dir = STORAGE_DIR / "asset" / "raw" / "char_spine" / path
-            skel: TextAsset = data.skeletonJSON.read()  # type: ignore
-            skel_name: str = skel.name
-            skel_dest_path = base_dir / skel.name.replace("#", "_")
+            skel = cast("TextAsset", data.skeletonJSON.read())  # type: ignore
+            skel_name: str = skel.m_Name
+            skel_dest_path = base_dir / skel.m_Name.replace("#", "_")
 
             if skel_name.endswith(".skel"):
                 skel_name = skel_name.replace(".skel", "")
@@ -103,19 +104,19 @@ class CharSpine(Task):
                 skel_dest_path = skel_dest_path.with_suffix(".skel")
 
             if not base_dir.exists():
-                result = skel.name.replace("#", "_")
+                result = skel.m_Name.replace("#", "_")
                 base_dir.mkdir(parents=True, exist_ok=True)
 
             with open(skel_dest_path, "wb") as f:
-                f.write(bytes(skel.script))
+                f.write(m_script_to_bytes(skel.m_Script))
 
             atlas_assets: list[PPtr] = data.atlasAssets  # type: ignore
             for pptr in atlas_assets:
                 atlas_mono_behaviour: MonoBehaviour = pptr.read()
                 atlas: TextAsset = atlas_mono_behaviour.atlasFile.read()  # type: ignore
                 # 文件名上不能有`#`，都替换成`_`
-                atlas_content = re.sub(r"#([^.]*\.png)", r"_\1", atlas.text)
-                with open(base_dir / atlas.name.replace("#", "_"), "w") as f:
+                atlas_content = re.sub(r"#([^.]*\.png)", r"_\1", atlas.m_Script)
+                with open(base_dir / atlas.m_Name.replace("#", "_"), "w") as f:
                     f.write(atlas_content)
                 materials: list[PPtr] = atlas_mono_behaviour.materials  # type: ignore
                 for mat_pptr in materials:
@@ -126,12 +127,13 @@ class CharSpine(Task):
             return result
 
         for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
-            game_obj: GameObject = obj.read()  # type: ignore
+            if (game_obj := read_obj(GameObject, obj)) is None:
+                continue
             if (
-                game_obj.name != "Spine"
-                and game_obj.name != "Front"
-                and game_obj.name != "Back"
-                and game_obj.name != "Down"
+                game_obj.m_Name != "Spine"
+                and game_obj.m_Name != "Front"
+                and game_obj.m_Name != "Back"
+                and game_obj.m_Name != "Down"
             ):
                 continue
             name = None
@@ -144,7 +146,9 @@ class CharSpine(Task):
                 "Down": "down",
             }
             side = None
-            container_path = container_map[game_obj.path_id]
+            if game_obj.object_reader is None:
+                continue
+            container_path = container_map[game_obj.object_reader.path_id]
             # 基建
             if container_path.startswith("dyn/building/vault/characters"):
                 # char_485_pallas_epoque_12 or
@@ -180,30 +184,32 @@ class CharSpine(Task):
                 )
                 name = tmp[0]
                 skin = tmp[1]
-                side = side_map[game_obj.name]
+                side = side_map[game_obj.m_Name]
             if container_path.startswith("dyn/battle/prefabs/[uc]tokens/"):
                 name = (
                     container_path.replace("dyn/battle/prefabs/[uc]tokens/", "")
                     .replace(".prefab", "")
                     .replace("#", "_")
                 )
-                side = side_map[game_obj.name]
+                side = side_map[game_obj.m_Name]
             if name is None or side is None:
                 continue
             for comp in filter(
                 lambda comp: comp.type.name == "MonoBehaviour",
                 game_obj.m_Components,
             ):
-                skeleton_animation: MonoBehaviour = comp.read()
-                if skeleton_animation.has_struct_member("skeletonDataAsset"):
-                    skeleton_data = skeleton_animation.skeletonDataAsset
-                    if skeleton_data is None:
-                        break
-                    data: MonoBehaviour = skeleton_data.read()  # type: ignore
-                    if data.name.endswith("_SkeletonData"):
-                        if skel_name := unpack(data, f"{name}/{skin}/{side}"):
-                            self.update_config(name, skin, side, skel_name)
-                        break
+                skeleton_animation: MonoBehaviour = comp.deref_parse_as_object()
+                if (
+                    skeleton_data := getattr(
+                        skeleton_animation, "skeletonDataAsset", None
+                    )
+                ) is None:
+                    break
+                data: MonoBehaviour = skeleton_data.read()
+                if data.m_Name.endswith("_SkeletonData"):
+                    if skel_name := unpack(data, f"{name}/{skin}/{side}"):
+                        self.update_config(name, skin, side, skel_name)
+                    break
 
     async def unpack(self, ab_path: str):
         real_path = await self.client.resolve(ab_path)

@@ -1,17 +1,16 @@
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 import anyio
 import UnityPy
+from UnityPy.classes import Sprite
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
+from torappu.core.task.utils import read_obj
 from torappu.core.utils import run_sync
 from torappu.models import Diff
 
 from .task import Task
-
-if TYPE_CHECKING:
-    from UnityPy.classes import Sprite
 
 BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "map_preview")
 
@@ -20,17 +19,17 @@ BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "map_preview")
 def unpack_sandbox(ab_path: str):
     env = UnityPy.load(ab_path)
     for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
-        texture: Sprite = obj.read()  # type: ignore
-        texture.image.save(BASE_DIR.joinpath(f"{texture.name}.png"))
+        if texture := read_obj(Sprite, obj):
+            texture.image.save(BASE_DIR.joinpath(f"{texture.m_Name}.png"))
 
 
 @run_sync
 def unpack_universal(ab_path: str):
     env = UnityPy.load(ab_path)
     for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
-        texture: Sprite = obj.read()  # type: ignore
-        resized = texture.image.resize((1280, 720))
-        resized.save(BASE_DIR.joinpath(f"{texture.name}.png"))
+        if texture := read_obj(Sprite, obj):
+            resized = texture.image.resize((1280, 720))
+            resized.save(BASE_DIR.joinpath(f"{texture.m_Name}.png"))
 
 
 class MapPreview(Task):

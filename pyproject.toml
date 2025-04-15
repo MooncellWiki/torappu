@@ -4,13 +4,13 @@ version = "1.23.18"
 description = "unpacker for an anime game"
 requires-python = ">=3.12, <4.0"
 dependencies = [
-  "lz4inv (>=0.1.0,<0.2.0)",
+  "lz4inv (>=0.2.0,<0.3.0)",
   "bson (>=0.5.10,<0.6.0)",
   "numpy (>=2.2.4,<3.0.0)",
   "click (>=8.1.7,<9.0.0)",
   "pydub (>=0.25.1,<0.26.0)",
   "fastcrc (>=0.3.2,<0.4.0)",
-  "unitypy (==1.10.18)", # breaking changes
+  "unitypy (==1.22.2)",
   "tenacity (>=9.0.0,<10.0.0)",
   "apscheduler (>=3.10.1,<4.0.0)",
   "pycryptodome (>=3.18.0,<4.0.0)",
@@ -34,8 +34,6 @@ pre-commit = "^4.0.0"
 uvicorn = { version = ">=0.20.0,<1.0.0", extras = ["standard"] }
 
 [tool.ruff]
-exclude = ["patches"]
-
 line-length = 88
 target-version = "py312"
 
@@ -80,8 +78,6 @@ extra-standard-library = ["typing_extensions"]
 keep-runtime-typing = true
 
 [tool.pyright]
-exclude = ["patches"]
-
 extraPaths = ["./"]
 pythonVersion = "3.12"
 pythonPlatform = "All"

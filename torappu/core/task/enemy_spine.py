@@ -1,17 +1,18 @@
 import asyncio
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, cast
 
 import UnityPy
+from UnityPy.classes import GameObject, MonoBehaviour
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
 from torappu.models import Diff
 
 from .task import Task
-from .utils import build_container_path, material2img
+from .utils import build_container_path, m_script_to_bytes, material2img, read_obj
 
 if TYPE_CHECKING:
-    from UnityPy.classes import GameObject, Material, MonoBehaviour, PPtr, TextAsset
+    from UnityPy.classes import Material, PPtr, TextAsset
 
 
 class EnemySpine(Task):
@@ -37,29 +38,30 @@ class EnemySpine(Task):
 
         container_map = build_container_path(env)
 
-        def unpack(data: "MonoBehaviour", path: str):
+        def unpack(data: MonoBehaviour, path: str):
             base_dir = STORAGE_DIR / "asset" / "raw" / "enemy_spine" / path
             base_dir.mkdir(parents=True, exist_ok=True)
-            skel: TextAsset = data.skeletonJSON.read()  # type: ignore
-            with open(base_dir / skel.name, "wb") as f:
-                f.write(bytes(skel.script))
-            atlas_assets: list[PPtr] = data.atlasAssets  # type: ignore
+            skel = cast("TextAsset", data.skeletonJSON.read())  # type: ignore
+            with open(base_dir / skel.m_Name, "wb") as f:
+                f.write(m_script_to_bytes(skel.m_Script))
+            atlas_assets = cast("list[PPtr[MonoBehaviour]]", data.atlasAssets)  # type: ignore
             for pptr in atlas_assets:
-                atlas_mono_behaviour: MonoBehaviour = pptr.read()
-                atlas: TextAsset = atlas_mono_behaviour.atlasFile.read()  # type: ignore
-                with open(base_dir / atlas.name, "wb") as f:
-                    f.write(bytes(atlas.script))
-                materials: list[PPtr] = atlas_mono_behaviour.materials  # type: ignore
+                atlas_mono_behaviour = pptr.deref_parse_as_object()
+                atlas = cast("TextAsset", atlas_mono_behaviour.atlasFile.read())  # type: ignore
+                with open(base_dir / atlas.m_Name, "wb") as f:
+                    f.write(m_script_to_bytes(atlas.m_Script))
+                materials = cast("list[PPtr[Material]]", atlas_mono_behaviour.materials)  # type: ignore
                 for mat_pptr in materials:
-                    mat: Material = mat_pptr.read()
+                    mat = mat_pptr.deref_parse_as_object()
                     img, name = material2img(mat)
                     img.save(base_dir / (name + ".png"))
 
         for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
-            game_obj: GameObject = obj.read()  # type: ignore
-            if game_obj.name == "Spine":
+            if (game_obj := read_obj(GameObject, obj)) is None:
+                continue
+            if game_obj.m_Name == "Spine" and game_obj.object_reader is not None:
                 path = (
-                    container_map[game_obj.path_id]
+                    container_map[game_obj.object_reader.path_id]
                     .replace("dyn/battle/prefabs/enemies/", "")
                     .replace(".prefab", "")
                 )
@@ -67,13 +69,17 @@ class EnemySpine(Task):
                     lambda comp: comp.type.name == "MonoBehaviour",
                     game_obj.m_Components,
                 ):
-                    skeleton_animation: MonoBehaviour = comp.read()
-                    if skeleton_animation.has_struct_member("skeletonDataAsset"):
-                        skeleton_data = skeleton_animation.skeletonDataAsset
-                        data: MonoBehaviour = skeleton_data.read()  # type: ignore
-                        if data.name.endswith("_SkeletonData"):
-                            unpack(data, path)
-                            break
+                    skeleton_animation = cast("MonoBehaviour", comp.read())
+                    if (
+                        skeleton_data := getattr(
+                            skeleton_animation, "skeletonDataAsset", None
+                        )
+                    ) is None:
+                        continue
+                    data: MonoBehaviour = skeleton_data.read()
+                    if data.m_Name.endswith("_SkeletonData"):
+                        unpack(data, path)
+                        break
 
     async def unpack(self, ab_path: str):
         real_path = await self.client.resolve(ab_path)
