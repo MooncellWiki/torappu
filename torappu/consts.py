@@ -5,6 +5,7 @@ from pathlib import Path
 from httpx import URL
 
 WINDOWS = sys.platform.startswith("win") or (sys.platform == "cli" and os.name == "nt")
+MACOS = sys.platform == "darwin"
 
 BASE_DIR: Path = Path(__file__).parent.parent.absolute()
 
