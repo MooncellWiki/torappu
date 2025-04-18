@@ -1,5 +1,6 @@
 from .audio import Audio as Audio
 from .build_skill import BuildSkill as BuildSkill
+from .camplogo import CampLogo as CampLogo
 from .char_arts import CharArts as CharArts
 from .char_avatar import CharAvatar as CharAvatar
 from .char_portrait import CharPortrait as CharPortrait
