@@ -45,8 +45,7 @@ class MedalDIY(Task):
     @run_sync
     def unpack_metadata(self, ab_path: str):
         env = UnityPy.load(ab_path)
-        paths = run_async(self.client.resolve_by_prefix)("anon/")
-        env.load_files(paths)
+        run_async(self.load_anon)(env)
 
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
             if (behaviour := read_obj(MonoBehaviour, obj)) is None:
