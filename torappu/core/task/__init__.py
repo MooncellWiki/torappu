@@ -1,5 +1,6 @@
 from .audio import Audio as Audio
 from .build_skill import BuildSkill as BuildSkill
+from .camplogo import CampLogo as CampLogo
 from .char_arts import CharArts as CharArts
 from .char_avatar import CharAvatar as CharAvatar
 from .char_portrait import CharPortrait as CharPortrait
@@ -13,7 +14,6 @@ from .furniture_theme import FurnitureTheme as FurnitureTheme
 from .gamedata import GameData as GameData
 from .item_demand import ItemDemand as ItemDemand
 from .item_icon import ItemIcon as ItemIcon
-from .logo import Logo as Logo
 from .map_preview import MapPreview as MapPreview
 from .medal_diy import MedalDIY as MedalDIY
 from .medal_icon import MedalIcon as MedalIcon

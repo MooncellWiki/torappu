@@ -10,10 +10,10 @@ from torappu.models import Diff
 
 from .task import Task
 
-BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "logo")
+BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "camplogo")
 
 
-class Logo(Task):
+class CampLogo(Task):
     priority: ClassVar[int] = 3
 
     async def unpack(self, ab_path: str):
