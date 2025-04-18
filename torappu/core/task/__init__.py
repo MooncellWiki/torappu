@@ -13,6 +13,7 @@ from .furniture_theme import FurnitureTheme as FurnitureTheme
 from .gamedata import GameData as GameData
 from .item_demand import ItemDemand as ItemDemand
 from .item_icon import ItemIcon as ItemIcon
+from .logo import Logo as Logo
 from .map_preview import MapPreview as MapPreview
 from .medal_diy import MedalDIY as MedalDIY
 from .medal_icon import MedalIcon as MedalIcon
