@@ -51,6 +51,9 @@ class MapPreview(Task):
                 self.sandbox_ab_list.add(bundle)
             elif asset.startswith("arts/ui/stage/mappreviews"):
                 self.ab_list.add(bundle)
+            # 促融共竞地图
+            elif "stagebigpreview" in asset and asset.endswith("_preview"):
+                self.ab_list.add(bundle)
 
         return len(self.ab_list) > 0 or len(self.sandbox_ab_list) > 0
 
