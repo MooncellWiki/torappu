@@ -180,16 +180,16 @@ class Client:
         return list(zip(path, result))
 
     async def resolve_by_prefix(self, prefix: str) -> list[str]:
-        paths = []
-        for info in self.hot_update_list.ab_infos:
-            if info.name.startswith(prefix):
-                paths.append(info.name)
+        paths = {
+            info.name
+            for info in self.hot_update_list.ab_infos
+            if info.name.startswith(prefix)
+        }
 
         if len(paths) == 0:
             return []
 
-        result = await asyncio.gather(*(self.resolve(p) for p in paths))
-        return list(result)
+        return await asyncio.gather(*(self.resolve(p) for p in paths))
 
     # [["abpath", "real_path"]]
     async def resolve_abs(self, path: list[str]) -> list[tuple[str, str]]:
