@@ -3,15 +3,19 @@ from typing import TypeVar
 import numpy as np
 from PIL import Image
 from UnityPy import Environment
-from UnityPy.classes import (
-    FastPropertyName,
-    Material,
-    Texture2D,
-    UnityTexEnv,
-)
+from UnityPy.classes import FastPropertyName, Material, Texture2D, UnityTexEnv
 from UnityPy.files.ObjectReader import ObjectReader
 
 from torappu.consts import PROFESSIONS
+
+T = TypeVar("T")
+
+
+def read_obj(expected_klass: type[T], obj: ObjectReader[T]) -> T | None:
+    if expected_klass == obj.get_class():
+        return obj.read()
+    else:
+        return None
 
 
 def trans_prof(profession):
@@ -109,13 +113,3 @@ def get_name(src: FastPropertyName | str) -> str:
     if isinstance(src, FastPropertyName):
         return src.name
     return src
-
-
-T = TypeVar("T")
-
-
-def read_obj(expected_klass: type[T], obj: ObjectReader[T]) -> T | None:
-    if expected_klass == obj.get_class():
-        return obj.read()
-    else:
-        return None
