@@ -28,18 +28,14 @@ pip install -e .
 
 ## Configuration
 
-Create a config file or set environment variables:
-
-```json
-{
-  "token": "your_token_here",
-  "endpoint": "your_backend_endpoint_here",
-  "host": "0.0.0.0",
-  "port": 8080
-}
-```
-
 Environment variables can be set using `.env` file or system environment variables.
+
+```bash
+TOKEN=your_token_here
+ENDPOINT=your_backend_endpoint_here
+HOST=0.0.0.0
+PORT=8080
+```
 
 ## Usage
 
