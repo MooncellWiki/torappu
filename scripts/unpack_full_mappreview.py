@@ -9,7 +9,7 @@ client = httpx.AsyncClient(timeout=60)
 
 
 async def download_ab(path: str, dest_path: Path):
-    response = await client.get(f"http://ak-storage.xwbx.ink/{path}")
+    response = await client.get(f"https://asset-storage.prts.wiki/storage/{path}")
 
     if response.status_code == 200:
         print(f"Downloading {path}")
