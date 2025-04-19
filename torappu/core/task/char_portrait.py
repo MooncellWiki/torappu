@@ -36,8 +36,7 @@ class CharPortrait(Task):
 
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
-        paths = await self.client.resolve_by_prefix("anon/")
-        env.load_files(paths)
+        await self.load_anon(env)
 
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
             if (data := read_obj(MonoBehaviour, obj)) is None:
