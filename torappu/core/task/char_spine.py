@@ -104,7 +104,7 @@ class CharSpine(Task):
                 skel_dest_path = skel_dest_path.with_suffix(".skel")
 
             if not base_dir.exists():
-                result = skel.m_Name.replace("#", "_")
+                result = skel.m_Name.replace("#", "_").replace(".skel", "")
                 base_dir.mkdir(parents=True, exist_ok=True)
 
             with open(skel_dest_path, "wb") as f:
