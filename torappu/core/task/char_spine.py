@@ -94,8 +94,8 @@ class CharSpine(Task):
             result = None
             base_dir = STORAGE_DIR / "asset" / "raw" / "char_spine" / path
             skel = cast("TextAsset", data.skeletonJSON.read())  # type: ignore
-            skel_name: str = skel.m_Name
-            skel_dest_path = base_dir / skel.m_Name.replace("#", "_")
+            skel_name: str = skel.m_Name.replace("#", "_")
+            skel_dest_path = base_dir / skel_name
 
             if skel_name.endswith(".skel"):
                 skel_name = skel_name.replace(".skel", "")
@@ -104,7 +104,7 @@ class CharSpine(Task):
                 skel_dest_path = skel_dest_path.with_suffix(".skel")
 
             if not base_dir.exists():
-                result = skel.m_Name.replace("#", "_")
+                result = skel_name
                 base_dir.mkdir(parents=True, exist_ok=True)
 
             with open(skel_dest_path, "wb") as f:
