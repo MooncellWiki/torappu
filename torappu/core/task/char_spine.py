@@ -250,7 +250,9 @@ class CharSpine(Task):
             result = self.changed_char[char]
 
             if meta_path.is_file():
-                spine = TypeAdapter(SpineConfig).validate_json(meta_path.read_text())
+                spine = TypeAdapter(SpineConfig).validate_json(
+                    meta_path.read_text(encoding="utf-8")
+                )
                 result.skin = {**spine.skin, **result.skin}
 
             meta_path.write_text(result.model_dump_json(), encoding="utf-8")
