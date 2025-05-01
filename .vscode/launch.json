@@ -11,10 +11,14 @@
       "module": "torappu",
       "justMyCode": true,
       "args": [
-        "--include",
-        "UniEquipDirection",
-        "2.2.61",
-        "24-05-13-13-28-58-962413"
+        "2.5.60",
+        "25-04-30-05-10-18_7ba4b2",
+        "-c",
+        "2.5.04",
+        "-r",
+        "25-04-25-08-42-16_acb2f8",
+        "-i",
+        "CharSpine,EnemySpine"
       ]
     },
     {

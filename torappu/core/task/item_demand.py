@@ -33,6 +33,10 @@ class ItemDemand(Task):
 
     async def start(self):
         demand = self.get_item_demand()
+        if not self.client.config.token:
+            logger.warning("token not set, skipping item demand upload")
+            return
+
         if self.client.config.backend_endpoint:
             logger.debug("uploading item demand json")
             await self.client.http_client.post(
@@ -51,9 +55,9 @@ class ItemDemand(Task):
         uniequip_table = self.get_gamedata("excel/uniequip_table.json")
 
         for patch_char_id, patch_char_detail in char_patch_table["patchChars"].items():
-            patch_char_detail[
-                "name"
-            ] += f"({trans_prof(patch_char_detail['profession'])})"
+            patch_char_detail["name"] += (
+                f"({trans_prof(patch_char_detail['profession'])})"
+            )
             character_table[patch_char_id] = patch_char_detail
 
         item_demand = {}

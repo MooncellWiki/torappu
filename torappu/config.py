@@ -32,16 +32,13 @@ class Config(BaseSettings):
     log_level: int | str = "INFO"
     max_workers: int = 2
 
-    token: str = ""
+    token: str | None = None
     timeout: int = 10
 
-    backend_endpoint: str = ""
+    backend_endpoint: str | None = None
     flatc_path: Path = get_flatc_path()
 
-    wiki_username: str = ""
-    wiki_password: str = ""
-
-    sentry_dsn: str = "https://bdbb1f368fbc5bc44dd1eaf1ede0e0df@ingest.sentry.mooncell.wiki/4508025601064960"
+    sentry_dsn: str | None = None
 
     def is_production(self):
         return self.environment == "production"

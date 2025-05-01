@@ -41,6 +41,9 @@ class Task(abc.ABC):
         return json.loads(json_path.read_text("utf-8"))
 
     async def load_anon(self, env: Environment):
-        paths = await self.client.resolve_by_prefix("anon/")
+        paths = [
+            *await self.client.resolve_by_prefix("anon/"),
+            *await self.client.resolve_by_prefix("refs/"),
+        ]
         for path in paths:
             env.load_file(path, is_dependency=True)
