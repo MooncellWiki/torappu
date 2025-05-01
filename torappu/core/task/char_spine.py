@@ -91,8 +91,7 @@ class CharSpine(Task):
         def unpack(
             data: "MonoBehaviour",
             path: str,
-        ) -> str | None:
-            result = None
+        ) -> str:
             base_dir = STORAGE_DIR / "asset" / "raw" / "char_spine" / path
             skel = cast("TextAsset", data.skeletonJSON.read())  # type: ignore
             skel_name: str = skel.m_Name.replace("#", "_")
@@ -105,7 +104,6 @@ class CharSpine(Task):
                 skel_dest_path = skel_dest_path.with_suffix(".skel")
 
             if not base_dir.exists():
-                result = skel_name
                 base_dir.mkdir(parents=True, exist_ok=True)
 
             with open(skel_dest_path, "wb") as f:
@@ -125,7 +123,7 @@ class CharSpine(Task):
                     img, name = material2img(mat)
                     img.save(base_dir / (name.replace("#", "_") + ".png"))
 
-            return result
+            return skel_name
 
         for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
             if (game_obj := read_obj(GameObject, obj)) is None:
