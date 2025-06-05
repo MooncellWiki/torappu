@@ -1,6 +1,6 @@
 [project]
 name = "torappu"
-version = "1.25.4"
+version = "1.25.5"
 description = "unpacker for an anime game"
 requires-python = ">=3.12, <4.0"
 dependencies = [
