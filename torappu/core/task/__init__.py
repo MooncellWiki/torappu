@@ -17,6 +17,7 @@ from .item_icon import ItemIcon as ItemIcon
 from .map_preview import MapPreview as MapPreview
 from .medal_diy import MedalDIY as MedalDIY
 from .medal_icon import MedalIcon as MedalIcon
+from .mixstory import MixStory as MixStory
 from .player_avatar import PlayerAvatar as PlayerAvatar
 from .potential_icon import PotentialIcon as PotentialIcon
 from .profession_large_icon import ProfessionLargeIcon as ProfessionLargeIcon
