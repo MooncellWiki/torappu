@@ -4,21 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Torappu is an asset unpacker for an anime game (Arknights) focused on resource extraction and analysis. It provides both CLI and web server interfaces for extracting game assets, processing them, and making them available through APIs.
+Torappu is an asset unpacker for an anime game (Arknights) focused on resource extraction and analysis. It provides a CLI interface for extracting game assets, processing them, and making them available through structured output directories.
 
 ## Architecture
 
 The project follows a modular architecture with these key components:
 
 - **CLI Interface** (`torappu/__main__.py`): Command-line tool for asset extraction
-- **Web Server** (`torappu/server/`): FastAPI-based HTTP API for triggering extraction tasks
 - **Task System** (`torappu/core/task/`): Pluggable task architecture for processing different asset types
 - **Client** (`torappu/core/client.py`): Handles remote asset fetching and local caching
 - **Asset Processing**: UnityPy-based asset extraction and FlatBuffer schema parsing
 
 ## Key Directories
 
-- `torappu/core/task/` - Individual asset processing tasks (30+ specialized tasks)
+- `torappu/core/task/` - Individual asset processing tasks (20+ specialized tasks)
 - `OpenArknightsFBS/` - FlatBuffer schema definitions for game data
 - `storage/` - Local cache for downloaded assets and processed data
 - `assets/` - Static assets and FlatBuffer schema definitions
