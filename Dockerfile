@@ -39,8 +39,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 ENV PYTHONPATH=/app
 
-EXPOSE 8000
-
 RUN apt-get update && apt-get -y install ffmpeg
 
 COPY --from=build-stage /wheel /wheel
@@ -52,4 +50,4 @@ COPY --from=metadata-stage /tmp/VERSION /app/VERSION
 COPY . /app/
 RUN chmod -R +x /app/bin
 
-CMD ["python", "-m", "torappu.server"]
+ENTRYPOINT ["python", "-m", "torappu"]
