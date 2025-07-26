@@ -2,10 +2,8 @@ import anyio
 import lz4inv
 import sentry_sdk
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
-from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
-from sentry_sdk.integrations.starlette import StarletteIntegration
 from UnityPy.enums.BundleFile import CompressionFlags
 from UnityPy.helpers.CompressionHelper import DECOMPRESSION_MAP
 
@@ -26,12 +24,6 @@ def init_sentry(*, headless: bool):
     # of transactions for performance monitoring.
     # We recommend adjusting this value in production.
     integrations = [AsyncioIntegration(), LoguruIntegration(), HttpxIntegration()]
-    asgi_integrations = [
-        FastApiIntegration(transaction_style="endpoint"),
-        StarletteIntegration(transaction_style="endpoint"),
-    ]
-    if not headless:
-        integrations.extend(asgi_integrations)
     sentry_sdk.init(
         dsn=config.sentry_dsn,
         traces_sample_rate=1.0,

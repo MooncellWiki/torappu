@@ -7,8 +7,8 @@ An unpacker for anime game assets with a focus on resource extraction and analys
 - Asset extraction and processing
 - FlatBuffer schema parsing
 - Resource manifest handling
-- API for accessing game data
-- Web server interface
+- CLI interface for direct usage
+- Docker support for containerized execution
 - Versioned resource tracking
 
 ## Requirements
@@ -33,8 +33,6 @@ Environment variables can be set using `.env` file or system environment variabl
 ```bash
 TOKEN=your_token_here
 ENDPOINT=your_backend_endpoint_here
-HOST=0.0.0.0
-PORT=8080
 ```
 
 ## Usage
@@ -53,19 +51,29 @@ python -m torappu [CLIENT_VERSION] [RES_VERSION] -i task1,task2
 python -m torappu [CLIENT_VERSION] [RES_VERSION] -e task1,task2
 ```
 
-### Server Mode
-
-Start the web server:
+### Docker Usage
 
 ```bash
-python -m torappu.server
+# Build the image
+docker build -t torappu .
+
+# Basic extraction
+docker run torappu [CLIENT_VERSION] [RES_VERSION]
+
+# With previous version comparison
+docker run torappu [CLIENT_VERSION] [RES_VERSION] -c [PREV_CLIENT_VERSION] -r [PREV_RES_VERSION]
+
+# Include specific tasks
+docker run torappu [CLIENT_VERSION] [RES_VERSION] -i CharArts,MapPreview
+
+# With environment variables
+docker run -e TOKEN=your_token -v $(pwd)/storage:/app/storage torappu [CLIENT_VERSION] [RES_VERSION]
 ```
 
 ## Project Structure
 
 - `torappu/`: Main package
   - `core/`: Core functionality
-  - `server/`: Web server implementation
 - `OpenArknightsFBS/`: FlatBuffer schema definitions
 - `assets/`: Asset resources
 - `bin/`: Binary tools (includes flatc for FlatBuffer compilation)
