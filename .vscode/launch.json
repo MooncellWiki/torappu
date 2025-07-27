@@ -9,17 +9,19 @@
       "type": "debugpy",
       "request": "launch",
       "module": "torappu",
+      "python": "${workspaceFolder}/.venv/bin/python",
       "justMyCode": true,
       "args": [
-        "2.5.60",
-        "25-04-30-05-10-18_7ba4b2",
+        "2.6.01",
+        "25-07-07-08-45-04_1256ac",
         "-c",
-        "2.5.04",
+        "2.5.80",
         "-r",
-        "25-04-25-08-42-16_acb2f8",
+        "25-06-26-04-47-55_47709b",
         "-i",
-        "CharSpine,EnemySpine"
-      ]
+        "MixStory"
+      ],
+
     },
     {
       "name": "Torappu Server",

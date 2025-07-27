@@ -12,13 +12,11 @@ dependencies = [
   "fastcrc (>=0.3.2,<0.4.0)",
   "unitypy (==1.22.5)",
   "tenacity (>=9.0.0,<10.0.0)",
-  "apscheduler (>=3.10.1,<4.0.0)",
   "pycryptodome (>=3.18.0,<4.0.0)",
   "httpx (>=0.24.1,<1.0.0,!=0.28.0)",
   "loguru (>=0.7.0,<1.0.0)",
-  "fastapi (>=0.103.0,<1.0.0)",
   "pydantic-settings (>=2.0.0,<3.0.0)",
-  "sentry-sdk[loguru,httpx,fastapi] (>=2.13.0,<3.0.0)",
+  "sentry-sdk[loguru,httpx] (>=2.13.0,<3.0.0)",
 ]
 authors = [
   { name = "daflyinbed", email = "1677759063@qq.com" },
@@ -29,9 +27,6 @@ readme = "README.md"
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.0"
 pre-commit = "^4.0.0"
-
-[tool.poetry.group.deploy.dependencies]
-uvicorn = { version = ">=0.20.0,<1.0.0", extras = ["standard"] }
 
 [tool.ruff]
 line-length = 88
