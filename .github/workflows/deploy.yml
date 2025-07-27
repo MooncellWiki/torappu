@@ -188,9 +188,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           env: official-deploy
 
-      - name: Update
-        run: curl -X POST ${{ secrets.UPDATE_HOOK }}
-
       - name: update deployment status
         uses: bobheadxi/deployments@v1
         if: always()
