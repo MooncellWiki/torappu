@@ -10,7 +10,7 @@ ENV PATH="${PATH}:/root/.local/bin"
 
 COPY ./pyproject.toml ./uv.lock* /tmp/
 
-RUN uv export --format requirements.txt -o requirements.txt --no-hashes
+RUN uv export --format requirements.txt -o requirements.txt --no-editable --no-hashes --no-dev --no-emit-project
 
 FROM python:3.12-bookworm AS build-stage
 
