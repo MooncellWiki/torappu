@@ -26,13 +26,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
       - name: Get Version
         id: version
         run: |
-          echo "VERSION=$(poetry version -s)" >> $GITHUB_OUTPUT
+          echo "VERSION=$(uv version --short)" >> $GITHUB_OUTPUT
           echo "TAG=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Check Version

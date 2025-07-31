@@ -26,15 +26,14 @@ The project follows a modular architecture with these key components:
 ## Development Commands
 
 ### Setup
-```bash
-# Install dependencies
-poetry install
 
-# Install dev dependencies
-poetry install --with dev
+```bash
+# Install project dependencies
+uv sync
 ```
 
 ### CLI Usage
+
 ```bash
 # Basic extraction
 python -m torappu [CLIENT_VERSION] [RES_VERSION]
@@ -48,6 +47,7 @@ python -m torappu [CLIENT_VERSION] [RES_VERSION] -e task1,task2
 ```
 
 ### Docker Usage
+
 ```bash
 # Run directly with Docker
 docker run torappu [CLIENT_VERSION] [RES_VERSION]
@@ -57,10 +57,11 @@ docker run torappu [CLIENT_VERSION] [RES_VERSION] -c [PREV_CLIENT_VERSION] -r [P
 ```
 
 ### Quality Assurance
+
 ```bash
 # Linting
-poetry run ruff check .
-poetry run ruff format .
+uv run ruff check .
+uv run ruff format .
 
 # Type checking (if pyright is available)
 pyright
@@ -69,6 +70,7 @@ pyright
 ## Configuration
 
 Environment variables (via `.env` file or system env):
+
 - `TOKEN`: Authentication token for remote APIs
 - `ENDPOINT`: Backend API endpoint
 - `SENTRY_DSN`: Error reporting DSN
@@ -90,11 +92,11 @@ from torappu.core.task import Task
 
 class MyNewTask(Task):
     priority = 5  # Execution priority
-    
+
     def check(self, diff_list):
         # Return True if task should run based on diff
         return any(d.path.startswith("my/prefix") for d in diff_list)
-    
+
     async def start(self):
         # Task implementation
         pass
