@@ -2,7 +2,12 @@
 name = "torappu"
 version = "1.27.0"
 description = "unpacker for an anime game"
+authors = [
+  { name = "daflyinbed", email = "1677759063@qq.com" },
+  { name = "StarHeartHunt", email = "starheart233@gmail.com" },
+]
 requires-python = ">=3.12, <4.0"
+readme = "README.md"
 dependencies = [
   "lz4inv (>=0.2.0,<0.3.0)",
   "bson (>=0.5.10,<0.6.0)",
@@ -18,15 +23,9 @@ dependencies = [
   "pydantic-settings (>=2.0.0,<3.0.0)",
   "sentry-sdk[loguru,httpx] (>=2.13.0,<3.0.0)",
 ]
-authors = [
-  { name = "daflyinbed", email = "1677759063@qq.com" },
-  { name = "StarHeartHunt", email = "starheart233@gmail.com" },
-]
-readme = "README.md"
 
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.11.0"
-pre-commit = "^4.0.0"
+[dependency-groups]
+dev = ["ruff>=0.11.0,<0.12", "pre-commit>=4.0.0,<5"]
 
 [tool.ruff]
 line-length = 88
@@ -82,6 +81,10 @@ typeCheckingMode = "standard"
 reportShadowedImports = false
 disableBytesTypePromotions = true
 
+[tool.uv.build-backend]
+module-name = "torappu"
+module-root = ""
+
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.8.4,<0.9.0"]
+build-backend = "uv_build"

@@ -4,14 +4,13 @@ FROM python:3.12-bookworm AS requirements-stage
 
 WORKDIR /tmp
 
-RUN curl -sSL https://install.python-poetry.org | python -
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ENV PATH="${PATH}:/root/.local/bin"
 
-COPY ./pyproject.toml ./poetry.lock* /tmp/
+COPY ./pyproject.toml ./uv.lock* /tmp/
 
-RUN poetry self add poetry-plugin-export && \
-  poetry export -f requirements.txt --output requirements.txt --without-hashes
+RUN uv export --format requirements.txt -o requirements.txt --no-editable --no-hashes --no-dev --no-emit-project
 
 FROM python:3.12-bookworm AS build-stage
 

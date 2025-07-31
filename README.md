@@ -19,8 +19,8 @@ An unpacker for anime game assets with a focus on resource extraction and analys
 ## Installation
 
 ```bash
-# Using Poetry (recommended)
-poetry install
+# Using uv (recommended)
+uv sync
 
 # Or using pip
 pip install -e .
@@ -82,15 +82,15 @@ docker run -e TOKEN=your_token -v $(pwd)/storage:/app/storage torappu [CLIENT_VE
 
 ## Development
 
-This project uses Poetry for dependency management and Ruff for linting:
+This project uses uv for dependency management and ruff for linting:
 
 ```bash
-# Install dev dependencies
-poetry install --with dev
+# Install all dependencies
+uv sync
 
 # Run linting
-poetry run ruff check .
-poetry run ruff format .
+uv run ruff check .
+uv run ruff format .
 ```
 
 ## License

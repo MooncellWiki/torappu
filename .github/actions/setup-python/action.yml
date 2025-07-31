@@ -10,15 +10,9 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install poetry
-      run: pipx install poetry
-      shell: bash
-
-    - uses: actions/setup-python@v5
+    - uses: astral-sh/setup-uv@v6
       with:
-        python-version: ${{ inputs.python-version }}
-        architecture: "x64"
-        cache: "poetry"
+          python-version: ${{ inputs.python-version }}
 
-    - run: poetry install
+    - run: uv sync --all-extras --locked
       shell: bash
