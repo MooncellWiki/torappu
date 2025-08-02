@@ -736,7 +736,7 @@ wheels = [
 
 [[package]]
 name = "torappu"
-version = "1.28.0"
+version = "1.28.1"
 source = { editable = "." }
 dependencies = [
     { name = "bson" },
