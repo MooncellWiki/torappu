@@ -51,6 +51,7 @@ flatbuffer_list = [
     "hotupdate_meta_table",
     "init_text",
     "item_table",
+    "level_script_table",
     "main_text",
     "medal_table",
     "meta_ui_table",
