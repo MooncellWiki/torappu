@@ -35,7 +35,9 @@ WORKDIR /app
 
 ENV TZ=Asia/Shanghai DEBIAN_FRONTEND=noninteractive PYTHONPATH=/app
 
-RUN apt-get update && apt-get -y install ffmpeg
+RUN curl -sSL https://github.com/acoustid/ffmpeg-build/releases/download/v8.0-1/ffmpeg-8.0-audio-$(uname -m)-linux-gnu.tar.gz -o /tmp/ffmpeg.tar.gz \
+  && tar -xzf /tmp/ffmpeg.tar.gz -C /usr/local/bin/ \
+  && rm -f /tmp/ffmpeg.tar.gz
 
 COPY --from=build-stage /wheel /wheel
 
