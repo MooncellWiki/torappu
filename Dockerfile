@@ -36,12 +36,16 @@ WORKDIR /app
 ENV TZ=Asia/Shanghai DEBIAN_FRONTEND=noninteractive PYTHONPATH=/app
 
 RUN ARCH=$(uname -m | sed 's/^aarch64$/arm64/') \
+  && FOLDER="ffmpeg-8.0-audio-$ARCH-linux-gnu" \
   && apt-get update \
   && apt-get install -y --no-install-recommends curl \
-  && curl -sSL "https://github.com/acoustid/ffmpeg-build/releases/download/v8.0-1/ffmpeg-8.0-audio-$ARCH-linux-gnu.tar.gz" -o /tmp/ffmpeg.tar.gz \
-  && tar -xzf /tmp/ffmpeg.tar.gz -C /usr/local/bin/ \
+  && curl -sSL "https://github.com/acoustid/ffmpeg-build/releases/download/v8.0-1/$FOLDER.tar.gz" -o /tmp/ffmpeg.tar.gz \
+  && tar -xzf /tmp/ffmpeg.tar.gz -C /tmp/ \
+  && cd /tmp/$FOLDER/bin/ \
+  && mv * /usr/bin/ \
+  && chmod +x /usr/bin/ffmpeg /usr/bin/ffprobe \
   && apt-get purge -y --auto-remove curl \
-  && rm -rf /tmp/ffmpeg.tar.gz
+  && rm -rf /tmp/ffmpeg.tar.gz /tmp/$FOLDER
 
 COPY --from=build-stage /wheel /wheel
 
