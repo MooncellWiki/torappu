@@ -40,7 +40,7 @@ jobs:
         run: exit 1
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.builder }}
     needs: check-version
     permissions:
       contents: read
@@ -54,8 +54,16 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        platform:
-          - linux/amd64
+        include:
+          - os: ubuntu-latest
+            platform: linux/amd64
+            platform-artifact: linux-amd64
+          - os: ubuntu-24.04-arm
+            platform: linux/arm64
+            platform-artifact: linux-arm64
+          - os: macos-latest
+            platform: darwin/arm64
+            platform-artifact: darwin-arm64
 
     steps:
       - name: Checkout
@@ -78,7 +86,9 @@ jobs:
         run: |
           REPO=registry.cn-shanghai.aliyuncs.com/prts/${{ github.event.repository.name }}
           echo "IMAGE=${REPO,,}" >> $GITHUB_OUTPUT
-          echo "SCOPE=${{ env.GITHUB_REF_NAME }}-${{ matrix.platform }}" >> $GITHUB_OUTPUT
+          echo "SCOPE=${{ hashFiles('**/uv.lock') }}-${{ matrix.platform }}" >> $GITHUB_OUTPUT
+          PLATFORM="${{ matrix.platform }}"
+          echo "ARTIFACT=${PLATFORM/\//-}-digests" >> $GITHUB_OUTPUT
 
       - name: Generate Labels
         uses: docker/metadata-action@v5
@@ -106,7 +116,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests
+          name: ${{ matrix.platform-artifact }}-digests
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -117,7 +127,8 @@ jobs:
     if: |-
       ${{
         always() &&
-        github.event_name != 'pull_request'
+        github.event_name != 'pull_request' &&
+        needs.build.result == 'success'
       }}
 
     steps:
@@ -127,11 +138,23 @@ jobs:
       - name: Download digests
         uses: actions/download-artifact@v5
         with:
-          name: digests
-          path: /tmp/digests
+          path: /tmp/artifacts
+          pattern: "*-digests"
+
+      - name: Copy digests
+        run: |
+          mkdir -p /tmp/digests
+          cp /tmp/artifacts/*-digests/* /tmp/digests
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Login to Github Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login into Aliyun Container Registry
         uses: docker/login-action@v3
@@ -143,7 +166,7 @@ jobs:
       - name: Generate Image Name
         id: image
         run: |
-          REPO=registry.cn-shanghai.aliyuncs.com/prts/${{ github.event.repository.name }}
+          REPO=prts/${{ github.event.repository.name }}
           echo "IMAGE=${REPO,,}" >> $GITHUB_OUTPUT
 
       - name: Generate Tags
@@ -152,6 +175,7 @@ jobs:
         with:
           images: |
             registry.cn-shanghai.aliyuncs.com/prts/${{ github.event.repository.name }}
+            ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -166,34 +190,3 @@ jobs:
             $(printf '${{ steps.image.outputs.IMAGE }}@sha256:%s ' *)
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ steps.image.outputs.IMAGE }}@sha256:%s ' *)
-
-  deploy:
-    runs-on: ubuntu-latest
-    environment: official-deploy
-    needs: push
-    permissions:
-      deployments: write
-    if: |-
-      ${{
-        always() &&
-        startsWith(github.ref, 'refs/tags/v')
-      }}
-
-    steps:
-      - name: Start Deployment
-        uses: bobheadxi/deployments@v1
-        id: deployment
-        with:
-          step: start
-          token: ${{ secrets.GITHUB_TOKEN }}
-          env: official-deploy
-
-      - name: update deployment status
-        uses: bobheadxi/deployments@v1
-        if: always()
-        with:
-          step: finish
-          token: ${{ secrets.GITHUB_TOKEN }}
-          status: ${{ job.status }}
-          env: ${{ steps.deployment.outputs.env }}
-          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
