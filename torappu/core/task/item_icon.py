@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import ClassVar
 
 import anyio
@@ -39,7 +40,7 @@ class ItemIcon(Task):
             for item in item_table["items"].values()
         }
         self.skip_bg_items = {
-            item["iconId"]
+            item["iconId"].lower()
             for item in item_table["items"].values()
             if item["itemType"] in SKIP_BG_TYPES
         }
@@ -49,9 +50,19 @@ class ItemIcon(Task):
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
             if (texture := read_obj(Sprite, obj)) is None:
                 continue
-            if texture.m_Name in self.skip_bg_items:
+
+            container: str = obj.container
+            canonical_name: str = texture.m_Name.lower()
+
+            if container:
+                canonical_name = (
+                    Path(container).with_suffix("").name or texture.m_Name.lower()
+                )
+
+            if canonical_name in self.skip_bg_items:
                 texture.image.save(BASE_DIR.joinpath(f"{texture.m_Name}.png"))
                 continue
+
             texture.image.save(RAW_DIR.joinpath(f"{texture.m_Name}.png"))
 
             bg_path = self.dict_rarity_bg.get(texture.m_Name)
