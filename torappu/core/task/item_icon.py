@@ -35,15 +35,26 @@ class ItemIcon(Task):
         super().__init__(client)
 
         item_table = self.get_gamedata("excel/item_table.json")
-        self.dict_rarity_bg = {
-            item["iconId"]: ITEM_BACKGROUND_IMAGES[item["rarity"]]
-            for item in item_table["items"].values()
-        }
-        self.skip_bg_items = {
-            item["iconId"].lower()
-            for item in item_table["items"].values()
-            if item["itemType"] in SKIP_BG_TYPES
-        }
+
+        self.dict_rarity_bg: dict[str, Path] = {}
+        self.skip_bg_items: set[str] = set()
+        self.dict_lower_to_icon_id: dict[str, str] = {}
+
+        for item in item_table["items"].values():
+            lower_icon_id = item["iconId"].lower()
+            self.dict_lower_to_icon_id[lower_icon_id] = item["iconId"]
+
+            if item["itemType"] in SKIP_BG_TYPES:
+                self.skip_bg_items.add(lower_icon_id)
+
+            self.dict_rarity_bg[lower_icon_id] = ITEM_BACKGROUND_IMAGES[item["rarity"]]
+
+    def get_output_name(self, texture_name: str, canonical_name: str) -> str:
+        return (
+            self.dict_lower_to_icon_id.get(texture_name.lower())
+            or self.dict_lower_to_icon_id.get(canonical_name)
+            or texture_name
+        ) + ".png"
 
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
@@ -53,15 +64,23 @@ class ItemIcon(Task):
 
             container: str = obj.container
             canonical_name: str = (
-                Path(container).with_suffix("").name if container else texture.m_Name.lower()
+                Path(container).with_suffix("").name
+                if container
+                else texture.m_Name.lower()
             )
             if canonical_name in self.skip_bg_items:
-                texture.image.save(BASE_DIR.joinpath(f"{texture.m_Name}.png"))
+                texture.image.save(
+                    BASE_DIR.joinpath(
+                        self.get_output_name(texture.m_Name, canonical_name)
+                    )
+                )
                 continue
 
-            texture.image.save(RAW_DIR.joinpath(f"{texture.m_Name}.png"))
+            texture.image.save(
+                RAW_DIR.joinpath(self.get_output_name(texture.m_Name, canonical_name))
+            )
 
-            bg_path = self.dict_rarity_bg.get(texture.m_Name)
+            bg_path = self.dict_rarity_bg.get(canonical_name)
             if not bg_path:
                 continue
 
@@ -80,7 +99,9 @@ class ItemIcon(Task):
                 texture.image,
             )
 
-            bg.save(BASE_DIR.joinpath(f"{texture.m_Name}.png"))
+            bg.save(
+                BASE_DIR.joinpath(self.get_output_name(texture.m_Name, canonical_name))
+            )
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
