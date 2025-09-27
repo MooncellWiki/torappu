@@ -52,13 +52,9 @@ class ItemIcon(Task):
                 continue
 
             container: str = obj.container
-            canonical_name: str = texture.m_Name.lower()
-
-            if container:
-                canonical_name = (
-                    Path(container).with_suffix("").name or texture.m_Name.lower()
-                )
-
+            canonical_name: str = (
+                Path(container).with_suffix("").name if container else texture.m_Name.lower()
+            )
             if canonical_name in self.skip_bg_items:
                 texture.image.save(BASE_DIR.joinpath(f"{texture.m_Name}.png"))
                 continue
