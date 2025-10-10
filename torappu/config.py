@@ -3,16 +3,16 @@ from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from torappu.consts import MACOS, WINDOWS
+from torappu.consts import BASE_DIR, MACOS, WINDOWS
 
 
 def get_flatc_path():
     if WINDOWS:
-        return Path("bin/flatc.exe")
+        return Path(BASE_DIR / "bin/flatc.exe")
     elif MACOS:
-        return Path("bin/macos/flatc")
+        return Path(BASE_DIR / "bin/macos/flatc")
     else:
-        return Path("bin/flatc")
+        return Path(BASE_DIR / "bin/flatc")
 
 
 class Config(BaseSettings):

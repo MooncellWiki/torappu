@@ -14,6 +14,7 @@ from UnityPy.classes import MonoBehaviour
 
 from torappu.config import Config
 from torappu.consts import (
+    BASE_DIR,
     GAMEDATA_DIR,
     HEADERS,
     HG_CN_BASEURL,
@@ -224,7 +225,7 @@ class Client:
             "--natural-utf8",
             "--defaults-json",
             "--raw-binary",
-            "assets/ResourceManifest.fbs",
+            str(Path(BASE_DIR / "assets/ResourceManifest.fbs")),
             "--",
             flatbuffer_data_path,
         ]

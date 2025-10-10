@@ -75,3 +75,4 @@ async def main(
                     continue
 
                 tg.start_soon(check_and_run_task, task(client), diff)
+    return client
