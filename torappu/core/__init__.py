@@ -75,4 +75,36 @@ async def main(
                     continue
 
                 tg.start_soon(check_and_run_task, task(client), diff)
+
+
+async def export_client(
+    version: Version,
+    prev: Version | None,
+    exclude: list[str],
+    include: list[str],
+):
+    if prev == version:
+        logger.info("Version did not change, skipping running")
+        return
+
+    client = Client(version, prev, config)
+    try:
+        await client.init()
+    except Exception as e:
+        logger.opt(exception=e).error("Failed to init client")
+        return
+
+    diff = client.diff()
+    for priority in sorted(registry.keys()):
+        logger.info(f"Checking for tasks in priority {priority}...")
+
+        async with anyio.create_task_group() as tg:
+            for task in registry[priority]:
+                input_name = task.__name__
+                if (exclude and input_name in exclude) or (
+                    include and input_name not in include
+                ):
+                    continue
+
+                tg.start_soon(check_and_run_task, task(client), diff)
     return client
