@@ -66,6 +66,7 @@ class MapPreview(Task):
             # 促融共竞地图
             elif "stagebigpreview" in asset and asset.endswith("_preview"):
                 self.big_list.add(bundle)
+            # 雪山降临1101 arts/ui/stage/[uc]mappreviewsspecial/act46side_10
             elif asset.startswith("arts/ui/stage/[uc]mappreviewsspecial/"):
                 self.ab_list.add(bundle)
 
