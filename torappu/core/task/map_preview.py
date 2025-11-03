@@ -63,8 +63,11 @@ class MapPreview(Task):
             if asset.startswith("ui/sandboxv2/mappreview"):
                 self.sandbox_ab_list.add(bundle)
             elif asset.startswith(
-                "arts/ui/stage/umappreviewsspecial/"
-            ) or asset.startswith("arts/ui/stage/cmappreviewsspecial/"):
+                (
+                    "arts/ui/stage/umappreviewsspecial/",
+                    "arts/ui/stage/cmappreviewsspecial/",
+                )
+            ):
                 self.special_ab_list.add(bundle)
             elif asset.startswith("arts/ui/stage/mappreviews"):
                 self.ab_list.add(bundle)
@@ -98,6 +101,7 @@ class MapPreview(Task):
             for _, ab_path in big_paths:
                 tg.start_soon(unpack_big, ab_path)
 
+        # Special map previews: output original image without resizing
         async with anyio.create_task_group() as tg:
             for _, ab_path in special_paths:
                 tg.start_soon(unpack_sandbox, ab_path)
