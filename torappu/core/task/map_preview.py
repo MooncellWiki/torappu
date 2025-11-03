@@ -50,9 +50,8 @@ class MapPreview(Task):
         super().__init__(client)
 
         self.ab_list: set[str] = set()
-        self.sandbox_ab_list: set[str] = set()
+        self.original_ab_list: set[str] = set()
         self.big_list: set[str] = set()
-        self.special_ab_list: set[str] = set()
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
@@ -61,7 +60,7 @@ class MapPreview(Task):
                 continue
 
             if asset.startswith("ui/sandboxv2/mappreview"):
-                self.sandbox_ab_list.add(bundle)
+                self.original_ab_list.add(bundle)
             elif asset.startswith("arts/ui/stage/mappreviews"):
                 self.ab_list.add(bundle)
             # 促融共竞地图
@@ -69,20 +68,18 @@ class MapPreview(Task):
                 self.big_list.add(bundle)
             # 雪山降临1101 arts/ui/stage/[uc]mappreviewsspecial/act46side_10
             elif asset.startswith("arts/ui/stage/[uc]mappreviewsspecial/"):
-                self.special_ab_list.add(bundle)
+                self.original_ab_list.add(bundle)
 
         return (
             len(self.ab_list) > 0
-            or len(self.sandbox_ab_list) > 0
+            or len(self.original_ab_list) > 0
             or len(self.big_list) > 0
-            or len(self.special_ab_list) > 0
         )
 
     async def start(self):
         paths = await self.client.resolves(list(self.ab_list))
-        sandbox_paths = await self.client.resolves(list(self.sandbox_ab_list))
+        original_paths = await self.client.resolves(list(self.original_ab_list))
         big_paths = await self.client.resolves(list(self.big_list))
-        special_paths = await self.client.resolves(list(self.special_ab_list))
         BASE_DIR.mkdir(parents=True, exist_ok=True)
 
         async with anyio.create_task_group() as tg:
@@ -90,14 +87,9 @@ class MapPreview(Task):
                 tg.start_soon(unpack_universal, ab_path)
 
         async with anyio.create_task_group() as tg:
-            for _, ab_path in sandbox_paths:
+            for _, ab_path in original_paths:
                 tg.start_soon(unpack_sandbox, ab_path)
 
         async with anyio.create_task_group() as tg:
             for _, ab_path in big_paths:
                 tg.start_soon(unpack_big, ab_path)
-
-        # Special map previews: output original image without resizing
-        async with anyio.create_task_group() as tg:
-            for _, ab_path in special_paths:
-                tg.start_soon(unpack_sandbox, ab_path)
