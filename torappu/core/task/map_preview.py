@@ -52,6 +52,7 @@ class MapPreview(Task):
         self.ab_list: set[str] = set()
         self.sandbox_ab_list: set[str] = set()
         self.big_list: set[str] = set()
+        self.special_ab_list: set[str] = set()
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
@@ -61,7 +62,11 @@ class MapPreview(Task):
 
             if asset.startswith("ui/sandboxv2/mappreview"):
                 self.sandbox_ab_list.add(bundle)
-            elif asset.startswith("arts/ui/stage/") and "mappreviews" in asset:
+            elif asset.startswith(
+                "arts/ui/stage/umappreviewsspecial/"
+            ) or asset.startswith("arts/ui/stage/cmappreviewsspecial/"):
+                self.special_ab_list.add(bundle)
+            elif asset.startswith("arts/ui/stage/mappreviews"):
                 self.ab_list.add(bundle)
             # 促融共竞地图
             elif "stagebigpreview" in asset and asset.endswith("_preview"):
@@ -71,12 +76,14 @@ class MapPreview(Task):
             len(self.ab_list) > 0
             or len(self.sandbox_ab_list) > 0
             or len(self.big_list) > 0
+            or len(self.special_ab_list) > 0
         )
 
     async def start(self):
         paths = await self.client.resolves(list(self.ab_list))
         sandbox_paths = await self.client.resolves(list(self.sandbox_ab_list))
         big_paths = await self.client.resolves(list(self.big_list))
+        special_paths = await self.client.resolves(list(self.special_ab_list))
         BASE_DIR.mkdir(parents=True, exist_ok=True)
 
         async with anyio.create_task_group() as tg:
@@ -90,3 +97,7 @@ class MapPreview(Task):
         async with anyio.create_task_group() as tg:
             for _, ab_path in big_paths:
                 tg.start_soon(unpack_big, ab_path)
+
+        async with anyio.create_task_group() as tg:
+            for _, ab_path in special_paths:
+                tg.start_soon(unpack_sandbox, ab_path)
