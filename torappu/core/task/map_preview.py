@@ -62,12 +62,7 @@ class MapPreview(Task):
 
             if asset.startswith("ui/sandboxv2/mappreview"):
                 self.sandbox_ab_list.add(bundle)
-            elif asset.startswith(
-                (
-                    "arts/ui/stage/umappreviewsspecial/",
-                    "arts/ui/stage/cmappreviewsspecial/",
-                )
-            ):
+            elif asset.startswith("arts/ui/stage/") and "mappreviewsspecial/" in asset:
                 self.special_ab_list.add(bundle)
             elif asset.startswith("arts/ui/stage/mappreviews"):
                 self.ab_list.add(bundle)
