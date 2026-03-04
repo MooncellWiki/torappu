@@ -32,6 +32,7 @@ Common flags:
   - `async start()`
 - Keep `Task.name` stable once used externally.
 - Use `check()` to avoid unnecessary downloads/work.
+- Do not silently swallow exceptions (`except ...: pass/return None`); when data is invalid or pointer resolution fails, raise with clear context.
 
 ## Key Paths
 

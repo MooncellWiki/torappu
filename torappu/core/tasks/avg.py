@@ -32,12 +32,6 @@ class Task(BaseTask):
         return None
 
     @staticmethod
-    def _path_id(ptr: Any) -> int:
-        if isinstance(ptr, dict):
-            return int(ptr.get("m_PathID", 0))
-        return 0
-
-    @staticmethod
     def _container_filename(container_path: str) -> str:
         return Path(container_path).stem
 
@@ -77,7 +71,7 @@ class Task(BaseTask):
         object_map: dict[int, Any],
         output_dir: Path,
     ):
-        sprites = self._pick(group, "sprites", "Sprites")
+        sprites = group.get("sprites")
         if not isinstance(sprites, list) or len(sprites) == 0:
             return
 
@@ -85,10 +79,8 @@ class Task(BaseTask):
         is_face = face_w > 0 and face_h > 0 and len(sprites) > 1
 
         last_sprite = sprites[-1]
-        last_sprite_path_id = self._path_id(self._pick(last_sprite, "sprite", "Sprite"))
-        last_alpha_path_id = self._path_id(
-            self._pick(last_sprite, "alphaTex", "AlphaTex")
-        )
+        last_sprite_path_id = int(last_sprite["sprite"]["m_PathID"])
+        last_alpha_path_id = int(last_sprite["alphaTex"]["m_PathID"])
         face_base: Image.Image | None = None
         if is_face:
             if (last_obj := object_map.get(last_sprite_path_id)) is not None:
@@ -97,13 +89,13 @@ class Task(BaseTask):
                     last_alpha_texture = self._read_texture(
                         object_map, last_alpha_path_id
                     )
-                    face_base, _ = merge_alpha(last_alpha_texture, last_rgb_texture) # type: ignore
+                    face_base, _ = merge_alpha(last_alpha_texture, last_rgb_texture)  # type: ignore
 
         for item in sprites:
             if not isinstance(item, dict):
                 continue
-            sprite_path_id = self._path_id(self._pick(item, "sprite", "Sprite"))
-            alpha_path_id = self._path_id(self._pick(item, "alphaTex", "AlphaTex"))
+            sprite_path_id = int(item["sprite"]["m_PathID"])
+            alpha_path_id = int(item["alphaTex"]["m_PathID"])
             if is_face and (
                 sprite_path_id == last_sprite_path_id
                 and alpha_path_id == last_alpha_path_id
@@ -147,9 +139,12 @@ class Task(BaseTask):
         if read_obj(MonoBehaviour, mono_obj) is None:
             return
         data = mono_obj.read_typetree()
-        groups = self._pick(data, "spriteGroups", "SpriteGroups")
+        if not isinstance(data, dict):
+            return
+
+        groups = data.get("spriteGroups")
         if groups is None:
-            sprites = self._pick(data, "sprites", "Sprites")
+            sprites = data.get("sprites")
             if not isinstance(sprites, list):
                 return
             groups = [
@@ -164,7 +159,7 @@ class Task(BaseTask):
 
         game_object_ptr = data.get("m_GameObject")
         game_object_name = ""
-        game_object_path_id = self._path_id(game_object_ptr)
+        game_object_path_id = int(game_object_ptr["m_PathID"])
         if game_object_path_id != 0:
             if (go_obj := object_map.get(game_object_path_id)) is not None:
                 if game_object := read_obj(GameObject, go_obj):
@@ -179,13 +174,8 @@ class Task(BaseTask):
                     game_object_name, group, object_map, output_dir
                 )
 
-    def _extract_background_sprite(self, sprite: Sprite):
-        output_path = BASE_DIR.joinpath("background", f"{sprite.m_Name}.png")
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        sprite.image.save(output_path)
-
-    def _extract_image_sprite(self, sprite: Sprite):
-        output_path = BASE_DIR.joinpath("images", f"{sprite.m_Name}.png")
+    def _extract_sprite(self, sprite: Sprite, subdir: str):
+        output_path = BASE_DIR.joinpath(subdir, f"{sprite.m_Name}.png")
         output_path.parent.mkdir(parents=True, exist_ok=True)
         sprite.image.save(output_path)
 
@@ -205,17 +195,15 @@ class Task(BaseTask):
 
             if container_path.startswith(BG_CONTAINER_PREFIX):
                 if texture := read_obj(Sprite, obj):
-                    self._extract_background_sprite(texture)
+                    self._extract_sprite(texture, "background")
                 continue
 
             if container_path.startswith(
                 (IMAGE_CONTAINER_PREFIX, ITEM_CONTAINER_PREFIX)
             ):
                 if texture := read_obj(Sprite, obj):
-                    self._extract_image_sprite(texture)
+                    self._extract_sprite(texture, "images")
                 continue
-
-
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
