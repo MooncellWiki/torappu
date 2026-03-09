@@ -238,7 +238,7 @@ class Client:
         path = await self.fetch_asset_bundle_with_suffix("torappu_index")
         env = UnityPy.load(path)
 
-        torappu_index = env.container["dyn/torappu_index.asset"].read()
+        torappu_index = env.container["dyn/torappu_index.asset"].parse_as_object()
 
         if torappu_index and isinstance(torappu_index, MonoBehaviour):
             self.asset_to_bundle = {

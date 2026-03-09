@@ -49,14 +49,14 @@ class Task(BaseTask):
         def unpack(data: MonoBehaviour, path: str):
             dest_dir = STORAGE_DIR / "asset" / "raw" / "enemy_spine" / path
             dest_dir.mkdir(parents=True, exist_ok=True)
-            skel = cast("TextAsset", data.skeletonJSON.read())  # type: ignore
+            skel = cast("TextAsset", data.skeletonJSON.deref_parse_as_object())  # type: ignore
             skel_path = dest_dir.joinpath(skel.m_Name).with_suffix(".skel")
             skel_path.write_bytes(m_script_to_bytes(skel.m_Script))
 
             atlas_assets = cast("list[PPtr[MonoBehaviour]]", data.atlasAssets)  # type: ignore
             for pptr in atlas_assets:
                 atlas_mono_behaviour = pptr.deref_parse_as_object()
-                atlas = cast("TextAsset", atlas_mono_behaviour.atlasFile.read())  # type: ignore
+                atlas = cast("TextAsset", atlas_mono_behaviour.atlasFile.deref_parse_as_object())  # type: ignore
                 atlas_path = dest_dir.joinpath(atlas.m_Name).with_suffix(".atlas")
                 atlas_path.write_bytes(m_script_to_bytes(atlas.m_Script))
 
@@ -84,14 +84,14 @@ class Task(BaseTask):
                     lambda comp: comp.type.name == "MonoBehaviour",
                     game_obj.m_Components,
                 ):
-                    skeleton_animation = cast("MonoBehaviour", comp.read())
+                    skeleton_animation = cast("MonoBehaviour", comp.deref_parse_as_object())
                     if (
                         skeleton_data := getattr(
                             skeleton_animation, "skeletonDataAsset", None
                         )
                     ) is None:
                         continue
-                    data: MonoBehaviour = skeleton_data.read()
+                    data: MonoBehaviour = skeleton_data.deref_parse_as_object()
                     if data.m_Name.endswith("_SkeletonData"):
                         unpack(data, path)
                         break

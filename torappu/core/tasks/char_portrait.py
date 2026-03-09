@@ -30,7 +30,7 @@ class Task(BaseTask):
                 continue
 
             # unpack atlas
-            texture = cast("Texture2D", sprite.m_RD.texture.read())
+            texture = cast("Texture2D", sprite.m_RD.texture.deref_parse_as_object())
             if texture:
                 texture.image.save(ATLAS_DEST / f"{sprite.m_Name}.png")
 

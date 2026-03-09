@@ -31,7 +31,7 @@ class Task(BaseTask):
             if (behaviour := read_obj(MonoBehaviour, obj)) is None:
                 continue
 
-            script = behaviour.m_Script.read()
+            script = behaviour.m_Script.deref_parse_as_object()
             if script.m_Name != "Image":
                 continue
 
@@ -48,18 +48,18 @@ class Task(BaseTask):
                 if rgb_texture_pptr.path_id == 0 or alpha_texture_pptr.path_id == 0:
                     continue
 
-                rgb_texture: Texture2D = rgb_texture_pptr.read()
-                alpha_texture: Texture2D = alpha_texture_pptr.read()
+                rgb_texture: Texture2D = rgb_texture_pptr.deref_parse_as_object()
+                alpha_texture: Texture2D = alpha_texture_pptr.deref_parse_as_object()
                 merged_image, _ = merge_alpha(alpha_texture, rgb_texture)
                 merged_image.save(BASE_DIR.joinpath(f"{rgb_texture.m_Name}.png"))
             else:
                 if not behaviour.m_Sprite:  # type: ignore
                     # No texture or sprite, skip
                     continue
-                sprite = cast("PPtr[Sprite]", behaviour.m_Sprite).read()
+                sprite = cast("PPtr[Sprite]", behaviour.m_Sprite).deref_parse_as_object()
                 if isinstance(behaviour, Sprite) is False:
                     continue
-                rgb_texture = sprite.m_RD.texture.read()  # type:ignore Type "UnityPy.classes.generated.Texture2D" is not assignable to declared type "UnityPy.classes.legacy_patch.Texture2D.Texture2D"
+                rgb_texture = sprite.m_RD.texture.deref_parse_as_object()  # type:ignore
                 rgb_texture.image.save(BASE_DIR.joinpath(f"{rgb_texture.m_Name}.png"))
 
     def check(self, diff_list: list[Diff]) -> bool:

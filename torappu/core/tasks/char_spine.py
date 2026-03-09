@@ -35,7 +35,7 @@ class SpineConfig(BaseModel):
 
 def unpack_asset(data: MonoBehaviour, path: str) -> str:
     base_dir = STORAGE_DIR / "asset" / "raw" / "char_spine" / path
-    skel: TextAsset = data.skeletonJSON.read()  # type: ignore
+    skel: TextAsset = data.skeletonJSON.deref_parse_as_object()  # type: ignore
     skel_name: str = skel.m_Name.replace("#", "_")
     skel_dest_path = base_dir / skel_name
 
@@ -53,15 +53,15 @@ def unpack_asset(data: MonoBehaviour, path: str) -> str:
 
     atlas_assets: list[PPtr] = data.atlasAssets  # type: ignore
     for pptr in atlas_assets:
-        atlas_mono_behaviour: MonoBehaviour = pptr.read()
-        atlas: TextAsset = atlas_mono_behaviour.atlasFile.read()  # type: ignore
+        atlas_mono_behaviour: MonoBehaviour = pptr.deref_parse_as_object()
+        atlas: TextAsset = atlas_mono_behaviour.atlasFile.deref_parse_as_object()  # type: ignore
         # 文件名上不能有`#`，都替换成`_`
         atlas_content = re.sub(r"#([^.]*\.png)", r"_\1", atlas.m_Script)
         with open(base_dir / atlas.m_Name.replace("#", "_"), "w") as f:
             f.write(atlas_content)
         materials: list[PPtr] = atlas_mono_behaviour.materials  # type: ignore
         for mat_pptr in materials:
-            mat: Material = mat_pptr.read()
+            mat: Material = mat_pptr.deref_parse_as_object()
             img, name = material2img(mat)
             img.save(base_dir / (name.replace("#", "_") + ".png"))
 
@@ -212,7 +212,7 @@ class Task(BaseTask):
                     )
                 ) is None:
                     break
-                data: MonoBehaviour = skeleton_data.read()
+                data: MonoBehaviour = skeleton_data.deref_parse_as_object()
                 if data.m_Name.endswith("_SkeletonData"):
                     if skel_name := unpack_asset(data, f"{name}/{skin}/{side}"):
                         self.update_config(name, skin, side, skel_name)

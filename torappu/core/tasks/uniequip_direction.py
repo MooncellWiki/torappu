@@ -34,7 +34,7 @@ class Task(BaseTask):
     async def unpack_hub(self, ab_path: str):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
-            behaviour = obj.read_typetree()  # type: ignore
+            behaviour = obj.parse_as_dict()  # type: ignore
             # values: Arts/UI/UniEquipDirection/spc-y
             # keys: spc-y
             self.hub_config = dict(

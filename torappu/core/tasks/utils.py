@@ -12,7 +12,7 @@ from torappu.consts import GAMEDATA_DIR, PROFESSIONS
 
 def read_obj[T](expected_klass: type[T], obj: ObjectReader[T]) -> T | None:
     if expected_klass == obj.get_class():
-        return obj.read()
+        return obj.parse_as_object()
     else:
         return None
 
@@ -66,11 +66,11 @@ def material2img(mat: Material):
     rgbtexture: Texture2D | None = None
     for key, tex in mat.m_SavedProperties.m_TexEnvs:
         if get_name(key) == "_AlphaTex" and tex.m_Texture:
-            texture = tex.m_Texture.read()
+            texture = tex.m_Texture.deref_parse_as_object()
             if isinstance(texture, Texture2D):
                 atexture = texture
         if key == "_MainTex" and tex.m_Texture:
-            texture = tex.m_Texture.read()
+            texture = tex.m_Texture.deref_parse_as_object()
             if isinstance(texture, Texture2D):
                 rgbtexture = texture
 
@@ -81,7 +81,7 @@ def material2img(mat: Material):
 def build_container_path(env: Environment) -> dict[int, str]:
     container_map: dict[int, str] = {}
     for obj in filter(lambda obj: obj.type.name == "AssetBundle", env.objects):
-        typetree = obj.read_typetree()
+        typetree = obj.parse_as_dict()
         table = typetree["m_PreloadTable"]
         for path, info in typetree["m_Container"]:
             for i in range(

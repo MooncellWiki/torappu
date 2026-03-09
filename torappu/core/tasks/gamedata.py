@@ -293,7 +293,7 @@ class Task(BaseTask):
         real_path = await self.client.fetch_asset_bundle(ab_path)
         env = UnityPy.load(real_path)
         for path, object in env.container.items():
-            if isinstance((asset := object.read()), TextAsset):
+            if isinstance((asset := object.parse_as_object()), TextAsset):
                 await self._unpack_gamedata(path, asset)
 
     async def start(self):
