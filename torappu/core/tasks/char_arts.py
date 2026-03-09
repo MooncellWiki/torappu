@@ -56,7 +56,9 @@ class Task(BaseTask):
                 if not behaviour.m_Sprite:  # type: ignore
                     # No texture or sprite, skip
                     continue
-                sprite = cast("PPtr[Sprite]", behaviour.m_Sprite).deref_parse_as_object()
+                sprite = cast(
+                    "PPtr[Sprite]", behaviour.m_Sprite
+                ).deref_parse_as_object()
                 if isinstance(behaviour, Sprite) is False:
                     continue
                 rgb_texture = sprite.m_RD.texture.deref_parse_as_object()  # type:ignore

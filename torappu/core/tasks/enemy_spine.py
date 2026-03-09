@@ -56,7 +56,10 @@ class Task(BaseTask):
             atlas_assets = cast("list[PPtr[MonoBehaviour]]", data.atlasAssets)  # type: ignore
             for pptr in atlas_assets:
                 atlas_mono_behaviour = pptr.deref_parse_as_object()
-                atlas = cast("TextAsset", atlas_mono_behaviour.atlasFile.deref_parse_as_object())  # type: ignore
+                atlas = cast(
+                    "TextAsset",
+                    atlas_mono_behaviour.atlasFile.deref_parse_as_object(),  # pyright: ignore[reportAttributeAccessIssue]
+                )  # type: ignore
                 atlas_path = dest_dir.joinpath(atlas.m_Name).with_suffix(".atlas")
                 atlas_path.write_bytes(m_script_to_bytes(atlas.m_Script))
 
@@ -84,7 +87,9 @@ class Task(BaseTask):
                     lambda comp: comp.type.name == "MonoBehaviour",
                     game_obj.m_Components,
                 ):
-                    skeleton_animation = cast("MonoBehaviour", comp.deref_parse_as_object())
+                    skeleton_animation = cast(
+                        "MonoBehaviour", comp.deref_parse_as_object()
+                    )
                     if (
                         skeleton_data := getattr(
                             skeleton_animation, "skeletonDataAsset", None
