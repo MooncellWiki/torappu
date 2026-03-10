@@ -132,14 +132,20 @@ class Task(BaseTask):
     def _check_signed(self, path: str) -> bool:
         return any(signed in path for signed in signed_list)
 
+    def _get_flatbuffer_output_name(self, relative_path: str, fb_name: str) -> str:
+        source_name = Path(relative_path).name.removesuffix(".bytes")
+        if fb_name in {"prts___levels", "bake_muzzle_data"}:
+            return source_name
+        return fb_name
+
     @run_sync
     def _decode_flatbuffer(self, path: str, obj: TextAsset, fb_name: str):
         tmp_dir = TemporaryDirectory()
         tmp_path = Path(tmp_dir.name)
         relative_path = path.replace("dyn/gamedata/", "")
-        source_name = Path(relative_path).name
+        output_name = self._get_flatbuffer_output_name(relative_path, fb_name)
 
-        flatbuffer_data_path = tmp_path.joinpath(source_name)
+        flatbuffer_data_path = tmp_path.joinpath(f"{output_name}.bytes")
         output_path = tmp_path.joinpath(os.path.dirname(relative_path))
         flatbuffer_data_path.write_bytes(m_script_to_bytes(obj.m_Script)[128:])
 
@@ -159,7 +165,7 @@ class Task(BaseTask):
         ]
         subprocess.run(params)
         flatbuffer_data_path.unlink()
-        json_path = output_path / f"{source_name.removesuffix('.bytes')}.json"
+        json_path = output_path / f"{output_name}.json"
         jsons = json.loads(json_path.read_text(encoding="utf-8"))
         if fb_name == "activity_table":
             for k, v in jsons["dynActs"].items():
@@ -174,11 +180,7 @@ class Task(BaseTask):
             os.path.dirname(relative_path),
         )
         container_path.mkdir(parents=True, exist_ok=True)
-        json_dest_path = container_path / source_name
-        if json_dest_path.name.endswith(".lua.bytes"):
-            json_dest_path = json_dest_path.with_suffix("")
-        elif json_dest_path.name.endswith(".bytes"):
-            json_dest_path = json_dest_path.with_suffix(".json")
+        json_dest_path = container_path / f"{output_name}.json"
         json_dest_path.write_text(
             json.dumps(
                 jsons,
