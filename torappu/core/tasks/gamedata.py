@@ -87,6 +87,7 @@ encrypted_list = [
     "gamedata/battle",
 ]
 flatbuffer_mappings = {
+    "gamedata/bakemuzzledata/": "bake_muzzle_data",
     "gamedata/levels/enemydata/enemy_database": "enemy_database",
     "gamedata/levels/": "prts___levels",
     "gamedata/buff_table": "buff_table",
@@ -135,11 +136,11 @@ class Task(BaseTask):
     def _decode_flatbuffer(self, path: str, obj: TextAsset, fb_name: str):
         tmp_dir = TemporaryDirectory()
         tmp_path = Path(tmp_dir.name)
+        relative_path = path.replace("dyn/gamedata/", "")
+        source_name = Path(relative_path).name
 
-        flatbuffer_data_path = tmp_path.joinpath(f"{fb_name}.bytes")
-        output_path = tmp_path.joinpath(
-            os.path.dirname(path.replace("dyn/gamedata/", ""))
-        )
+        flatbuffer_data_path = tmp_path.joinpath(source_name)
+        output_path = tmp_path.joinpath(os.path.dirname(relative_path))
         flatbuffer_data_path.write_bytes(m_script_to_bytes(obj.m_Script)[128:])
 
         params = [
@@ -158,7 +159,7 @@ class Task(BaseTask):
         ]
         subprocess.run(params)
         flatbuffer_data_path.unlink()
-        json_path = output_path / f"{fb_name}.json"
+        json_path = output_path / f"{source_name.removesuffix('.bytes')}.json"
         jsons = json.loads(json_path.read_text(encoding="utf-8"))
         if fb_name == "activity_table":
             for k, v in jsons["dynActs"].items():
@@ -170,10 +171,14 @@ class Task(BaseTask):
             "asset",
             "gamedata",
             self.client.version.res_version,
-            os.path.dirname(path.replace("dyn/gamedata/", "")),
+            os.path.dirname(relative_path),
         )
         container_path.mkdir(parents=True, exist_ok=True)
-        json_dest_path = container_path / f"{fb_name}.json"
+        json_dest_path = container_path / source_name
+        if json_dest_path.name.endswith(".lua.bytes"):
+            json_dest_path = json_dest_path.with_suffix("")
+        elif json_dest_path.name.endswith(".bytes"):
+            json_dest_path = json_dest_path.with_suffix(".json")
         json_dest_path.write_text(
             json.dumps(
                 jsons,
