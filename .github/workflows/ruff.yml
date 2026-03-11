@@ -11,7 +11,7 @@ on:
 jobs:
   ruff:
     name: Ruff Lint
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     concurrency:
       group: ruff-${{ github.ref }}
       cancel-in-progress: true
