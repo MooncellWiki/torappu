@@ -110,7 +110,9 @@ class Task(BaseTask):
             ),
         )
         skin_name = "默认" if skin == "defaultskin" else self.skin_map.get(skin, None)
-        assert skin_name is not None, f"skin {skin} not found"
+        if skin_name is None:
+            logger.warning(f"skin {skin} not found, skipped")
+            return
         self.changed_char[name].skin.setdefault(skin_name, {})
         side_map = {
             "spine": "战斗",
