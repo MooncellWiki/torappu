@@ -254,6 +254,7 @@ class Client:
         decoded_path = GAMEDATA_DIR.joinpath(
             self.version.res_version, RESOURCE_MANIFEST_IDX_NAME
         )
+        decoded_path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
             jsons = json.loads(resource_manifest_schema.binary_to_json(flatbuffer_data))
