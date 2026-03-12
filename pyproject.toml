@@ -13,7 +13,6 @@ dependencies = [
   "bson (>=0.5.10,<0.6.0)",
   "numpy (>=2.2.4,<3.0.0)",
   "click (>=8.1.7,<9.0.0)",
-  "pydub (>=0.25.1,<0.26.0)",
   "fastcrc (>=0.3.2,<0.4.0)",
   "unitypy (==1.22.5)",
   "tenacity (>=9.0.0,<10.0.0)",
@@ -23,7 +22,6 @@ dependencies = [
   "pydantic-settings (>=2.0.0,<3.0.0)",
   "sentry-sdk[loguru,httpx] (>=2.13.0,<3.0.0)",
   "ark-fbs (>=0.1.2,<0.2.0)",
-  "audioop-lts (>=0.2.2,<0.3.0)",
 ]
 
 [dependency-groups]

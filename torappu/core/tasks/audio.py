@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import ClassVar
 
 import UnityPy
-from pydub import AudioSegment
 from UnityPy.classes import AudioClip
 
 from torappu.consts import STORAGE_DIR
@@ -83,11 +82,32 @@ class Task(BaseTask):
 
             logger.error(f"ffmpeg error: {returncode=!r} {stdout=!r} {stderr=!r}")
 
-    def combie(self, intro_path: Path | None, loop_path: Path, combie_path: Path):
-        intro = AudioSegment.from_mp3(intro_path)
-        loop = AudioSegment.from_mp3(loop_path)
-        intro = intro + loop
-        intro.export(combie_path, format="mp3", bitrate="128k")
+    def combine(self, intro_path: Path, loop_path: Path, combine_path: Path):
+        result = subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                str(intro_path),
+                "-i",
+                str(loop_path),
+                "-filter_complex",
+                "[0:a][1:a]concat=n=2:v=0:a=1[a]",
+                "-map",
+                "[a]",
+                "-b:a",
+                "128k",
+                str(combine_path),
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"failed to concat audio: intro={intro_path!s} loop={loop_path!s} "
+                f"output={combine_path!s} stderr={result.stderr!r}"
+            )
 
     def make_banks(self):
         audio_data = get_gamedata(
@@ -128,8 +148,8 @@ class Task(BaseTask):
                 dist.symlink_to("../audio/" + loop_path)
                 continue
 
-            logger.debug(f"combie {intro_path} and {loop_path} to {dist}")
-            self.combie(AUDIO_DIR / intro_path, AUDIO_DIR / loop_path, dist)
+            logger.debug(f"combine {intro_path} and {loop_path} to {dist}")
+            self.combine(AUDIO_DIR / intro_path, AUDIO_DIR / loop_path, dist)
 
         for key, value in audio_data["bankAlias"].items():
             path = base_dir / (key + ".mp3")
