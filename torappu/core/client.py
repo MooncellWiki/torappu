@@ -20,6 +20,7 @@ from torappu.consts import (
     HG_CN_BASEURL,
     HOT_UPDATE_LIST_DIR,
     PRE_RESOLVE_PATHS,
+    RESOURCE_MANIFEST_IDX_NAME,
     STORAGE_DIR,
 )
 from torappu.core.utils.path import hg_normalize_url
@@ -250,7 +251,9 @@ class Client:
     def load_idx(self, idx_path: str, manifest_name: str):
         idx = Path(idx_path).read_bytes()
         flatbuffer_data = idx[128:]
-        decoded_path = GAMEDATA_DIR.joinpath(self.version.res_version, manifest_name)
+        decoded_path = GAMEDATA_DIR.joinpath(
+            self.version.res_version, RESOURCE_MANIFEST_IDX_NAME
+        )
 
         try:
             jsons = json.loads(resource_manifest_schema.binary_to_json(flatbuffer_data))
