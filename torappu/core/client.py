@@ -25,21 +25,11 @@ from torappu.core.utils.path import hg_normalize_url
 from torappu.log import logger
 from torappu.models import ABInfo, Diff, HotUpdateInfo, Version
 
-
-def _create_resource_manifest_schema() -> FBSchema:
-    options = FBOptions()
-    options.strict_json = True
-    options.natural_utf8 = True
-    options.defaults_json = True
-    options.size_prefixed = False
-    return FBSchema.from_fbs_file(
-        "assets/ResourceManifest.fbs",
-        include_paths=["assets"],
-        options=options,
-    )
-
-
-resource_manifest_schema: FBSchema = _create_resource_manifest_schema()
+resource_manifest_schema: FBSchema = FBSchema.from_fbs_file(
+    "assets/ResourceManifest.fbs",
+    include_paths=["assets"],
+    options=FBOptions(),
+)
 
 
 class Client:

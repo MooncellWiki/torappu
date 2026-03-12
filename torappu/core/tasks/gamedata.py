@@ -144,17 +144,11 @@ class Task(BaseTask):
         if schema is not None:
             return schema
 
-        options = FBOptions()
-        options.strict_json = True
-        options.natural_utf8 = True
-        options.defaults_json = True
-        options.size_prefixed = False
-
         schema_path = FBS_DIR / f"{fb_name}.fbs"
         schema = FBSchema.from_fbs_file(
             str(schema_path),
             include_paths=[str(FBS_DIR)],
-            options=options,
+            options=FBOptions(),
         )
         flatbuffer_schema_cache[fb_name] = schema
         return schema
