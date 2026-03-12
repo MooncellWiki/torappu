@@ -15,6 +15,7 @@ from UnityPy.classes import MonoBehaviour
 
 from torappu.config import Config
 from torappu.consts import (
+    GAMEDATA_DIR,
     HEADERS,
     HG_CN_BASEURL,
     HOT_UPDATE_LIST_DIR,
@@ -57,7 +58,7 @@ class Client:
             self.prev_hot_update_list = None
         if self.hot_update_list.manifest_name is not None:
             idx_path = await self.fetch_asset_bundle(self.hot_update_list.manifest_name)
-            self.load_idx(idx_path)
+            self.load_idx(idx_path, self.hot_update_list.manifest_name)
         else:
             await self.load_torappu_index()
 
@@ -246,12 +247,17 @@ class Client:
                 for item in torappu_index.assetToBundleList  # type: ignore
             }
 
-    def load_idx(self, idx_path: str):
+    def load_idx(self, idx_path: str, manifest_name: str):
         idx = Path(idx_path).read_bytes()
         flatbuffer_data = idx[128:]
+        decoded_path = GAMEDATA_DIR.joinpath(self.version.res_version, manifest_name)
 
         try:
             jsons = json.loads(resource_manifest_schema.binary_to_json(flatbuffer_data))
+            decoded_path.write_text(
+                json.dumps(jsons, ensure_ascii=False, separators=(",", ":")),
+                encoding="utf-8",
+            )
         except Exception as exc:
             raise RuntimeError(
                 f"failed to decode idx flatbuffer from {idx_path!r}"
