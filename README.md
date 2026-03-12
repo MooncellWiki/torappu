@@ -13,7 +13,7 @@ An unpacker for Arknights assets with a focus on resource extraction and analysi
 
 ## Requirements
 
-- Python 3.12+
+- Python 3.13+
 - Dependencies as specified in pyproject.toml
 
 ## Installation

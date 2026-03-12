@@ -31,7 +31,7 @@ dev = ["ruff>=0.15.0,<1", "pre-commit>=4.0.0,<5"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py312"
+target-version = "py313"
 
 [tool.ruff.format]
 line-ending = "lf"
@@ -75,7 +75,7 @@ keep-runtime-typing = true
 
 [tool.pyright]
 extraPaths = ["./"]
-pythonVersion = "3.12"
+pythonVersion = "3.13"
 pythonPlatform = "All"
 executionEnvironments = [{ root = "./" }]
 
