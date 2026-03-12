@@ -76,7 +76,6 @@ docker run -e TOKEN=your_token -v $(pwd)/storage:/app/storage torappu [CLIENT_VE
   - `core/`: Core functionality
 - `OpenArknightsFBS/`: FlatBuffer schema definitions
 - `assets/`: Asset resources
-- `bin/`: Binary tools (includes flatc for FlatBuffer compilation)
 - `scripts/`: Utility scripts
 - `storage/`: Storage for extracted assets
 

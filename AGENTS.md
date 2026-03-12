@@ -41,7 +41,6 @@ Common flags:
 - `storage/asset/gamedata/`: decoded game data
 - `storage/asset/raw/`: raw extracted assets
 - `OpenArknightsFBS/FBS/`: flatbuffer schemas
-- `bin/flatc` (`bin/flatc.exe` on Windows): flatc binary
 
 ## Config (Env)
 
