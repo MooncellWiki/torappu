@@ -6,9 +6,10 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import anyio
-import ark_fbs
 import httpx
 import UnityPy
+from ark_fbs import Options as FBOptions
+from ark_fbs import Schema as FBSchema
 from tenacity import retry, wait_random_exponential
 from UnityPy.classes import MonoBehaviour
 
@@ -24,7 +25,21 @@ from torappu.core.utils.path import hg_normalize_url
 from torappu.log import logger
 from torappu.models import ABInfo, Diff, HotUpdateInfo, Version
 
-resource_manifest_schema: ark_fbs.Schema | None = None
+
+def _create_resource_manifest_schema() -> FBSchema:
+    options = FBOptions()
+    options.strict_json = True
+    options.natural_utf8 = True
+    options.defaults_json = True
+    options.size_prefixed = False
+    return FBSchema.from_fbs_file(
+        "assets/ResourceManifest.fbs",
+        include_paths=["assets"],
+        options=options,
+    )
+
+
+resource_manifest_schema: FBSchema = _create_resource_manifest_schema()
 
 
 class Client:
@@ -244,19 +259,6 @@ class Client:
     def load_idx(self, idx_path: str):
         idx = Path(idx_path).read_bytes()
         flatbuffer_data = idx[128:]
-
-        global resource_manifest_schema
-        if resource_manifest_schema is None:
-            options = ark_fbs.Options()
-            options.strict_json = True
-            options.natural_utf8 = True
-            options.defaults_json = True
-            options.size_prefixed = False
-            resource_manifest_schema = ark_fbs.Schema.from_fbs_file(
-                "assets/ResourceManifest.fbs",
-                include_paths=["assets"],
-                options=options,
-            )
 
         try:
             jsons = json.loads(resource_manifest_schema.binary_to_json(flatbuffer_data))

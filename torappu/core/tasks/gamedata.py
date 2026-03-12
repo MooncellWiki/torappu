@@ -6,9 +6,10 @@ import platform
 from pathlib import Path
 from typing import ClassVar
 
-import ark_fbs
 import bson
 import UnityPy
+from ark_fbs import Options as FBOptions
+from ark_fbs import Schema as FBSchema
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from UnityPy.classes import TextAsset
@@ -94,7 +95,7 @@ flatbuffer_mappings = {
 plaintexts = ["levels/levels_meta.json", "data_version.txt"]
 signed_list = ["excel", "_table", "[uc]lua"]
 chat_mask = "UITpAi82pHAWwnzqHRMCwPonJLIB3WCl"
-flatbuffer_schema_cache: dict[str, ark_fbs.Schema] = {}
+flatbuffer_schema_cache: dict[str, FBSchema] = {}
 
 
 class Task(BaseTask):
@@ -138,19 +139,19 @@ class Task(BaseTask):
             return source_name
         return fb_name
 
-    def _get_flatbuffer_schema(self, fb_name: str) -> ark_fbs.Schema:
+    def _get_flatbuffer_schema(self, fb_name: str) -> FBSchema:
         schema = flatbuffer_schema_cache.get(fb_name)
         if schema is not None:
             return schema
 
-        options = ark_fbs.Options()
+        options = FBOptions()
         options.strict_json = True
         options.natural_utf8 = True
         options.defaults_json = True
         options.size_prefixed = False
 
         schema_path = FBS_DIR / f"{fb_name}.fbs"
-        schema = ark_fbs.Schema.from_fbs_file(
+        schema = FBSchema.from_fbs_file(
             str(schema_path),
             include_paths=[str(FBS_DIR)],
             options=options,
