@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,7 +19,6 @@ class Config(BaseSettings):
     timeout: int = 10
 
     backend_endpoint: str | None = None
-    flatc_path: Path = get_flatc_path()
 
     sentry_dsn: str | None = None
 

@@ -46,7 +46,7 @@ Common flags:
 
 - `ENVIRONMENT`, `LOG_LEVEL`, `TIMEOUT`
 - `TOKEN`, `BACKEND_ENDPOINT` (for upload-related tasks, e.g. `ItemDemand`)
-- `FLATC_PATH`, `SENTRY_DSN`
+- `SENTRY_DSN`
 
 Use `BACKEND_ENDPOINT` (not `ENDPOINT`).
 

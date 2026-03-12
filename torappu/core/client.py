@@ -1,13 +1,12 @@
 import asyncio
 import json
-import subprocess
 from hashlib import md5
 from io import BytesIO
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
 import anyio
+import ark_fbs
 import httpx
 import UnityPy
 from tenacity import retry, wait_random_exponential
@@ -15,7 +14,6 @@ from UnityPy.classes import MonoBehaviour
 
 from torappu.config import Config
 from torappu.consts import (
-    GAMEDATA_DIR,
     HEADERS,
     HG_CN_BASEURL,
     HOT_UPDATE_LIST_DIR,
@@ -25,6 +23,8 @@ from torappu.consts import (
 from torappu.core.utils.path import hg_normalize_url
 from torappu.log import logger
 from torappu.models import ABInfo, Diff, HotUpdateInfo, Version
+
+resource_manifest_schema: ark_fbs.Schema | None = None
 
 
 class Client:
@@ -52,12 +52,7 @@ class Client:
             self.prev_hot_update_list = None
         if self.hot_update_list.manifest_name is not None:
             idx_path = await self.fetch_asset_bundle(self.hot_update_list.manifest_name)
-            self.load_idx(
-                idx_path,
-                GAMEDATA_DIR.joinpath(
-                    self.version.res_version, self.hot_update_list.manifest_name
-                ),
-            )
+            self.load_idx(idx_path)
         else:
             await self.load_torappu_index()
 
@@ -246,30 +241,30 @@ class Client:
                 for item in torappu_index.assetToBundleList  # type: ignore
             }
 
-    def load_idx(self, idx_path: str, decoded_path: Path):
-        tmp_dir = TemporaryDirectory()
-        tmp_path = Path(tmp_dir.name)
+    def load_idx(self, idx_path: str):
         idx = Path(idx_path).read_bytes()
-        flatbuffer_data_path = tmp_path / "idx.bin"
-        flatbuffer_data_path.write_bytes(idx[128:])
-        params = [
-            self.config.flatc_path,
-            "-o",
-            decoded_path.resolve(),
-            "--no-warnings",
-            "--json",
-            "--strict-json",
-            "--natural-utf8",
-            "--defaults-json",
-            "--raw-binary",
-            "assets/ResourceManifest.fbs",
-            "--",
-            flatbuffer_data_path,
-        ]
-        subprocess.run(params)
-        flatbuffer_data_path.unlink()
-        json_path = decoded_path / "idx.json"
-        jsons = json.loads(json_path.read_text(encoding="utf-8"))
+        flatbuffer_data = idx[128:]
+
+        global resource_manifest_schema
+        if resource_manifest_schema is None:
+            options = ark_fbs.Options()
+            options.strict_json = True
+            options.natural_utf8 = True
+            options.defaults_json = True
+            options.size_prefixed = False
+            resource_manifest_schema = ark_fbs.Schema.from_fbs_file(
+                "assets/ResourceManifest.fbs",
+                include_paths=["assets"],
+                options=options,
+            )
+
+        try:
+            jsons = json.loads(resource_manifest_schema.binary_to_json(flatbuffer_data))
+        except Exception as exc:
+            raise RuntimeError(
+                f"failed to decode idx flatbuffer from {idx_path!r}"
+            ) from exc
+
         self.asset_to_bundle = {
             item["assetName"]: jsons["bundles"][item["bundleIndex"]]["name"]
             for item in jsons["assetToBundleList"]
