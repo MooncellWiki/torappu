@@ -41,13 +41,12 @@ Common flags:
 - `storage/asset/gamedata/`: decoded game data
 - `storage/asset/raw/`: raw extracted assets
 - `OpenArknightsFBS/FBS/`: flatbuffer schemas
-- `bin/flatc` (`bin/flatc.exe` on Windows): flatc binary
 
 ## Config (Env)
 
 - `ENVIRONMENT`, `LOG_LEVEL`, `TIMEOUT`
 - `TOKEN`, `BACKEND_ENDPOINT` (for upload-related tasks, e.g. `ItemDemand`)
-- `FLATC_PATH`, `SENTRY_DSN`
+- `SENTRY_DSN`
 
 Use `BACKEND_ENDPOINT` (not `ENDPOINT`).
 

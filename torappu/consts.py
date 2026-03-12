@@ -17,6 +17,8 @@ STORAGE_DIR = BASE_DIR / "storage"
 GAMEDATA_DIR = STORAGE_DIR / "asset" / "gamedata"
 HOT_UPDATE_LIST_DIR = STORAGE_DIR / "hot_update_list"
 
+RESOURCE_MANIFEST_IDX_NAME = "resource_manifest_idx.json"
+
 HEADERS = {
     "user-agent": "Dalvik/2.1.0 (Linux; U; Android 6.0.1; vivo X9L Build/MMB29M)"
 }

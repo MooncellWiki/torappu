@@ -1,18 +1,6 @@
-from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from torappu.consts import MACOS, WINDOWS
-
-
-def get_flatc_path():
-    if WINDOWS:
-        return Path("bin/flatc.exe")
-    elif MACOS:
-        return Path("bin/macos/flatc")
-    else:
-        return Path("bin/flatc")
 
 
 class Config(BaseSettings):
@@ -31,7 +19,6 @@ class Config(BaseSettings):
     timeout: int = 10
 
     backend_endpoint: str | None = None
-    flatc_path: Path = get_flatc_path()
 
     sentry_dsn: str | None = None
 

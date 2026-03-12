@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.12-bookworm AS requirements-stage
+FROM python:3.13-bookworm AS requirements-stage
 
 WORKDIR /tmp
 
@@ -12,7 +12,7 @@ COPY ./pyproject.toml ./uv.lock* /tmp/
 
 RUN uv export --format requirements.txt -o requirements.txt --no-editable --no-hashes --no-dev --no-emit-project
 
-FROM python:3.12-bookworm AS build-stage
+FROM python:3.13-bookworm AS build-stage
 
 WORKDIR /wheel
 
@@ -20,7 +20,7 @@ COPY --from=requirements-stage /tmp/requirements.txt /wheel/requirements.txt
 
 RUN pip wheel --wheel-dir=/wheel --no-cache-dir --requirement /wheel/requirements.txt
 
-FROM python:3.12-bookworm AS metadata-stage
+FROM python:3.13-bookworm AS metadata-stage
 
 WORKDIR /tmp
 
@@ -29,7 +29,7 @@ RUN --mount=type=bind,source=./.git/,target=/tmp/.git/ \
   || git rev-parse --short HEAD > /tmp/VERSION \
   && echo "Building version: $(cat /tmp/VERSION)"
 
-FROM python:3.12-slim-bookworm
+FROM python:3.13-slim-bookworm
 
 WORKDIR /app
 
@@ -54,7 +54,5 @@ RUN pip install --no-cache-dir --no-index --find-links=/wheel -r /wheel/requirem
 COPY --from=metadata-stage /tmp/VERSION /app/VERSION
 
 COPY . /app/
-
-RUN chmod -R +x /app/bin
 
 ENTRYPOINT ["python", "-m", "torappu"]

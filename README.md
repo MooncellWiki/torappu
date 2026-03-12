@@ -13,7 +13,7 @@ An unpacker for Arknights assets with a focus on resource extraction and analysi
 
 ## Requirements
 
-- Python 3.12+
+- Python 3.13+
 - Dependencies as specified in pyproject.toml
 
 ## Installation
@@ -76,7 +76,6 @@ docker run -e TOKEN=your_token -v $(pwd)/storage:/app/storage torappu [CLIENT_VE
   - `core/`: Core functionality
 - `OpenArknightsFBS/`: FlatBuffer schema definitions
 - `assets/`: Asset resources
-- `bin/`: Binary tools (includes flatc for FlatBuffer compilation)
 - `scripts/`: Utility scripts
 - `storage/`: Storage for extracted assets
 

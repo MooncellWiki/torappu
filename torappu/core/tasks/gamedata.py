@@ -3,13 +3,13 @@ import base64
 import json
 import os
 import platform
-import subprocess
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import ClassVar
 
 import bson
 import UnityPy
+from ark_fbs import Options as FBOptions
+from ark_fbs import Schema as FBSchema
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from UnityPy.classes import TextAsset
@@ -95,6 +95,7 @@ flatbuffer_mappings = {
 plaintexts = ["levels/levels_meta.json", "data_version.txt"]
 signed_list = ["excel", "_table", "[uc]lua"]
 chat_mask = "UITpAi82pHAWwnzqHRMCwPonJLIB3WCl"
+flatbuffer_schema_cache: dict[str, FBSchema] = {}
 
 
 class Task(BaseTask):
@@ -138,35 +139,33 @@ class Task(BaseTask):
             return source_name
         return fb_name
 
+    def _get_flatbuffer_schema(self, fb_name: str) -> FBSchema:
+        schema = flatbuffer_schema_cache.get(fb_name)
+        if schema is not None:
+            return schema
+
+        schema_path = FBS_DIR / f"{fb_name}.fbs"
+        schema = FBSchema.from_fbs_file(
+            str(schema_path),
+            include_paths=[str(FBS_DIR)],
+            options=FBOptions(),
+        )
+        flatbuffer_schema_cache[fb_name] = schema
+        return schema
+
     @run_sync
     def _decode_flatbuffer(self, path: str, obj: TextAsset, fb_name: str):
-        tmp_dir = TemporaryDirectory()
-        tmp_path = Path(tmp_dir.name)
         relative_path = path.replace("dyn/gamedata/", "")
         output_name = self._get_flatbuffer_output_name(relative_path, fb_name)
+        flatbuffer_data = m_script_to_bytes(obj.m_Script)[128:]
+        try:
+            schema = self._get_flatbuffer_schema(fb_name)
+            jsons = json.loads(schema.binary_to_json(flatbuffer_data))
+        except Exception as exc:
+            raise RuntimeError(
+                f"failed to decode flatbuffer {fb_name!r} for asset {path!r}"
+            ) from exc
 
-        flatbuffer_data_path = tmp_path.joinpath(f"{output_name}.bytes")
-        output_path = tmp_path.joinpath(os.path.dirname(relative_path))
-        flatbuffer_data_path.write_bytes(m_script_to_bytes(obj.m_Script)[128:])
-
-        params = [
-            self.client.config.flatc_path,
-            "-o",
-            output_path.resolve(),
-            "--no-warnings",
-            "--json",
-            "--strict-json",
-            "--natural-utf8",
-            "--defaults-json",
-            "--raw-binary",
-            f"{FBS_DIR}/{fb_name}.fbs",
-            "--",
-            flatbuffer_data_path.resolve(),
-        ]
-        subprocess.run(params)
-        flatbuffer_data_path.unlink()
-        json_path = output_path / f"{output_name}.json"
-        jsons = json.loads(json_path.read_text(encoding="utf-8"))
         if fb_name == "activity_table":
             for k, v in jsons["dynActs"].items():
                 if "base64" in v:
@@ -189,8 +188,6 @@ class Task(BaseTask):
             ),
             encoding="utf-8",
         )
-
-        tmp_dir.cleanup()
 
     @run_sync
     def _decrypt(self, path: str, obj: TextAsset, is_signed: bool):
