@@ -13,7 +13,7 @@ class Config(BaseSettings):
 
     environment: Literal["production", "debug"] = "debug"
 
-    log_level: int | str = "INFO"
+    log_level: int | str = "DEBUG"
 
     token: str | None = None
     timeout: int = 10
