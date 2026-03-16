@@ -89,7 +89,7 @@ jobs:
           echo "ARTIFACT=${PLATFORM/\//-}-digests" >> $GITHUB_OUTPUT
 
       - name: Generate Labels
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         id: metadata
         with:
           images: ${{ steps.image.outputs.IMAGE }}
@@ -161,7 +161,7 @@ jobs:
           echo "IMAGE=${REPO,,}" >> $GITHUB_OUTPUT
 
       - name: Generate Tags
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         id: metadata
         with:
           images: |
