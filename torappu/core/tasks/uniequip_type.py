@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import ClassVar
 
 import anyio
@@ -6,7 +7,7 @@ from UnityPy.classes import Sprite
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
-from torappu.core.tasks.utils import read_obj
+from torappu.core.tasks.utils import build_container_path, read_obj
 from torappu.models import Diff
 
 from .base import BaseTask
@@ -25,11 +26,16 @@ class Task(BaseTask):
 
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
+        container_map = build_container_path(env)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
             if texture := read_obj(Sprite, obj):
-                texture.image.save(
-                    BASE_DIR.joinpath(f"{self.hub_config[texture.m_Name]}.png")
-                )
+                if texture.object_reader is None:
+                    continue
+                container_path = container_map[texture.object_reader.path_id]
+                filename = Path(container_path).name
+                if not filename.lower().endswith(".png"):
+                    filename = f"{filename}.png"
+                texture.image.save(BASE_DIR.joinpath(filename))
 
     async def unpack_hub(self, ab_path: str):
         env = UnityPy.load(ab_path)
@@ -39,7 +45,7 @@ class Task(BaseTask):
             # keys: pri-x
             self.hub_config = dict(
                 zip(
-                    [val.split("/")[-1] for val in behaviour["_values"]],
+                    behaviour["_values"],
                     behaviour["_keys"],
                 )
             )  # type: ignore
