@@ -22,8 +22,6 @@ class Task(BaseTask):
     def __init__(self, client: Client) -> None:
         super().__init__(client)
 
-        self.hub_config: dict[str, str] = {}
-
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
@@ -35,19 +33,6 @@ class Task(BaseTask):
                 if not filename.lower().endswith(".png"):
                     filename = f"{filename}.png"
                 texture.image.save(BASE_DIR.joinpath(filename))
-
-    async def unpack_hub(self, ab_path: str):
-        env = UnityPy.load(ab_path)
-        for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
-            behaviour = obj.read_typetree()
-            # values: Arts/UI/UniEquipDirection/spc-y
-            # keys: spc-y
-            self.hub_config = dict(
-                zip(
-                    [val.split("/")[-1] for val in behaviour["_values"]],
-                    behaviour["_keys"],
-                )
-            )
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
@@ -62,11 +47,6 @@ class Task(BaseTask):
     async def start(self):
         paths = await self.client.fetch_asset_bundles(list(self.ab_list))
         BASE_DIR.mkdir(parents=True, exist_ok=True)
-
-        hub_ab_path = await self.client.fetch_asset_bundle(
-            self.client.asset_to_bundle["arts/ui/uniequipdirection/pic_hub"]
-        )
-        await self.unpack_hub(hub_ab_path)
 
         async with anyio.create_task_group() as tg:
             for _, ab_path in paths:
