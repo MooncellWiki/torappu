@@ -3,7 +3,6 @@ from asyncio.subprocess import Process
 
 import numpy as np
 from PIL import Image
-from UnityPy import Environment
 from UnityPy.classes import FastPropertyName, Material, Texture2D, UnityTexEnv
 from UnityPy.files.ObjectReader import ObjectReader
 
@@ -75,22 +74,6 @@ def material2img(mat: Material):
                 rgbtexture = texture
 
     return merge_alpha(atexture, rgbtexture)
-
-
-# https://github.com/Perfare/AssetStudio/blob/master/AssetStudioGUI/Studio.cs#L210
-def build_container_path(env: Environment) -> dict[int, str]:
-    container_map: dict[int, str] = {}
-    for obj in filter(lambda obj: obj.type.name == "AssetBundle", env.objects):
-        typetree = obj.read_typetree()
-        table = typetree["m_PreloadTable"]
-        for path, info in typetree["m_Container"]:
-            for i in range(
-                info["preloadIndex"],
-                info["preloadIndex"] + info["preloadSize"],
-            ):
-                container_map[table[i]["m_PathID"]] = path
-
-    return container_map
 
 
 def m_script_to_bytes(script: str) -> bytes:

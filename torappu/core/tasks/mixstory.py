@@ -6,7 +6,7 @@ from UnityPy.classes import Sprite
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
-from torappu.core.tasks.utils import build_container_path, read_obj
+from torappu.core.tasks.utils import read_obj
 from torappu.models import Diff
 
 from .base import BaseTask
@@ -24,12 +24,11 @@ class Task(BaseTask):
 
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
-        container_map = build_container_path(env)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
             if texture := read_obj(Sprite, obj):
                 if texture.object_reader is None:
                     continue
-                container_path = container_map[texture.object_reader.path_id]
+                container_path = texture.object_reader.container
 
                 # Map source directories to target directories
                 if container_path.startswith("dyn/arts/ui/mixstory/abbrs/"):

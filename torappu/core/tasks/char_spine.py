@@ -14,7 +14,6 @@ from torappu.models import Diff
 
 from .base import BaseTask
 from .utils import (
-    build_container_path,
     get_gamedata,
     get_source,
     m_script_to_bytes,
@@ -127,8 +126,6 @@ class Task(BaseTask):
 
     @run_sync
     def unpack(self, env: UnityPy.Environment, unpacking_source: list[str]):
-        container_map = build_container_path(env)
-
         for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
             source = get_source(obj)
             if source not in unpacking_source:
@@ -157,7 +154,7 @@ class Task(BaseTask):
             side = None
             if game_obj.object_reader is None:
                 continue
-            container_path = container_map[game_obj.object_reader.path_id]
+            container_path = game_obj.object_reader.container
             # 基建
             if container_path.startswith("dyn/building/vault/characters"):
                 # char_485_pallas_epoque_12 or

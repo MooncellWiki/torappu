@@ -12,7 +12,6 @@ from torappu.models import Diff
 
 from .base import BaseTask
 from .utils import (
-    build_container_path,
     get_source,
     m_script_to_bytes,
     material2img,
@@ -44,8 +43,6 @@ class Task(BaseTask):
 
     @run_sync
     def unpack_ab(self, env: UnityPy.Environment, unpacking_source: str):
-        container_map = build_container_path(env)
-
         def unpack(data: MonoBehaviour, path: str):
             dest_dir = STORAGE_DIR / "asset" / "raw" / "enemy_spine" / path
             dest_dir.mkdir(parents=True, exist_ok=True)
@@ -75,11 +72,9 @@ class Task(BaseTask):
                 continue
 
             if game_obj.m_Name == "Spine" and game_obj.object_reader is not None:
-                path = (
-                    container_map[game_obj.object_reader.path_id]
-                    .replace("dyn/battle/prefabs/enemies/", "")
-                    .replace(".prefab", "")
-                )
+                path = game_obj.object_reader.container.replace(
+                    "dyn/battle/prefabs/enemies/", ""
+                ).replace(".prefab", "")
                 for comp in filter(
                     lambda comp: comp.type.name == "MonoBehaviour",
                     game_obj.m_Components,

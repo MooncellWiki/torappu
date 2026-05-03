@@ -1,4 +1,4 @@
-from pathlib import Path
+import os
 from typing import ClassVar
 
 import anyio
@@ -7,7 +7,7 @@ from UnityPy.classes import Sprite
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
-from torappu.core.tasks.utils import build_container_path, read_obj
+from torappu.core.tasks.utils import read_obj
 from torappu.models import Diff
 
 from .base import BaseTask
@@ -26,13 +26,12 @@ class Task(BaseTask):
 
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
-        container_map = build_container_path(env)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
             if texture := read_obj(Sprite, obj):
                 if texture.object_reader is None:
                     continue
-                container_path = container_map[texture.object_reader.path_id]
-                filename = Path(container_path).name
+                container_path = texture.object_reader.container
+                filename = os.path.basename(container_path)
                 if not filename.lower().endswith(".png"):
                     filename = f"{filename}.png"
                 texture.image.save(BASE_DIR.joinpath(filename))
@@ -40,7 +39,7 @@ class Task(BaseTask):
     async def unpack_hub(self, ab_path: str):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
-            behaviour = obj.read_typetree()  # type: ignore
+            behaviour = obj.read_typetree()
             # values: Arts/UI/UniEquipDirection/spc-y
             # keys: spc-y
             self.hub_config = dict(
@@ -48,7 +47,7 @@ class Task(BaseTask):
                     [val.split("/")[-1] for val in behaviour["_values"]],
                     behaviour["_keys"],
                 )
-            )  # type: ignore
+            )
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}

@@ -13,7 +13,6 @@ from torappu.models import Diff
 
 from .base import BaseTask
 from .utils import (
-    build_container_path,
     get_gamedata,
     read_obj,
     read_subprocess_stderr,
@@ -43,14 +42,13 @@ class Task(BaseTask):
 
     async def extract(self, real_path: str, ab_path: str):
         env = UnityPy.load(real_path)
-        container_map = build_container_path(env)
         for obj in filter(lambda obj: obj.type.name == "AudioClip", env.objects):
             if (clip := read_obj(AudioClip, obj)) is None:
                 continue
             for data in clip.samples.values():
                 if clip.object_reader is None:
                     continue
-                path = AUDIO_DIR / container_map[clip.object_reader.path_id].replace(
+                path = AUDIO_DIR / clip.object_reader.container.replace(
                     "dyn/audio/sound_beta_2/", ""
                 ).replace(".ogg", ".wav").replace("#", "__")
                 path.parent.mkdir(parents=True, exist_ok=True)
