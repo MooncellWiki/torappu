@@ -39,7 +39,7 @@ class Task(BaseTask):
     async def unpack_hub(self, ab_path: str):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "MonoBehaviour", env.objects):
-            behaviour = obj.read_typetree()  # type: ignore
+            behaviour = obj.read_typetree()
             # values: Arts/UI/UniEquipType/pri-x
             # keys: pri-x
             self.hub_config = dict(
@@ -47,7 +47,7 @@ class Task(BaseTask):
                     behaviour["_values"],
                     behaviour["_keys"],
                 )
-            )  # type: ignore
+            )
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
