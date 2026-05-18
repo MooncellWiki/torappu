@@ -6,8 +6,7 @@ import UnityPy
 from UnityPy.classes import Sprite
 
 from torappu.consts import STORAGE_DIR
-from torappu.core.client import Client
-from torappu.core.tasks.utils import read_obj
+from torappu.core.tasks.utils import build_container_path, read_obj
 from torappu.models import Diff
 
 from .base import BaseTask
@@ -19,16 +18,14 @@ class Task(BaseTask):
     priority: ClassVar[int] = 3
     name = "UniEquipType"
 
-    def __init__(self, client: Client) -> None:
-        super().__init__(client)
-
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
+        container_map = build_container_path(env)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
             if texture := read_obj(Sprite, obj):
                 if texture.object_reader is None:
                     continue
-                container_path = texture.object_reader.container
+                container_path = container_map[texture.object_reader.path_id]
                 filename = os.path.basename(container_path)
                 if not filename.lower().endswith(".png"):
                     filename = f"{filename}.png"

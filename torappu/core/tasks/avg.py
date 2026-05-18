@@ -15,6 +15,7 @@ from UnityPy.files.ObjectReader import ObjectReader
 
 from torappu.consts import STORAGE_DIR
 from torappu.core.tasks.utils import (
+    build_container_path,
     get_source,
     merge_alpha,
     read_obj,
@@ -32,7 +33,6 @@ ITEM_CONTAINER_PREFIX = "dyn/avg/items/"
 
 if TYPE_CHECKING:
     from UnityPy.files.SerializedFile import SerializedFile
-
 
 class Vector2Json(TypedDict):
     x: float
@@ -79,7 +79,6 @@ class CharacterDataJson(TypedDict):
 class NamedGameObject(Protocol):
     m_Name: str
     m_Components: list[PPtr[object]]
-
 
 def _vector_component(source: object, key: str) -> float:
     if isinstance(source, dict):
@@ -217,7 +216,9 @@ class CharacterSpriteGroup:
         )
 
     @classmethod
-    def from_legacy_object(cls, data: MonoBehaviour) -> "CharacterSpriteGroup | None":
+    def from_legacy_object(
+        cls, data: MonoBehaviour
+    ) -> "CharacterSpriteGroup | None":
         sprites = getattr(data, "sprites", None)
         if not isinstance(sprites, list):
             return None
@@ -590,6 +591,7 @@ class Task(BaseTask):
     async def unpack(
         self, env: UnityPy.Environment, unpacking_source: list[str]
     ) -> dict[str, CharacterDataJson]:
+        container_map = build_container_path(env)
         character_links: dict[str, CharacterDataJson] = {}
 
         for obj in env.objects:
@@ -597,7 +599,7 @@ class Task(BaseTask):
             if source not in unpacking_source:
                 continue
 
-            container_path = obj.container
+            container_path = container_map.get(obj.path_id)
             if container_path is None:
                 continue
 
