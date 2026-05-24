@@ -52,6 +52,10 @@ class Task(BaseTask):
                     target_path = container_path.replace(
                         "dyn/arts/ui/mixstory/titles/", "title/"
                     )
+                elif container_path.startswith("dyn/arts/ui/mixstory/backgrounds/"):
+                    target_path = container_path.replace(
+                        "dyn/arts/ui/mixstory/backgrounds/", "background/"
+                    )
                 else:
                     # Skip if it doesn't match any expected path
                     continue
