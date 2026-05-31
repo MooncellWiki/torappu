@@ -44,6 +44,10 @@ class Task(BaseTask):
                     target_path = container_path.replace(
                         "dyn/arts/ui/mixstory/decos/", "deco/"
                     )
+                elif container_path.startswith("dyn/arts/ui/mixstory/logos/"):
+                    target_path = container_path.replace(
+                        "dyn/arts/ui/mixstory/logos/", "deco/"
+                    )
                 elif container_path.startswith("dyn/arts/ui/mixstory/kvs/"):
                     target_path = container_path.replace(
                         "dyn/arts/ui/mixstory/kvs/", "kv/"
