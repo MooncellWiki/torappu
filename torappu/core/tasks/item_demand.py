@@ -2,7 +2,7 @@ import itertools
 import json
 from typing import ClassVar
 
-from torappu.consts import BASE_DIR
+from torappu.consts import STORAGE_DIR
 from torappu.log import logger
 from torappu.models import Diff
 
@@ -34,20 +34,9 @@ class Task(BaseTask):
 
     async def start(self):
         demand = self.get_item_demand()
-        if not self.client.config.token:
-            logger.warning("token not set, skipping item demand upload")
-            return
-
-        if self.client.config.backend_endpoint:
-            logger.debug("uploading item demand json")
-            await self.client.http_client.post(
-                self.client.config.backend_endpoint + "/api/v1/item/demand",
-                headers={"torappu-auth": self.client.config.token},
-                json=demand,
-            )
-        else:
-            dest = BASE_DIR / "itemDemand.json"
-            dest.write_text(json.dumps(demand, ensure_ascii=False), encoding="utf-8")
+        dest = STORAGE_DIR / "asset" / "raw" / "itemDemand.json"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(json.dumps(demand, ensure_ascii=False), encoding="utf-8")
 
     def get_item_demand(self):
         character_table = get_gamedata(
