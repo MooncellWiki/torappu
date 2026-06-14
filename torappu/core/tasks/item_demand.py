@@ -3,7 +3,6 @@ import json
 from typing import ClassVar
 
 from torappu.consts import STORAGE_DIR
-from torappu.log import logger
 from torappu.models import Diff
 
 from .base import BaseTask
