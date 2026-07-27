@@ -120,8 +120,8 @@ class Task(BaseTask):
             if dist.exists():
                 continue
 
-            intro_path: None | str = None
-            loop_path: None | str = None
+            intro_path: str | None = None
+            loop_path: str | None = None
 
             if bank["intro"]:
                 tmp = bank["intro"].lower().replace("audio/sound_beta_2/", "") + ".mp3"

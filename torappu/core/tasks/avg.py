@@ -34,6 +34,7 @@ ITEM_CONTAINER_PREFIX = "dyn/avg/items/"
 if TYPE_CHECKING:
     from UnityPy.files.SerializedFile import SerializedFile
 
+
 class Vector2Json(TypedDict):
     x: float
     y: float
@@ -79,6 +80,7 @@ class CharacterDataJson(TypedDict):
 class NamedGameObject(Protocol):
     m_Name: str
     m_Components: list[PPtr[object]]
+
 
 def _vector_component(source: object, key: str) -> float:
     if isinstance(source, dict):
@@ -216,9 +218,7 @@ class CharacterSpriteGroup:
         )
 
     @classmethod
-    def from_legacy_object(
-        cls, data: MonoBehaviour
-    ) -> "CharacterSpriteGroup | None":
+    def from_legacy_object(cls, data: MonoBehaviour) -> "CharacterSpriteGroup | None":
         sprites = getattr(data, "sprites", None)
         if not isinstance(sprites, list):
             return None

@@ -163,7 +163,7 @@ class Task(BaseTask):
         if fb_name == "bake_muzzle_data":
             # u32 name length + name bytes, then the flatbuffer
             (name_len,) = struct.unpack_from("<I", raw, 0)
-            flatbuffer_data = raw[4 + name_len:]
+            flatbuffer_data = raw[4 + name_len :]
         else:
             flatbuffer_data = raw[128:]
         try:
