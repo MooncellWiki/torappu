@@ -19,7 +19,6 @@ from torappu.consts import FBS_DIR, STORAGE_DIR
 from torappu.core.client import Client
 from torappu.core.tasks.utils import m_script_to_bytes
 from torappu.core.utils.thread import run_sync
-from torappu.log import logger
 from torappu.models import Diff
 
 from .base import BaseTask
@@ -169,7 +168,6 @@ class Task(BaseTask):
             flatbuffer_data = raw[128:]
         try:
             schema = self._get_flatbuffer_schema(fb_name)
-            logger.debug(f"Decoding flatbuffer {fb_name!r} for asset {path!r}...")
             jsons = json.loads(schema.binary_to_json(flatbuffer_data))
         except Exception as exc:
             raise RuntimeError(
@@ -208,11 +206,21 @@ class Task(BaseTask):
             if is_signed
             else bytearray(m_script_to_bytes(obj.m_Script))
         )
+        if len(cipher_data) % 16 != 0:
+            raise ValueError(
+                f"asset {path!r}: ciphertext length {len(cipher_data)} is not "
+                "16-byte aligned; likely an unregistered flatbuffer table — "
+                "check flatbuffer_list and OpenArknightsFBS/FBS"
+            )
+
         for i in range(16):
             cipher_data[i] ^= iv[i]
 
         cipher = AES.new(key, AES.MODE_CBC)
-        decipher = unpad(bytes(cipher.decrypt(cipher_data)), 16)
+        try:
+            decipher = unpad(bytes(cipher.decrypt(cipher_data)), 16)
+        except ValueError as exc:
+            raise RuntimeError(f"failed to decrypt asset {path!r}") from exc
         try:
             res = bytes(
                 json.dumps(
