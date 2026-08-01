@@ -50,6 +50,10 @@ class Task(BaseTask):
         uniequip_table = get_gamedata(
             self.client.version.res_version, "excel/uniequip_table.json"
         )
+        special_operator_table = get_gamedata(
+            self.client.version.res_version, "excel/special_operator_table.json"
+        )
+        special_operator_ids = set(special_operator_table["operatorBasicData"].keys())
 
         for patch_char_id, patch_char_detail in char_patch_table["patchChars"].items():
             patch_char_detail["name"] += (
@@ -62,6 +66,7 @@ class Task(BaseTask):
             if (
                 char_detail["profession"] == "TRAP"
                 or char_detail["profession"] == "TOKEN"
+                or char_id in special_operator_ids
             ):
                 continue
 
@@ -120,7 +125,10 @@ class Task(BaseTask):
                 i += 1
 
         for uniequip_id, uniequip_detail in uniequip_table["equipDict"].items():
-            if not uniequip_detail["itemCost"]:
+            if (
+                not uniequip_detail["itemCost"]
+                or uniequip_detail["charId"] in special_operator_ids
+            ):
                 continue
             item_costs = list(
                 itertools.chain.from_iterable(uniequip_detail["itemCost"].values())
