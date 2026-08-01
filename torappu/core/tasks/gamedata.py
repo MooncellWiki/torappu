@@ -27,6 +27,7 @@ from .base import BaseTask
 flatbuffer_list = [
     # excel
     "activity_table",
+    "arkvent_table",
     "audio_data",
     "battle_equip_table",
     "building_data",
