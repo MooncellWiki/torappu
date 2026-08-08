@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -12,6 +13,13 @@ class Version(BaseModel):
 class VersionInfo(BaseModel):
     cur: Version
     prev: Version | None
+
+
+class GameDataReady(BaseModel):
+    schema_version: int = 1
+    completed_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC).replace(microsecond=0)
+    )
 
 
 class ABInfo(BaseModel):

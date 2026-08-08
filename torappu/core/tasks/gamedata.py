@@ -4,7 +4,6 @@ import json
 import os
 import platform
 import struct
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import ClassVar
 
@@ -20,7 +19,7 @@ from torappu.consts import FBS_DIR, STORAGE_DIR
 from torappu.core.client import Client
 from torappu.core.tasks.utils import m_script_to_bytes
 from torappu.core.utils.thread import run_sync
-from torappu.models import Diff
+from torappu.models import Diff, GameDataReady
 
 from .base import BaseTask
 
@@ -346,15 +345,6 @@ class Task(BaseTask):
         )
         ready_path.parent.mkdir(parents=True, exist_ok=True)
         ready_path.write_text(
-            json.dumps(
-                {
-                    "schemaVersion": 1,
-                    "completedAt": datetime.now(UTC)
-                    .isoformat(timespec="seconds")
-                    .replace("+00:00", "Z"),
-                },
-                indent=2,
-            )
-            + "\n",
+            GameDataReady().model_dump_json(indent=2) + "\n",
             encoding="utf-8",
         )
