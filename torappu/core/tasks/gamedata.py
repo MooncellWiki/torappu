@@ -4,6 +4,7 @@ import json
 import os
 import platform
 import struct
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import ClassVar
 
@@ -336,3 +337,24 @@ class Task(BaseTask):
                 f"./{self.client.version.res_version}",
                 True,
             )
+
+        ready_path = STORAGE_DIR.joinpath(
+            "asset",
+            "gamedata",
+            self.client.version.res_version,
+            ".gamedata-ready.json",
+        )
+        ready_path.parent.mkdir(parents=True, exist_ok=True)
+        ready_path.write_text(
+            json.dumps(
+                {
+                    "schemaVersion": 1,
+                    "completedAt": datetime.now(UTC)
+                    .isoformat(timespec="seconds")
+                    .replace("+00:00", "Z"),
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
