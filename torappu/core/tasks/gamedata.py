@@ -19,7 +19,7 @@ from torappu.consts import FBS_DIR, STORAGE_DIR
 from torappu.core.client import Client
 from torappu.core.tasks.utils import m_script_to_bytes
 from torappu.core.utils.thread import run_sync
-from torappu.models import Diff
+from torappu.models import Diff, GameDataReady
 
 from .base import BaseTask
 
@@ -336,3 +336,15 @@ class Task(BaseTask):
                 f"./{self.client.version.res_version}",
                 True,
             )
+
+        ready_path = STORAGE_DIR.joinpath(
+            "asset",
+            "gamedata",
+            self.client.version.res_version,
+            ".gamedata-ready.json",
+        )
+        ready_path.parent.mkdir(parents=True, exist_ok=True)
+        ready_path.write_text(
+            GameDataReady().model_dump_json(indent=2) + "\n",
+            encoding="utf-8",
+        )
