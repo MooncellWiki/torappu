@@ -1,6 +1,7 @@
 import json
 import re
 from dataclasses import dataclass
+from math import isfinite
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Literal, Protocol, TypedDict, cast
 
@@ -524,13 +525,17 @@ class Task(BaseTask):
             game_object_name, char_link
         )
 
-    def _extract_sprite(self, sprite: Sprite, subdir: str, container_path: str):
+    @staticmethod
+    def _sprite_filename(container_path: str) -> str:
         file_name = Path(container_path).name
         if file_name == "":
             raise ValueError("Empty container path when extracting avg sprite")
         if not file_name.lower().endswith(".png"):
             file_name = f"{file_name}.png"
-        output_path = BASE_DIR.joinpath(subdir, file_name)
+        return file_name
+
+    def _extract_sprite(self, sprite: Sprite, subdir: str, container_path: str):
+        output_path = BASE_DIR.joinpath(subdir, self._sprite_filename(container_path))
         output_path.parent.mkdir(parents=True, exist_ok=True)
         sprite.image.save(output_path)
 
@@ -548,9 +553,17 @@ class Task(BaseTask):
         # The exported PNG already carries rect, so recording ppu alone lets
         # consumers derive the native display rect.
         ppu = float(sprite.m_PixelsToUnits)
-        if ppu <= 0:
-            return
-        ppus[self._container_filename(container_path)] = ppu
+        if not isfinite(ppu) or ppu <= 0:
+            # A non-positive ppu makes SetNativeSize divide by zero, and a
+            # non-finite one serializes as bare `NaN`/`Infinity`, which is not
+            # valid JSON and would break the whole sidecar for consumers.
+            raise ValueError(
+                f"Invalid sprite pixelsPerUnit {ppu!r} at {container_path}"
+            )
+        # Key on the exported PNG's stem rather than the container stem: the
+        # consumer looks the ppu up by the name it fetched the PNG under, and
+        # `_sprite_filename` is what decides that name.
+        ppus[Path(self._sprite_filename(container_path)).stem] = ppu
 
     @staticmethod
     def _load_json_object(path: Path) -> dict[str, object]:
