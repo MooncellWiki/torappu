@@ -24,7 +24,7 @@ from typing import Any
 import click
 import httpx
 import UnityPy
-from UnityPy.classes import Object
+from UnityPy.files.ObjectReader import ObjectReader
 
 import torappu.core  # noqa: F401  (patches DECOMPRESSION_MAP for custom lz4)
 from torappu.consts import (
@@ -111,7 +111,7 @@ def _dump_bundle(path: Path, dump_dir: Path) -> None:
 
     index: list[dict[str, Any]] = []
 
-    def walk_game_object(go: Object, depth: int = 0) -> list[dict[str, Any]]:
+    def walk_game_object(go: ObjectReader, depth: int = 0) -> list[dict[str, Any]]:
         entries: list[dict[str, Any]] = []
         data = go.read()
         entry: dict[str, Any] = {
