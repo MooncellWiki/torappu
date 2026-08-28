@@ -1,6 +1,7 @@
 import json
 import re
 from dataclasses import dataclass
+from math import isfinite
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Literal, Protocol, TypedDict, cast
 
@@ -524,15 +525,54 @@ class Task(BaseTask):
             game_object_name, char_link
         )
 
-    def _extract_sprite(self, sprite: Sprite, subdir: str, container_path: str):
+    @staticmethod
+    def _sprite_filename(container_path: str) -> str:
         file_name = Path(container_path).name
         if file_name == "":
             raise ValueError("Empty container path when extracting avg sprite")
         if not file_name.lower().endswith(".png"):
             file_name = f"{file_name}.png"
-        output_path = BASE_DIR.joinpath(subdir, file_name)
+        return file_name
+
+    def _extract_sprite(self, sprite: Sprite, subdir: str, container_path: str):
+        output_path = BASE_DIR.joinpath(subdir, self._sprite_filename(container_path))
         output_path.parent.mkdir(parents=True, exist_ok=True)
         sprite.image.save(output_path)
+
+    def _collect_background_ppu(
+        self,
+        sprite: Sprite,
+        container_path: str,
+        ppus: dict[str, float],
+    ) -> None:
+        # The client sizes the background Image via `Image.SetNativeSize()` as
+        # `sprite.rect / ppu * 100` (canvas referencePixelsPerUnit = 100), and
+        # AVG background art ships a per-asset tuned ppu, so the rendered size
+        # generally differs from the texture's pixel size (e.g. bg_cher_1:
+        # 1024x576 texture, ppu 68.2464 -> 1500.44x844 centered overscan).
+        # The exported PNG already carries rect, so recording ppu alone lets
+        # consumers derive the native display rect.
+        ppu = float(sprite.m_PixelsToUnits)
+        if not isfinite(ppu) or ppu <= 0:
+            # A non-positive ppu makes SetNativeSize divide by zero, and a
+            # non-finite one serializes as bare `NaN`/`Infinity`, which is not
+            # valid JSON and would break the whole sidecar for consumers.
+            raise ValueError(
+                f"Invalid sprite pixelsPerUnit {ppu!r} at {container_path}"
+            )
+        # Key on the exported PNG's stem rather than the container stem: the
+        # consumer looks the ppu up by the name it fetched the PNG under, and
+        # `_sprite_filename` is what decides that name.
+        ppus[Path(self._sprite_filename(container_path)).stem] = ppu
+
+    @staticmethod
+    def _load_json_object(path: Path) -> dict[str, object]:
+        if not path.exists():
+            return {}
+        current = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(current, dict):
+            raise ValueError(f"Unexpected json format at {path}")
+        return current
 
     @classmethod
     def _compact_character_links(
@@ -590,9 +630,10 @@ class Task(BaseTask):
 
     async def unpack(
         self, env: UnityPy.Environment, unpacking_source: list[str]
-    ) -> dict[str, CharacterDataJson]:
+    ) -> tuple[dict[str, CharacterDataJson], dict[str, float]]:
         container_map = build_container_path(env)
         character_links: dict[str, CharacterDataJson] = {}
+        background_ppus: dict[str, float] = {}
 
         for obj in env.objects:
             source = get_source(obj)
@@ -609,18 +650,21 @@ class Task(BaseTask):
                 continue
 
             if container_path.startswith(BG_CONTAINER_PREFIX):
-                if texture := read_obj(Sprite, obj):
-                    self._extract_sprite(texture, "background", container_path)
+                if sprite := read_obj(Sprite, obj):
+                    self._extract_sprite(sprite, "background", container_path)
+                    self._collect_background_ppu(
+                        sprite, container_path, background_ppus
+                    )
                 continue
 
             if container_path.startswith(
                 (IMAGE_CONTAINER_PREFIX, ITEM_CONTAINER_PREFIX)
             ):
-                if texture := read_obj(Sprite, obj):
-                    self._extract_sprite(texture, "images", container_path)
+                if sprite := read_obj(Sprite, obj):
+                    self._extract_sprite(sprite, "images", container_path)
                 continue
 
-        return character_links
+        return character_links, background_ppus
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
@@ -646,20 +690,21 @@ class Task(BaseTask):
             Path(resolved_path).name for resolved_path in resolved_paths
         ]
         env = UnityPy.load(*self.client.anon_paths, *resolved_paths)
-        character_links = await self.unpack(env, resolved_filenames)
+        character_links, background_ppus = await self.unpack(env, resolved_filenames)
+
+        if background_ppus:
+            background_ppu_path = BASE_DIR.joinpath("background.json")
+            background_data = self._load_json_object(background_ppu_path)
+            background_data.update(background_ppus)
+            background_ppu_path.write_text(
+                json.dumps(background_data, ensure_ascii=False), encoding="utf-8"
+            )
+
         if len(character_links) == 0:
             return
 
         character_link_path = BASE_DIR.joinpath("character.json")
-        if character_link_path.exists():
-            current_data = json.loads(character_link_path.read_text(encoding="utf-8"))
-            if not isinstance(current_data, dict):
-                raise ValueError(
-                    f"Unexpected character json format at {character_link_path}"
-                )
-        else:
-            current_data: dict[str, CharacterDataJson] = {}
-
+        current_data = self._load_json_object(character_link_path)
         current_data.update(character_links)
         character_link_path.write_text(
             json.dumps(current_data, ensure_ascii=False), encoding="utf-8"
