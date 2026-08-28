@@ -70,8 +70,17 @@ uv run python -m torappu.lookup --resolve-only <assetOrBundleName>
 uv run python -m torappu.lookup [--res <snapshot>] [--dump DIR] <assetName...>
 ```
 
-`--dump` walks every GameObject tree in the bundle and writes each
-MonoBehaviour typetree as `<pathID>.json` plus an `index.json` tree
-description under `DIR/<sanitized bundle name>/`. Note that shared bundles
-(`battle/prefabs/[uc]projectiles.ab` etc.) contain every character's prefabs;
-pick from `index.json` by GameObject name.
+`--dump` walks each root GameObject tree in the bundle and writes every
+MonoBehaviour typetree as `<serializedFile>_<pathID>.json` plus an
+`index.json` (pre-order, `depth` gives the nesting) under
+`DIR/<sanitized bundle name>/`; stale `*.json` from a previous dump of the
+same bundle are removed first. `--dump` cannot be combined with
+`--resolve-only`. Note that shared bundles (`battle/prefabs/[uc]projectiles.ab`
+etc.) contain every character's prefabs; pick from `index.json` by GameObject
+name.
+
+Bundle names come straight from the manifest, so both `*.ab` and `anon/*.bin`
+resolve as-is. Downloads, caching and retries go through
+`AssetBundleClient` (`torappu/core/assets.py`), the same code path the
+pipeline's `Client` uses, so `--res` also works for snapshots that were never
+synced locally.
