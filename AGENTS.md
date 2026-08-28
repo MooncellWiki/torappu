@@ -57,3 +57,21 @@ uv sync
 uv run ruff check .
 uv run ruff format .
 ```
+
+## Asset lookup (for reverse engineering)
+
+`torappu/lookup.py` resolves asset/bundle names and dumps prefab typetrees
+(manifest idx + hot_update_list + CDN download + UnityPy; reuses the shared
+`storage/assetbundle` cache):
+
+```bash
+uv run python -m torappu.lookup --search turdus              # substring -> asset\tbundle
+uv run python -m torappu.lookup --resolve-only <assetOrBundleName>
+uv run python -m torappu.lookup [--res <snapshot>] [--dump DIR] <assetName...>
+```
+
+`--dump` walks every GameObject tree in the bundle and writes each
+MonoBehaviour typetree as `<pathID>.json` plus an `index.json` tree
+description under `DIR/<sanitized bundle name>/`. Note that shared bundles
+(`battle/prefabs/[uc]projectiles.ab` etc.) contain every character's prefabs;
+pick from `index.json` by GameObject name.
