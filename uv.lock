@@ -894,7 +894,7 @@ wheels = [
 
 [[package]]
 name = "torappu"
-version = "1.42.1"
+version = "2.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "ark-fbs" },
