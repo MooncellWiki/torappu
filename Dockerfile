@@ -1,57 +1,46 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.13-bookworm AS requirements-stage
+FROM python:3.13-bookworm AS builder
 
-WORKDIR /tmp
+COPY --from=ghcr.io/astral-sh/uv:0.12.3 /uv /bin/uv
 
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV UV_LINK_MODE=copy \
+  UV_COMPILE_BYTECODE=1 \
+  UV_PYTHON_DOWNLOADS=never \
+  UV_PROJECT_ENVIRONMENT=/opt/venv
 
-ENV PATH="${PATH}:/root/.local/bin"
+# ffmpeg (audio-only build). Fetched here so the runtime image never needs apt/curl.
+RUN ARCH=$(uname -m | sed 's/^aarch64$/arm64/') \
+  && mkdir -p /opt/ffmpeg \
+  && curl -fsSL "https://github.com/MooncellWiki/ffmpeg-build/releases/download/v8.0-3/ffmpeg-8.0-audio-$ARCH-linux-gnu.tar.gz" \
+  | tar -xz -C /opt/ffmpeg --strip-components=2 --wildcards '*/bin/*' \
+  && chmod +x /opt/ffmpeg/*
 
-COPY ./pyproject.toml ./uv.lock* /tmp/
+WORKDIR /app
 
-RUN uv export --format requirements.txt -o requirements.txt --no-editable --no-hashes --no-dev --no-emit-project
-
-FROM python:3.13-bookworm AS build-stage
-
-WORKDIR /wheel
-
-COPY --from=requirements-stage /tmp/requirements.txt /wheel/requirements.txt
-
-RUN pip wheel --wheel-dir=/wheel --no-cache-dir --requirement /wheel/requirements.txt
-
-FROM python:3.13-bookworm AS metadata-stage
-
-WORKDIR /tmp
-
-RUN --mount=type=bind,source=./.git/,target=/tmp/.git/ \
-  git describe --tags --exact-match > /tmp/VERSION 2>/dev/null \
-  || git rev-parse --short HEAD > /tmp/VERSION \
-  && echo "Building version: $(cat /tmp/VERSION)"
+# Dependencies only; the project itself runs from /app via PYTHONPATH.
+# Bind-mounting just uv.lock/pyproject.toml keeps this layer cached across
+# source-only changes. uv builds sdist-only packages (UnityPy / ark-fbs on
+# arm64) in parallel.
+RUN --mount=type=cache,target=/root/.cache/uv \
+  --mount=type=bind,source=uv.lock,target=uv.lock \
+  --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+  uv sync --locked --no-dev --no-install-project
 
 FROM python:3.13-slim-bookworm
 
 WORKDIR /app
 
-ENV TZ=Asia/Shanghai DEBIAN_FRONTEND=noninteractive PYTHONPATH=/app
+ENV TZ=Asia/Shanghai \
+  PYTHONPATH=/app \
+  PATH=/opt/venv/bin:$PATH
 
-RUN ARCH=$(uname -m | sed 's/^aarch64$/arm64/') \
-  && FOLDER="ffmpeg-8.0-audio-$ARCH-linux-gnu" \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends curl \
-  && curl -sSL "https://github.com/MooncellWiki/ffmpeg-build/releases/download/v8.0-3/$FOLDER.tar.gz" -o /tmp/ffmpeg.tar.gz \
-  && tar -xzf /tmp/ffmpeg.tar.gz -C /tmp/ \
-  && cd /tmp/$FOLDER/bin/ \
-  && mv * /usr/bin/ \
-  && chmod +x /usr/bin/ffmpeg /usr/bin/ffprobe \
-  && apt-get purge -y --auto-remove curl \
-  && rm -rf /tmp/ffmpeg.tar.gz /tmp/$FOLDER
+COPY --from=builder /opt/ffmpeg/ /usr/bin/
+COPY --from=builder /opt/venv /opt/venv
 
-COPY --from=build-stage /wheel /wheel
-
-RUN pip install --no-cache-dir --no-index --find-links=/wheel -r /wheel/requirements.txt && rm -rf /wheel
-
-COPY --from=metadata-stage /tmp/VERSION /app/VERSION
+# Tag name or short sha, passed in by CI; picked up by sentry-sdk as the release.
+ARG VERSION=dev
+ENV SENTRY_RELEASE=torappu@${VERSION}
 
 COPY . /app/
 
