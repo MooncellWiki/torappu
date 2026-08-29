@@ -12,6 +12,8 @@ docker-compose.yml
 Dockerfile
 LICENSE
 *.md
+# pyproject `readme` — uv_build needs it to install the project in the builder
+!README.md
 
 # local state / secrets
 .git/

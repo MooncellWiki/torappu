@@ -18,21 +18,28 @@ RUN ARCH=$(uname -m | sed 's/^aarch64$/arm64/') \
 
 WORKDIR /app
 
-# Dependencies only; the project itself runs from /app via PYTHONPATH.
-# Bind-mounting just uv.lock/pyproject.toml keeps this layer cached across
-# source-only changes. uv builds sdist-only packages (UnityPy / ark-fbs on
-# arm64) in parallel.
+# Dependencies first. Bind-mounting just uv.lock/pyproject.toml keeps this
+# layer cached across source-only changes. uv builds sdist-only packages
+# (UnityPy / ark-fbs on arm64) in parallel.
 RUN --mount=type=cache,target=/root/.cache/uv \
   --mount=type=bind,source=uv.lock,target=uv.lock \
   --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
   uv sync --locked --no-dev --no-install-project
+
+# Then the project itself as an editable install: that only drops a
+# torappu.pth pointing at /app plus the dist-info into the venv, which is what
+# provides the `torappu` console script and a real importlib.metadata version.
+# The runtime stage's `COPY . /app/` is therefore the code that gets imported.
+COPY pyproject.toml uv.lock README.md ./
+COPY torappu ./torappu
+RUN --mount=type=cache,target=/root/.cache/uv \
+  uv sync --locked --no-dev
 
 FROM python:3.13-slim-bookworm
 
 WORKDIR /app
 
 ENV TZ=Asia/Shanghai \
-  PYTHONPATH=/app \
   PATH=/opt/venv/bin:$PATH
 
 COPY --from=builder /opt/ffmpeg/ /usr/bin/
@@ -44,4 +51,4 @@ ENV SENTRY_RELEASE=torappu@${VERSION}
 
 COPY . /app/
 
-ENTRYPOINT ["python", "-m", "torappu", "run"]
+ENTRYPOINT ["torappu", "run"]
