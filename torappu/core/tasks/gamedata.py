@@ -1,12 +1,13 @@
-import asyncio
 import base64
 import json
 import os
 import platform
 import struct
+from functools import cache
 from pathlib import Path
 from typing import ClassVar
 
+import anyio
 import bson
 import UnityPy
 from ark_fbs import Options as FBOptions
@@ -15,7 +16,6 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from UnityPy.classes import TextAsset
 
-from torappu.consts import FBS_DIR, STORAGE_DIR
 from torappu.core.client import Client
 from torappu.core.tasks.utils import m_script_to_bytes
 from torappu.core.utils.thread import run_sync
@@ -97,7 +97,15 @@ flatbuffer_mappings = {
 plaintexts = ["levels/levels_meta.json", "data_version.txt"]
 signed_list = ["excel", "_table", "[uc]lua"]
 chat_mask = "UITpAi82pHAWwnzqHRMCwPonJLIB3WCl"
-flatbuffer_schema_cache: dict[str, FBSchema] = {}
+
+
+@cache
+def load_flatbuffer_schema(fbs_dir: Path, fb_name: str) -> FBSchema:
+    return FBSchema.from_fbs_file(
+        str(fbs_dir / f"{fb_name}.fbs"),
+        include_paths=[str(fbs_dir)],
+        options=FBOptions(),
+    )
 
 
 class Task(BaseTask):
@@ -106,6 +114,7 @@ class Task(BaseTask):
 
     def __init__(self, client: Client) -> None:
         super().__init__(client)
+        self.gamedata_dir = self.config.gamedata_dir / client.version.res_version
 
     def check(self, diff_list: list[Diff]) -> bool:
         return True
@@ -142,18 +151,7 @@ class Task(BaseTask):
         return fb_name
 
     def _get_flatbuffer_schema(self, fb_name: str) -> FBSchema:
-        schema = flatbuffer_schema_cache.get(fb_name)
-        if schema is not None:
-            return schema
-
-        schema_path = FBS_DIR / f"{fb_name}.fbs"
-        schema = FBSchema.from_fbs_file(
-            str(schema_path),
-            include_paths=[str(FBS_DIR)],
-            options=FBOptions(),
-        )
-        flatbuffer_schema_cache[fb_name] = schema
-        return schema
+        return load_flatbuffer_schema(self.config.fbs_dir, fb_name)
 
     @run_sync
     def _decode_flatbuffer(self, path: str, obj: TextAsset, fb_name: str):
@@ -180,12 +178,7 @@ class Task(BaseTask):
                     jsons["dynActs"][k] = bson.decode_document(
                         base64.b64decode(v["base64"]), 0
                     )[1]
-        container_path = STORAGE_DIR.joinpath(
-            "asset",
-            "gamedata",
-            self.client.version.res_version,
-            os.path.dirname(relative_path),
-        )
+        container_path = self.gamedata_dir / os.path.dirname(relative_path)
         container_path.mkdir(parents=True, exist_ok=True)
         json_dest_path = container_path / f"{output_name}.json"
         json_dest_path.write_text(
@@ -232,13 +225,7 @@ class Task(BaseTask):
             )
         except Exception:
             res = decipher[16:]
-        temp_path = (
-            STORAGE_DIR
-            / "asset"
-            / "gamedata"
-            / self.client.version.res_version
-            / path.replace("dyn/gamedata/", "")
-        )
+        temp_path = self.gamedata_dir / path.replace("dyn/gamedata/", "")
 
         if temp_path.name.endswith(".lua.bytes"):
             temp_path = temp_path.parent.joinpath(obj.m_Name)
@@ -275,12 +262,7 @@ class Task(BaseTask):
         if is_encrypted:
             return await self._decrypt(path, obj, is_signed)
 
-        output_path = STORAGE_DIR.joinpath(
-            "asset",
-            "gamedata",
-            self.client.version.res_version,
-            path.replace("dyn/gamedata/", ""),
-        )
+        output_path = self.gamedata_dir / path.replace("dyn/gamedata/", "")
         if output_path.name.endswith(".lua.bytes"):
             output_path = output_path.with_suffix("")
         elif output_path.name.endswith(".bytes"):
@@ -325,24 +307,19 @@ class Task(BaseTask):
             if key.startswith("gamedata")
         ]
         gamedata_abs = list(set(gamedata_abs))
-        await asyncio.gather(
-            *(self.client.fetch_asset_bundle(ab) for ab in gamedata_abs)
-        )
-        await asyncio.gather(*(self.unpack(ab) for ab in gamedata_abs))
+        async with anyio.create_task_group() as tg:
+            for ab in gamedata_abs:
+                tg.start_soon(self.client.fetch_asset_bundle, ab)
+        async with anyio.create_task_group() as tg:
+            for ab in gamedata_abs:
+                tg.start_soon(self.unpack, ab)
 
         if platform.system() != "Windows":
-            STORAGE_DIR.joinpath("asset", "gamedata", "latest").unlink(True)
-            STORAGE_DIR.joinpath("asset", "gamedata", "latest").symlink_to(
-                f"./{self.client.version.res_version}",
-                True,
-            )
+            latest = self.config.gamedata_dir / "latest"
+            latest.unlink(True)
+            latest.symlink_to(f"./{self.client.version.res_version}", True)
 
-        ready_path = STORAGE_DIR.joinpath(
-            "asset",
-            "gamedata",
-            self.client.version.res_version,
-            ".gamedata-ready.json",
-        )
+        ready_path = self.gamedata_dir / ".gamedata-ready.json"
         ready_path.parent.mkdir(parents=True, exist_ok=True)
         ready_path.write_text(
             GameDataReady().model_dump_json(indent=2) + "\n",

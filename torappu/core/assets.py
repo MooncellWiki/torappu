@@ -1,4 +1,3 @@
-import asyncio
 import json
 import shutil
 from functools import cache
@@ -7,6 +6,7 @@ from pathlib import Path
 from typing import Any
 from zipfile import ZipFile
 
+import anyio
 import httpx
 import UnityPy
 from ark_fbs import Options as FBOptions
@@ -16,15 +16,8 @@ from tenacity import retry, stop_after_attempt
 from UnityPy.classes import MonoBehaviour
 
 from torappu.config import Config
-from torappu.consts import (
-    ASSETS_DIR,
-    GAMEDATA_DIR,
-    HEADERS,
-    HG_CN_BASEURL,
-    HOT_UPDATE_LIST_DIR,
-    RESOURCE_MANIFEST_IDX_NAME,
-    STORAGE_DIR,
-)
+from torappu.consts import HEADERS, HG_CN_BASEURL, RESOURCE_MANIFEST_IDX_NAME
+from torappu.core.utils.concurrency import amap
 from torappu.core.utils.path import hg_normalize_url
 from torappu.core.utils.unity import install_unity_patches
 from torappu.log import logger
@@ -32,15 +25,12 @@ from torappu.models import ABInfo, HotUpdateInfo
 
 install_unity_patches()
 
-ASSETBUNDLE_DIR = STORAGE_DIR / "assetbundle"
-
 
 @cache
-def resource_manifest_schema() -> FBSchema:
-    # 路径必须锚定到仓库根，否则从别的工作目录调用会找不到 schema
+def resource_manifest_schema(assets_dir: Path) -> FBSchema:
     return FBSchema.from_fbs_file(
-        str(ASSETS_DIR / "ResourceManifest.fbs"),
-        include_paths=[str(ASSETS_DIR)],
+        str(assets_dir / "ResourceManifest.fbs"),
+        include_paths=[str(assets_dir)],
         options=FBOptions(),
     )
 
@@ -70,6 +60,8 @@ class AssetBundleClient:
 
     Everything here is scoped to a single ``res_version``; :class:`.client.Client`
     builds the version diff and the anon prefetch the pipeline needs on top.
+    All concurrency goes through anyio so the client works under whichever
+    backend the caller runs (``anyio.run`` / asyncio / trio).
     """
 
     def __init__(self, res_version: str, config: Config) -> None:
@@ -83,9 +75,10 @@ class AssetBundleClient:
         self.ab_infos: dict[str, ABInfo] = {}
         self.asset_to_bundle: dict[str, str] = {}
         self.downloaded: dict[str, Path] = {}
-        self._download_semaphore = asyncio.Semaphore(config.max_concurrent_downloads)
-        self._download_lock = asyncio.Lock()
-        self._downloading_tasks: dict[str, asyncio.Task[str]] = {}
+        self._download_semaphore = anyio.Semaphore(config.max_concurrent_downloads)
+        # 每个 bundle 一把锁：并发请求同一个 bundle 时只有第一个真正下载，
+        # 其余拿到锁后重新检查缓存直接命中
+        self._bundle_locks: dict[str, anyio.Lock] = {}
 
     async def init(self, *, prefer_cached_manifest: bool = False) -> None:
         self.hot_update_list = await self.load_hot_update_list(self.res_version)
@@ -96,7 +89,7 @@ class AssetBundleClient:
         await self.http_client.aclose()
 
     def load_local_hot_update_list(self, res_version: str) -> HotUpdateInfo | None:
-        path = HOT_UPDATE_LIST_DIR.joinpath(res_version)
+        path = self.config.hot_update_list_dir / res_version
 
         return (
             HotUpdateInfo.model_validate_json(path.read_text(encoding="utf-8"))
@@ -118,7 +111,7 @@ class AssetBundleClient:
         response.raise_for_status()
         result = response.json()
 
-        dest_path = HOT_UPDATE_LIST_DIR.joinpath(res_version)
+        dest_path = self.config.hot_update_list_dir / res_version
         dest_path.parent.mkdir(parents=True, exist_ok=True)
         dest_path.write_text(response.text, encoding="utf-8")
 
@@ -187,74 +180,60 @@ class AssetBundleClient:
     async def fetch_asset_bundle(self, path: str) -> str:
         info = self.get_abinfo_by_path(path)
 
-        hashed_ab_path = ASSETBUNDLE_DIR / info.md5
+        hashed_ab_path = self.config.assetbundle_dir / info.md5
         cached = self._check_cached_ab_path(path, info, hashed_ab_path)
         if cached is not None:
             return cached
 
-        async with self._download_lock:
+        lock = self._bundle_locks.setdefault(path, anyio.Lock())
+        async with lock:
             cached = self._check_cached_ab_path(path, info, hashed_ab_path)
             if cached is not None:
                 return cached
+            return await self._download_and_write(path, info, hashed_ab_path)
 
-            if path in self._downloading_tasks:
-                task = self._downloading_tasks[path]
-            else:
+    async def _download_and_write(
+        self, path: str, info: ABInfo, hashed_ab_path: Path
+    ) -> str:
+        # 从 2.4.01 24-10-30-15-08-36-72419d 开始引入了anon/*
+        # hot update list里面的md5只有四位，改用zip的crc64当文件名
+        assetbundle_dir = self.config.assetbundle_dir
+        assetbundle_dir.mkdir(parents=True, exist_ok=True)
+        zip_path = assetbundle_dir / f"{hg_normalize_url(path)}.tmp"
+        try:
+            crc = await self.download_ab(path, zip_path)
+            if len(info.md5) == 4:
+                hashed_ab_path = assetbundle_dir / str(crc)
+            try:
+                with (
+                    ZipFile(zip_path) as myzip,
+                    myzip.open(myzip.filelist[0]) as src,
+                    hashed_ab_path.open("wb") as dst,
+                ):
+                    shutil.copyfileobj(src, dst)
+            except BaseException:
+                # 解压中断会留下损坏的缓存文件，必须清掉
+                hashed_ab_path.unlink(missing_ok=True)
+                raise
+        finally:
+            zip_path.unlink(missing_ok=True)
 
-                async def _download_and_write(hashed_ab_path: Path) -> str:
-                    # 从 2.4.01 24-10-30-15-08-36-72419d 开始引入了anon/*
-                    # hot update list里面的md5只有四位，改用zip的crc64当文件名
-                    hashed_ab_path.parent.mkdir(parents=True, exist_ok=True)
-                    zip_path = ASSETBUNDLE_DIR / f"{hg_normalize_url(path)}.tmp"
-                    try:
-                        crc = await self.download_ab(path, zip_path)
-                        if len(info.md5) == 4:
-                            hashed_ab_path = ASSETBUNDLE_DIR / str(crc)
-                        try:
-                            with (
-                                ZipFile(zip_path) as myzip,
-                                myzip.open(myzip.filelist[0]) as src,
-                                hashed_ab_path.open("wb") as dst,
-                            ):
-                                shutil.copyfileobj(src, dst)
-                        except BaseException:
-                            # 解压中断会留下损坏的缓存文件，必须清掉
-                            hashed_ab_path.unlink(missing_ok=True)
-                            raise
-                    finally:
-                        zip_path.unlink(missing_ok=True)
+        if len(info.md5) == 4:
+            self.downloaded[path] = hashed_ab_path
 
-                    if len(info.md5) == 4:
-                        self.downloaded[path] = hashed_ab_path
-
-                    return hashed_ab_path.as_posix()
-
-                task: asyncio.Task[str] = asyncio.create_task(
-                    _download_and_write(hashed_ab_path)
-                )
-
-                def cleanup(t: asyncio.Task[str]) -> None:
-                    existing = self._downloading_tasks.get(path)
-                    if existing is t:
-                        self._downloading_tasks.pop(path, None)
-
-                task.add_done_callback(cleanup)
-                self._downloading_tasks[path] = task
-
-        # 在锁外等待下载完成，避免阻塞其它 resolve
-        return await task
+        return hashed_ab_path.as_posix()
 
     async def fetch_asset_bundles(self, path: list[str]) -> list[tuple[str, str]]:
-        result = await asyncio.gather(*(self.fetch_asset_bundle(p) for p in path))
+        result = await amap(self.fetch_asset_bundle, path)
         return list(zip(path, result))
 
     async def fetch_asset_bundles_by_prefix(self, prefix: str) -> list[str]:
-        paths = {name for name in self.ab_infos if name.startswith(prefix)}
+        paths = [name for name in self.ab_infos if name.startswith(prefix)]
 
         if len(paths) == 0:
             return []
 
-        return await asyncio.gather(*(self.fetch_asset_bundle(p) for p in paths))
+        return await amap(self.fetch_asset_bundle, paths)
 
     async def fetch_asset_bundle_with_suffix(self, path: str) -> str:
         return await self.fetch_asset_bundle(path + ".ab")
@@ -263,9 +242,7 @@ class AssetBundleClient:
     async def fetch_asset_bundles_with_suffix(
         self, path: list[str]
     ) -> list[tuple[str, str]]:
-        result = await asyncio.gather(
-            *(self.fetch_asset_bundle_with_suffix(p) for p in path)
-        )
+        result = await amap(self.fetch_asset_bundle_with_suffix, path)
         return list(zip(path, result))
 
     async def load_asset_to_bundle(self, *, prefer_cached: bool = False) -> None:
@@ -285,7 +262,7 @@ class AssetBundleClient:
         self.load_idx(idx_path)
 
     def manifest_idx_path(self) -> Path:
-        return GAMEDATA_DIR.joinpath(self.res_version, RESOURCE_MANIFEST_IDX_NAME)
+        return self.config.gamedata_dir / self.res_version / RESOURCE_MANIFEST_IDX_NAME
 
     async def load_torappu_index(self):
         path = await self.fetch_asset_bundle_with_suffix("torappu_index")
@@ -307,7 +284,9 @@ class AssetBundleClient:
 
         try:
             jsons = json.loads(
-                resource_manifest_schema().binary_to_json(flatbuffer_data)
+                resource_manifest_schema(self.config.assets_dir).binary_to_json(
+                    flatbuffer_data
+                )
             )
             decoded_path.write_text(
                 json.dumps(jsons, ensure_ascii=False, separators=(",", ":")),

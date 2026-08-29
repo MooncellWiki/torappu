@@ -4,18 +4,16 @@ import anyio
 import UnityPy
 from UnityPy.classes import Sprite
 
-from torappu.consts import STORAGE_DIR
 from torappu.core.tasks.utils import build_container_path, read_obj
 from torappu.models import Diff
 
 from .base import BaseTask
 
-BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "camplogo")
-
 
 class Task(BaseTask):
     priority: ClassVar[int] = 3
     name = "CampLogo"
+    raw_subdir = "camplogo"
 
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
@@ -25,7 +23,7 @@ class Task(BaseTask):
                 if texture.object_reader is None:
                     continue
                 container_path = container_map[texture.object_reader.path_id]
-                path = BASE_DIR.joinpath(
+                path = self.output_dir.joinpath(
                     container_path.replace("dyn/arts/camplogo/", "")
                 )
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -43,7 +41,7 @@ class Task(BaseTask):
 
     async def start(self):
         paths = await self.client.fetch_asset_bundles(list(self.ab_list))
-        BASE_DIR.mkdir(parents=True, exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
         async with anyio.create_task_group() as tg:
             for _, ab_path in paths:

@@ -3,19 +3,17 @@ from typing import ClassVar
 import UnityPy
 from UnityPy.classes import Sprite
 
-from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
 from torappu.core.tasks.audio import read_obj
 from torappu.models import Diff
 
 from .base import BaseTask
 
-BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "build_skill_icon")
-
 
 class Task(BaseTask):
     priority: ClassVar[int] = 1
     name = "BuildSkill"
+    raw_subdir = "build_skill_icon"
 
     def __init__(self, client: Client) -> None:
         super().__init__(client)
@@ -36,10 +34,10 @@ class Task(BaseTask):
         env = UnityPy.load(ab_path)
         for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
             if data := read_obj(Sprite, obj):
-                data.image.save(BASE_PATH / f"{data.m_Name}.png")
+                data.image.save(self.output_dir / f"{data.m_Name}.png")
 
     async def start(self):
         paths = await self.client.fetch_asset_bundles(list(self.ab_list))
-        BASE_PATH.mkdir(parents=True, exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         for _, ab_path in paths:
             self.unpack(ab_path)

@@ -7,10 +7,10 @@ deserialized typetrees of every GameObject tree inside.
 
 Usage::
 
-    uv run python -m torappu.lookup battle/prefabs/[uc]projectiles/projectile_chr_turdus
-    uv run python -m torappu.lookup --resolve-only charpack/char_4224_turdus.ab
-    uv run python -m torappu.lookup --search turdus
-    uv run python -m torappu.lookup --dump /tmp/dump --res 26-08-07-14-53-29_30b8f0 \
+    torappu lookup battle/prefabs/[uc]projectiles/projectile_chr_turdus
+    torappu lookup --resolve-only charpack/char_4224_turdus.ab
+    torappu lookup --search turdus
+    torappu lookup --dump /tmp/dump --res 26-08-07-14-53-29_30b8f0 \
         "battle/prefabs/[uc]projectiles/projectile_chr_turdus"
 """
 
@@ -27,7 +27,7 @@ from UnityPy.environment import Environment
 from UnityPy.files.ObjectReader import ObjectReader
 
 from torappu import get_config
-from torappu.consts import GAMEDATA_DIR, HOT_UPDATE_LIST_DIR
+from torappu.config import Config
 from torappu.core.assets import AssetBundleClient
 from torappu.log import logger
 
@@ -37,18 +37,20 @@ MAX_SEARCH_RESULTS = 50
 TRANSFORM_TYPES = frozenset({"Transform", "RectTransform"})
 
 
-def _latest_res_version() -> str:
+def latest_res_version(config: Config) -> str:
+    """Newest res_version with a local hot_update_list or decoded gamedata."""
+    directories = (config.gamedata_dir, config.hot_update_list_dir)
     snapshots = {
         entry.name
-        for directory in (GAMEDATA_DIR, HOT_UPDATE_LIST_DIR)
+        for directory in directories
         if directory.is_dir()
         for entry in directory.iterdir()
         if _SNAPSHOT_PATTERN.match(entry.name)
     }
     if not snapshots:
-        raise click.ClickException(
-            f"no snapshot under {GAMEDATA_DIR} or {HOT_UPDATE_LIST_DIR}; "
-            "run the sync pipeline first or pass --res"
+        raise FileNotFoundError(
+            f"no snapshot under {config.gamedata_dir} or "
+            f"{config.hot_update_list_dir}; run the sync pipeline first or pass --res"
         )
     return max(snapshots)
 
@@ -216,12 +218,13 @@ def _resolve_bundle(name: str, client: AssetBundleClient) -> str | None:
 
 async def _run(
     names: tuple[str, ...],
-    res_version: str | None,
+    res_version: str,
     resolve_only: bool,
     search: bool,
     dump_dir: str | None,
+    config: Config,
 ) -> None:
-    client = AssetBundleClient(res_version or _latest_res_version(), get_config())
+    client = AssetBundleClient(res_version, config)
     try:
         await client.init(prefer_cached_manifest=True)
 
@@ -256,9 +259,7 @@ async def _run(
         await client.aclose()
 
 
-@click.command(
-    context_settings={"help_option_names": ["-h", "--help"]},
-)
+@click.command("lookup")
 @click.argument("name", nargs=-1)
 @click.option("--res", "res_version", default=None, help="res_version snapshot")
 @click.option("--resolve-only", is_flag=True, help="only print mapping, no download")
@@ -273,14 +274,15 @@ async def _run(
 @click.option(
     "--verbose", is_flag=True, help="keep the configured log level instead of WARNING"
 )
-def cli(
+def lookup(
     name: tuple[str, ...],
     res_version: str | None,
     resolve_only: bool,
     search: bool,
     dump_dir: str | None,
     verbose: bool,
-):
+) -> None:
+    """Resolve NAME (asset, bundle or substring) to its bundle; fetch/dump it."""
     if not name:
         raise click.ClickException("NAME is required")
     if resolve_only and dump_dir:
@@ -289,8 +291,11 @@ def cli(
         # 结果走 stdout，默认别让 pipeline 的日志混进去
         logger.configure(extra={"log_level": "WARNING"})
 
-    anyio.run(_run, name, res_version, resolve_only, search, dump_dir)
+    config = get_config()
+    if res_version is None:
+        try:
+            res_version = latest_res_version(config)
+        except FileNotFoundError as exc:
+            raise click.ClickException(str(exc)) from exc
 
-
-if __name__ == "__main__":
-    cli()
+    anyio.run(_run, name, res_version, resolve_only, search, dump_dir, config)

@@ -44,4 +44,4 @@ ENV SENTRY_RELEASE=torappu@${VERSION}
 
 COPY . /app/
 
-ENTRYPOINT ["python", "-m", "torappu"]
+ENTRYPOINT ["python", "-m", "torappu", "run"]

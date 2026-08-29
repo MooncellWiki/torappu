@@ -3,9 +3,11 @@ from pathlib import Path
 import anyio
 import httpx
 
+from torappu import get_config
 from torappu.core.tasks.map_preview import unpack_sandbox, unpack_universal
 
 client = httpx.AsyncClient(timeout=60)
+OUTPUT_DIR = get_config().raw_dir / "map_preview"
 
 
 async def download_ab(path: str, dest_path: Path):
@@ -21,6 +23,7 @@ async def download_ab(path: str, dest_path: Path):
 
 
 async def _main():
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     async with await anyio.open_file(
         Path(__file__).parent / "data" / "map_preview_list.txt"
     ) as f:
@@ -48,10 +51,10 @@ async def _main():
         path, download_path, dest_path = file
         async with anyio.create_task_group() as tg:
             if "sandbox" in path:
-                tg.start_soon(unpack_sandbox, str(dest_path))
+                tg.start_soon(unpack_sandbox, str(dest_path), OUTPUT_DIR)
 
             else:
-                tg.start_soon(unpack_universal, str(dest_path))
+                tg.start_soon(unpack_universal, str(dest_path), OUTPUT_DIR)
 
     await client.aclose()
 

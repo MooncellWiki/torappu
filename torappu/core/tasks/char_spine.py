@@ -6,7 +6,6 @@ import UnityPy
 from pydantic import BaseModel, TypeAdapter
 from UnityPy.classes import GameObject, Material, MonoBehaviour, PPtr, TextAsset
 
-from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
 from torappu.core.utils.thread import run_sync
 from torappu.log import logger
@@ -33,8 +32,7 @@ class SpineConfig(BaseModel):
     skin: dict[str, dict[str, FileConfig]]
 
 
-def unpack_asset(data: MonoBehaviour, path: str) -> str:
-    base_dir = STORAGE_DIR / "asset" / "raw" / "char_spine" / path
+def unpack_asset(data: MonoBehaviour, base_dir: Path) -> str:
     skel: TextAsset = data.skeletonJSON.read()  # type: ignore
     skel_name: str = skel.m_Name.replace("#", "_")
     skel_dest_path = base_dir / skel_name
@@ -71,6 +69,7 @@ def unpack_asset(data: MonoBehaviour, path: str) -> str:
 class Task(BaseTask):
     priority: ClassVar[int] = 2
     name = "CharSpine"
+    raw_subdir = "char_spine"
 
     def __init__(self, client: Client) -> None:
         super().__init__(client)
@@ -216,24 +215,20 @@ class Task(BaseTask):
                     break
                 data: MonoBehaviour = skeleton_data.read()
                 if data.m_Name.endswith("_SkeletonData"):
-                    if skel_name := unpack_asset(data, f"{name}/{skin}/{side}"):
+                    if skel_name := unpack_asset(
+                        data, self.output_dir / f"{name}/{skin}/{side}"
+                    ):
                         self.update_config(name, skin, side, skel_name)
                     break
 
     async def start(self):
-        char_table = get_gamedata(
-            self.client.version.res_version, "excel/character_table.json"
-        )
+        char_table = get_gamedata(self.client, "excel/character_table.json")
         for char in char_table:
             self.char_map[char] = char_table[char]["name"]
-        patch_table = get_gamedata(
-            self.client.version.res_version, "excel/char_patch_table.json"
-        )
+        patch_table = get_gamedata(self.client, "excel/char_patch_table.json")
         for char in patch_table["patchChars"]:
             self.char_map[char] = patch_table["patchChars"][char]["name"]
-        skin_table = get_gamedata(
-            self.client.version.res_version, "excel/skin_table.json"
-        )
+        skin_table = get_gamedata(self.client, "excel/skin_table.json")
         for skin in skin_table["charSkins"].values():
             skin_id = skin["battleSkin"]["skinOrPrefabId"]
             if (
@@ -261,9 +256,7 @@ class Task(BaseTask):
         await self.unpack(env, resolved_filenames)
 
         for char in filter(lambda c: c in self.char_map, self.changed_char):
-            meta_path = STORAGE_DIR.joinpath(
-                "asset", "raw", "char_spine", char, "meta.json"
-            )
+            meta_path = self.output_dir / char / "meta.json"
             result = self.changed_char[char]
 
             if meta_path.is_file():

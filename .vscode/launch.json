@@ -11,7 +11,7 @@
       "module": "torappu",
       "python": "${workspaceFolder}/.venv/bin/python",
       "justMyCode": true,
-      "args": ["2.7.31", "26-04-28-16-18-19_ca4c26", "-i", "GameData"]
+      "args": ["run", "2.7.31", "26-04-28-16-18-19_ca4c26", "-i", "GameData"]
     }
   ]
 }

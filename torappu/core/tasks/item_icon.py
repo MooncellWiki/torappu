@@ -6,24 +6,21 @@ import UnityPy
 from PIL import Image
 from UnityPy.classes import Sprite
 
-from torappu.consts import ASSETS_DIR, STORAGE_DIR
 from torappu.core.client import Client
 from torappu.core.tasks.utils import get_gamedata, read_obj
 from torappu.models import Diff
 
 from .base import BaseTask
 
-BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "item_icon")
-RAW_DIR = BASE_DIR.joinpath("raw")
-
+# file names under ``config.assets_dir / "item_bg"``
 ITEM_BACKGROUND_IMAGES = {
-    "TIER_1": ASSETS_DIR.joinpath("item_bg", "sprite_item_r1.png"),
-    "TIER_2": ASSETS_DIR.joinpath("item_bg", "sprite_item_r2.png"),
-    "TIER_3": ASSETS_DIR.joinpath("item_bg", "sprite_item_r3.png"),
-    "TIER_4": ASSETS_DIR.joinpath("item_bg", "sprite_item_r4.png"),
-    "TIER_5": ASSETS_DIR.joinpath("item_bg", "sprite_item_r5.png"),
-    "TIER_6": ASSETS_DIR.joinpath("item_bg", "sprite_item_r6.png"),
-    "E_NUM": ASSETS_DIR.joinpath("item_bg", "sprite_item_r1.png"),
+    "TIER_1": "sprite_item_r1.png",
+    "TIER_2": "sprite_item_r2.png",
+    "TIER_3": "sprite_item_r3.png",
+    "TIER_4": "sprite_item_r4.png",
+    "TIER_5": "sprite_item_r5.png",
+    "TIER_6": "sprite_item_r6.png",
+    "E_NUM": "sprite_item_r1.png",
 }
 SKIP_BG_TYPES = ["UNI_COLLECTION"]
 
@@ -31,13 +28,14 @@ SKIP_BG_TYPES = ["UNI_COLLECTION"]
 class Task(BaseTask):
     priority: ClassVar[int] = 2
     name = "ItemIcon"
+    raw_subdir = "item_icon"
 
     def __init__(self, client: Client) -> None:
         super().__init__(client)
 
-        item_table = get_gamedata(
-            self.client.version.res_version, "excel/item_table.json"
-        )
+        self.raw_icon_dir = self.output_dir / "raw"
+        item_bg_dir = self.config.assets_dir / "item_bg"
+        item_table = get_gamedata(self.client, "excel/item_table.json")
 
         self.dict_rarity_bg: dict[str, Path] = {}
         self.skip_bg_items: set[str] = set()
@@ -50,7 +48,9 @@ class Task(BaseTask):
             if item["itemType"] in SKIP_BG_TYPES:
                 self.skip_bg_items.add(lower_icon_id)
 
-            self.dict_rarity_bg[lower_icon_id] = ITEM_BACKGROUND_IMAGES[item["rarity"]]
+            self.dict_rarity_bg[lower_icon_id] = (
+                item_bg_dir / ITEM_BACKGROUND_IMAGES[item["rarity"]]
+            )
 
     def get_output_name(self, texture_name: str, canonical_name: str) -> str:
         return (
@@ -78,14 +78,16 @@ class Task(BaseTask):
             )
             if canonical_name in self.skip_bg_items:
                 texture.image.save(
-                    BASE_DIR.joinpath(
+                    self.output_dir.joinpath(
                         self.get_output_name(texture.m_Name, canonical_name)
                     )
                 )
                 continue
 
             texture.image.save(
-                RAW_DIR.joinpath(self.get_output_name(texture.m_Name, canonical_name))
+                self.raw_icon_dir.joinpath(
+                    self.get_output_name(texture.m_Name, canonical_name)
+                )
             )
 
             bg_path = self.get_rarity_bg_path(texture.m_Name, canonical_name)
@@ -108,7 +110,9 @@ class Task(BaseTask):
             )
 
             bg.save(
-                BASE_DIR.joinpath(self.get_output_name(texture.m_Name, canonical_name))
+                self.output_dir.joinpath(
+                    self.get_output_name(texture.m_Name, canonical_name)
+                )
             )
 
     def check(self, diff_list: list[Diff]) -> bool:
@@ -127,8 +131,8 @@ class Task(BaseTask):
 
     async def start(self):
         paths = await self.client.fetch_asset_bundles(list(self.ab_list))
-        BASE_DIR.mkdir(parents=True, exist_ok=True)
-        RAW_DIR.mkdir(parents=True, exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.raw_icon_dir.mkdir(parents=True, exist_ok=True)
 
         async with anyio.create_task_group() as tg:
             for _, ab_path in paths:

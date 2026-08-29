@@ -1,31 +1,23 @@
-import asyncio
 import subprocess
 from pathlib import Path
 from typing import ClassVar
 
+import anyio
 import UnityPy
 from UnityPy.classes import AudioClip
 
-from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
 from torappu.log import logger
 from torappu.models import Diff
 
 from .base import BaseTask
-from .utils import (
-    build_container_path,
-    get_gamedata,
-    read_obj,
-    read_subprocess_stderr,
-    read_subprocess_stdout,
-)
-
-AUDIO_DIR = STORAGE_DIR / "asset" / "raw" / "audio"
+from .utils import build_container_path, get_gamedata, read_obj
 
 
 class Task(BaseTask):
     priority: ClassVar[int] = 3
     name = "Audio"
+    raw_subdir = "audio"
 
     def __init__(self, client: Client) -> None:
         super().__init__(client)
@@ -50,9 +42,11 @@ class Task(BaseTask):
             for data in clip.samples.values():
                 if clip.object_reader is None:
                     continue
-                path = AUDIO_DIR / container_map[clip.object_reader.path_id].replace(
-                    "dyn/audio/sound_beta_2/", ""
-                ).replace(".ogg", ".wav").replace("#", "__")
+                path = self.output_dir / container_map[
+                    clip.object_reader.path_id
+                ].replace("dyn/audio/sound_beta_2/", "").replace(
+                    ".ogg", ".wav"
+                ).replace("#", "__")
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(data)
                 await self.mp3(str(path))
@@ -60,27 +54,25 @@ class Task(BaseTask):
 
     async def mp3(self, path: str):
         # ffmpeg -y -f wav -i /tmp/tmp7g1n0ag2 -f mp3 /tmp/tmpywtkkjwa
-        proc = await asyncio.create_subprocess_exec(
-            "ffmpeg",
-            "-y",
-            "-f",
-            "wav",
-            "-i",
-            path,
-            "-f",
-            "mp3",
-            path.replace(".wav", ".mp3"),
+        result = await anyio.run_process(
+            [
+                "ffmpeg",
+                "-y",
+                "-f",
+                "wav",
+                "-i",
+                path,
+                "-f",
+                "mp3",
+                path.replace(".wav", ".mp3"),
+            ],
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            check=False,
         )
-        await proc.wait()
 
-        if proc.returncode != 0:
-            returncode = proc.returncode
-            stdout = await read_subprocess_stdout(proc)
-            stderr = await read_subprocess_stderr(proc)
-
-            logger.error(f"ffmpeg error: {returncode=!r} {stdout=!r} {stderr=!r}")
+        if result.returncode != 0:
+            stderr = result.stderr.decode(errors="replace")
+            logger.error(f"ffmpeg error: returncode={result.returncode!r} {stderr=!r}")
 
     def combine(self, intro_path: Path, loop_path: Path, combine_path: Path):
         result = subprocess.run(
@@ -110,10 +102,8 @@ class Task(BaseTask):
             )
 
     def make_banks(self):
-        audio_data = get_gamedata(
-            self.client.version.res_version, "excel/audio_data.json"
-        )
-        base_dir = STORAGE_DIR / "asset" / "raw" / "audio_bank"
+        audio_data = get_gamedata(self.client, "excel/audio_data.json")
+        base_dir = self.config.raw_dir / "audio_bank"
         base_dir.mkdir(parents=True, exist_ok=True)
         for bank in audio_data["bgmBanks"]:
             dist = base_dir / (bank["name"] + ".mp3")
@@ -126,13 +116,17 @@ class Task(BaseTask):
             if bank["intro"]:
                 tmp = bank["intro"].lower().replace("audio/sound_beta_2/", "") + ".mp3"
 
-                if (AUDIO_DIR / tmp).exists() or (AUDIO_DIR / tmp).is_symlink():
+                if (self.output_dir / tmp).exists() or (
+                    self.output_dir / tmp
+                ).is_symlink():
                     intro_path = tmp
                 else:
                     logger.debug(f"intro {tmp} not exists")
             if bank["loop"]:
                 tmp = bank["loop"].lower().replace("audio/sound_beta_2/", "") + ".mp3"
-                if (AUDIO_DIR / tmp).exists() or (AUDIO_DIR / tmp).is_symlink():
+                if (self.output_dir / tmp).exists() or (
+                    self.output_dir / tmp
+                ).is_symlink():
                     loop_path = tmp
                 else:
                     logger.debug(f"loop {tmp} not exists")
@@ -149,7 +143,9 @@ class Task(BaseTask):
                 continue
 
             logger.debug(f"combine {intro_path} and {loop_path} to {dist}")
-            self.combine(AUDIO_DIR / intro_path, AUDIO_DIR / loop_path, dist)
+            self.combine(
+                self.output_dir / intro_path, self.output_dir / loop_path, dist
+            )
 
         for key, value in audio_data["bankAlias"].items():
             path = base_dir / (key + ".mp3")
@@ -161,7 +157,7 @@ class Task(BaseTask):
 
     async def start(self):
         paths = await self.client.fetch_asset_bundles(list(self.ab_list))
-        await asyncio.gather(
-            *(self.extract(real_path, ab_path) for ab_path, real_path in paths)
-        )
+        async with anyio.create_task_group() as tg:
+            for ab_path, real_path in paths:
+                tg.start_soon(self.extract, real_path, ab_path)
         self.make_banks()

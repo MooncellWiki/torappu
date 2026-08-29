@@ -1,11 +1,10 @@
-import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, cast
 
+import anyio
 import UnityPy
 from UnityPy.classes import GameObject, MonoBehaviour
 
-from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
 from torappu.core.utils.thread import run_sync
 from torappu.models import Diff
@@ -26,6 +25,7 @@ if TYPE_CHECKING:
 class Task(BaseTask):
     priority: ClassVar[int] = 2
     name = "EnemySpine"
+    raw_subdir = "enemy_spine"
 
     def __init__(self, client: Client) -> None:
         super().__init__(client)
@@ -47,7 +47,7 @@ class Task(BaseTask):
         container_map = build_container_path(env)
 
         def unpack(data: MonoBehaviour, path: str):
-            dest_dir = STORAGE_DIR / "asset" / "raw" / "enemy_spine" / path
+            dest_dir = self.output_dir / path
             dest_dir.mkdir(parents=True, exist_ok=True)
             skel = cast("TextAsset", data.skeletonJSON.read())  # type: ignore
             skel_path = dest_dir.joinpath(skel.m_Name).with_suffix(".skel")
@@ -103,8 +103,9 @@ class Task(BaseTask):
         )
 
     async def start(self):
-        await asyncio.gather(
-            *(self.client.fetch_asset_bundle(ab) for ab in self.ab_list)
-        )
-        await asyncio.gather(*(self.unpack(ab) for ab in self.ab_list))
-        await asyncio.gather(*(self.unpack(ab) for ab in self.ab_list))
+        async with anyio.create_task_group() as tg:
+            for ab in self.ab_list:
+                tg.start_soon(self.client.fetch_asset_bundle, ab)
+        async with anyio.create_task_group() as tg:
+            for ab in self.ab_list:
+                tg.start_soon(self.unpack, ab)

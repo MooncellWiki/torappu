@@ -6,18 +6,13 @@ import UnityPy
 from PIL import Image
 from UnityPy.classes import MonoBehaviour, Sprite
 
-from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
 from torappu.core.tasks.utils import get_gamedata, get_source, read_obj
 from torappu.core.utils.thread import run_sync
 from torappu.models import Diff
 
 from .base import BaseTask
-from .medal_icon import BASE_DIR as MEDAL_ICON_DIR
-
-BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "medal_diy")
-BKG_DIR = BASE_DIR / "bkg"
-TRIM_DIR = BASE_DIR / "trim"
+from .medal_icon import Task as MedalIconTask
 
 
 @dataclass
@@ -35,6 +30,7 @@ class MedalPosition:
 class Task(BaseTask):
     priority: ClassVar[int] = 5
     name = "MedalDIY"
+    raw_subdir = "medal_diy"
 
     def __init__(self, client: Client) -> None:
         super().__init__(client)
@@ -42,6 +38,9 @@ class Task(BaseTask):
         self.ab_list = set()
         self.dict_medal_pos: dict[str, list[MedalPosition]] = {}
         self.dict_advanced: dict[str, str] = {}
+        self.bkg_dir = self.output_dir / "bkg"
+        self.trim_dir = self.output_dir / "trim"
+        self.medal_icon_dir = MedalIconTask.raw_output_dir(self.config)
 
     @run_sync
     def unpack_metadata(self, env: UnityPy.Environment, unpacking_source: list[str]):
@@ -65,7 +64,7 @@ class Task(BaseTask):
     def build_up(self, pos_list: list[MedalPosition], bg: Image.Image):
         result = bg.copy()
         for medal_pos in pos_list:
-            medal_image_path = MEDAL_ICON_DIR / f"{medal_pos.medalId}.png"
+            medal_image_path = self.medal_icon_dir / f"{medal_pos.medalId}.png"
             medal_image = Image.open(medal_image_path)
 
             # flip the y axis, pillow uses bottom-right as origin
@@ -90,7 +89,7 @@ class Task(BaseTask):
                 continue
 
             background_image = texture.image
-            background_image.save(BKG_DIR / f"{texture.m_Name}.png")
+            background_image.save(self.bkg_dir / f"{texture.m_Name}.png")
 
             medal_pos_list = self.dict_medal_pos.get(texture.m_Name, None)
             if medal_pos_list is None:
@@ -98,7 +97,7 @@ class Task(BaseTask):
 
             resized = background_image.resize((1374, 459))
             self.build_up(medal_pos_list, resized).save(
-                BASE_DIR / f"{texture.m_Name}.png"
+                self.output_dir / f"{texture.m_Name}.png"
             )
             if any(medal.medalId in self.dict_advanced for medal in medal_pos_list):
                 self.build_up(
@@ -114,7 +113,7 @@ class Task(BaseTask):
                         for medal in medal_pos_list
                     ],
                     resized,
-                ).save(TRIM_DIR / f"{texture.m_Name}.png")
+                ).save(self.trim_dir / f"{texture.m_Name}.png")
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
@@ -134,13 +133,11 @@ class Task(BaseTask):
         return len(self.ab_list) > 0
 
     async def start(self):
-        BASE_DIR.mkdir(parents=True, exist_ok=True)
-        BKG_DIR.mkdir(exist_ok=True)
-        TRIM_DIR.mkdir(exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.bkg_dir.mkdir(exist_ok=True)
+        self.trim_dir.mkdir(exist_ok=True)
 
-        icon_data = get_gamedata(
-            self.client.version.res_version, "excel/medal_table.json"
-        )
+        icon_data = get_gamedata(self.client, "excel/medal_table.json")
         self.dict_advanced = {
             medal["medalId"]: medal["advancedMedal"]
             for medal in icon_data["medalList"]

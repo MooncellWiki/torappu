@@ -1,8 +1,8 @@
 import json
 
-from torappu.consts import STORAGE_DIR
+from torappu import get_config
 
-BASE_DIR = STORAGE_DIR / "asset" / "raw" / "char_spine"
+BASE_DIR = get_config().raw_dir / "char_spine"
 
 
 def check(file_path: str):

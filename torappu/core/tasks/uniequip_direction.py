@@ -5,18 +5,16 @@ import anyio
 import UnityPy
 from UnityPy.classes import Sprite
 
-from torappu.consts import STORAGE_DIR
 from torappu.core.tasks.utils import build_container_path, read_obj
 from torappu.models import Diff
 
 from .base import BaseTask
 
-BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "uniequip_direction")
-
 
 class Task(BaseTask):
     priority: ClassVar[int] = 3
     name = "UniEquipDirection"
+    raw_subdir = "uniequip_direction"
 
     async def unpack(self, ab_path: str):
         env = UnityPy.load(ab_path)
@@ -29,7 +27,7 @@ class Task(BaseTask):
                 filename = os.path.basename(container_path)
                 if not filename.lower().endswith(".png"):
                     filename = f"{filename}.png"
-                texture.image.save(BASE_DIR.joinpath(filename))
+                texture.image.save(self.output_dir.joinpath(filename))
 
     def check(self, diff_list: list[Diff]) -> bool:
         diff_set = {diff.path for diff in diff_list}
@@ -43,7 +41,7 @@ class Task(BaseTask):
 
     async def start(self):
         paths = await self.client.fetch_asset_bundles(list(self.ab_list))
-        BASE_DIR.mkdir(parents=True, exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
         async with anyio.create_task_group() as tg:
             for _, ab_path in paths:

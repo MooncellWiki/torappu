@@ -36,7 +36,6 @@ def default_filter(record: "Record"):
     return record["level"].no >= levelno
 
 
-logger.remove()
 default_format = (
     "<g>{time:MM-DD HH:mm:ss}</g> "
     "[<lvl>{level}</lvl>] "
@@ -44,11 +43,31 @@ default_format = (
     # "<c>{function}:{line}</c>| "
     "{message}"
 )
-logger_id = logger.add(
-    sys.stdout,
-    level=0,
-    diagnose=False,
-    filter=default_filter,
-    format=default_format,
-)
-logger.configure(extra={"log_level": get_config().log_level})
+
+_handler_id: int | None = None
+
+
+def setup_logging(level: int | str | None = None) -> None:
+    """Replace every loguru sink with torappu's stdout sink.
+
+    Only the CLI calls this. Library users keep whatever loguru configuration
+    their process already has; ``torappu`` never reconfigures it on import.
+    Calling it again just re-installs the sink with the new ``level``.
+    """
+    global _handler_id
+
+    if _handler_id is None:
+        logger.remove()
+    else:
+        logger.remove(_handler_id)
+
+    _handler_id = logger.add(
+        sys.stdout,
+        level=0,
+        diagnose=False,
+        filter=default_filter,
+        format=default_format,
+    )
+    logger.configure(
+        extra={"log_level": get_config().log_level if level is None else level}
+    )

@@ -14,7 +14,6 @@ from UnityPy.classes import (
 )
 from UnityPy.files.ObjectReader import ObjectReader
 
-from torappu.consts import STORAGE_DIR
 from torappu.core.tasks.utils import (
     build_container_path,
     get_source,
@@ -25,7 +24,6 @@ from torappu.models import Diff
 
 from .base import BaseTask
 
-BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "avg")
 CHAR_NAME_REGEX = re.compile(r"^(\d+(?:\$\d+)?)(?:\.png)?$", re.IGNORECASE)
 CHAR_CONTAINER_PREFIX = "dyn/avg/characters/"
 BG_CONTAINER_PREFIX = "dyn/avg/backgrounds/"
@@ -270,6 +268,7 @@ class CharacterLinkData:
 class Task(BaseTask):
     priority: ClassVar[int] = 4
     name = "Avg"
+    raw_subdir = "avg"
 
     @staticmethod
     def _container_filename(container_path: str) -> str:
@@ -512,7 +511,7 @@ class Task(BaseTask):
         pos, size = self._build_character_rect_link(game_object_name, game_object)
         char_link = CharacterLinkData(pos=pos, size=size, array=[])
 
-        output_dir = BASE_DIR.joinpath("characters")
+        output_dir = self.output_dir.joinpath("characters")
         exported_images: set[str] = set()
         for group in groups:
             char_link.array.extend(
@@ -535,7 +534,9 @@ class Task(BaseTask):
         return file_name
 
     def _extract_sprite(self, sprite: Sprite, subdir: str, container_path: str):
-        output_path = BASE_DIR.joinpath(subdir, self._sprite_filename(container_path))
+        output_path = self.output_dir.joinpath(
+            subdir, self._sprite_filename(container_path)
+        )
         output_path.parent.mkdir(parents=True, exist_ok=True)
         sprite.image.save(output_path)
 
@@ -684,7 +685,7 @@ class Task(BaseTask):
 
     async def start(self):
         paths = await self.client.fetch_asset_bundles(list(self.ab_list))
-        BASE_DIR.mkdir(parents=True, exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         resolved_paths = [path[1] for path in paths]
         resolved_filenames: list[str] = [
             Path(resolved_path).name for resolved_path in resolved_paths
@@ -693,7 +694,7 @@ class Task(BaseTask):
         character_links, background_ppus = await self.unpack(env, resolved_filenames)
 
         if background_ppus:
-            background_ppu_path = BASE_DIR.joinpath("background.json")
+            background_ppu_path = self.output_dir.joinpath("background.json")
             background_data = self._load_json_object(background_ppu_path)
             background_data.update(background_ppus)
             background_ppu_path.write_text(
@@ -703,7 +704,7 @@ class Task(BaseTask):
         if len(character_links) == 0:
             return
 
-        character_link_path = BASE_DIR.joinpath("character.json")
+        character_link_path = self.output_dir.joinpath("character.json")
         current_data = self._load_json_object(character_link_path)
         current_data.update(character_links)
         character_link_path.write_text(

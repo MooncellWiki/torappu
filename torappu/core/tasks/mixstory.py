@@ -4,19 +4,17 @@ import anyio
 import UnityPy
 from UnityPy.classes import Sprite
 
-from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
 from torappu.core.tasks.utils import build_container_path, read_obj
 from torappu.models import Diff
 
 from .base import BaseTask
 
-BASE_DIR = STORAGE_DIR.joinpath("asset", "raw", "mixstory")
-
 
 class Task(BaseTask):
     priority: ClassVar[int] = 3
     name = "MixStory"
+    raw_subdir = "mixstory"
 
     def __init__(self, client: Client) -> None:
         super().__init__(client)
@@ -64,7 +62,7 @@ class Task(BaseTask):
                     # Skip if it doesn't match any expected path
                     continue
 
-                path = BASE_DIR.joinpath(target_path)
+                path = self.output_dir.joinpath(target_path)
                 path.parent.mkdir(parents=True, exist_ok=True)
                 texture.image.save(path)
 
@@ -80,7 +78,7 @@ class Task(BaseTask):
 
     async def start(self):
         paths = await self.client.fetch_asset_bundles(list(self.ab_list))
-        BASE_DIR.mkdir(parents=True, exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
         async with anyio.create_task_group() as tg:
             for _, ab_path in paths:

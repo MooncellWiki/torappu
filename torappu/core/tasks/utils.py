@@ -1,5 +1,5 @@
 import json
-from asyncio.subprocess import Process
+from typing import TYPE_CHECKING
 
 import numpy as np
 from PIL import Image
@@ -7,7 +7,10 @@ from UnityPy import Environment
 from UnityPy.classes import FastPropertyName, Material, Texture2D, UnityTexEnv
 from UnityPy.files.ObjectReader import ObjectReader
 
-from torappu.consts import GAMEDATA_DIR, PROFESSIONS
+from torappu.consts import PROFESSIONS
+
+if TYPE_CHECKING:
+    from torappu.core.assets import AssetBundleClient
 
 
 def read_obj[T](expected_klass: type[T], obj: ObjectReader[T]) -> T | None:
@@ -21,8 +24,10 @@ def trans_prof(profession):
     return PROFESSIONS[profession]
 
 
-def get_gamedata(res_version: str, path: str):
-    return json.loads(GAMEDATA_DIR.joinpath(res_version, path).read_text("utf-8"))
+def get_gamedata(client: "AssetBundleClient", path: str):
+    """Decoded gamedata JSON of ``client.res_version`` (GameData task output)."""
+    gamedata_path = client.config.gamedata_dir / client.res_version / path
+    return json.loads(gamedata_path.read_text("utf-8"))
 
 
 def apply_premultiplied_alpha(rgba: "Image.Image"):
@@ -122,23 +127,3 @@ def get_name(src: FastPropertyName | str) -> str:
     if isinstance(src, FastPropertyName):
         return src.name
     return src
-
-
-async def read_subprocess_stdout(process: Process):
-    if process.stdout is None:
-        return
-
-    stdout_bytes = await process.stdout.read()
-    stdout = stdout_bytes.decode()
-
-    return stdout
-
-
-async def read_subprocess_stderr(process: Process):
-    if process.stderr is None:
-        return
-
-    stderr_bytes = await process.stderr.read()
-    stderr = stderr_bytes.decode()
-
-    return stderr

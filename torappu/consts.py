@@ -7,15 +7,10 @@ from httpx import URL
 WINDOWS = sys.platform.startswith("win") or (sys.platform == "cli" and os.name == "nt")
 MACOS = sys.platform == "darwin"
 
+# Repository root. Only meaningful for the editable / Docker layout; every
+# directory derived from it lives on :class:`torappu.config.Config` so that
+# library users and wheel installs can point it elsewhere.
 BASE_DIR: Path = Path(__file__).parent.parent.absolute()
-
-TEMP_DIR = BASE_DIR / "temp"
-FBS_DIR = BASE_DIR / "OpenArknightsFBS" / "FBS"
-ASSETS_DIR = BASE_DIR / "assets"
-
-STORAGE_DIR = BASE_DIR / "storage"
-GAMEDATA_DIR = STORAGE_DIR / "asset" / "gamedata"
-HOT_UPDATE_LIST_DIR = STORAGE_DIR / "hot_update_list"
 
 RESOURCE_MANIFEST_IDX_NAME = "resource_manifest_idx.json"
 

@@ -3,19 +3,17 @@ from typing import ClassVar
 import UnityPy
 from UnityPy.classes import Sprite
 
-from torappu.consts import STORAGE_DIR
 from torappu.core.client import Client
 from torappu.core.tasks.utils import read_obj
 from torappu.models import Diff
 
 from .base import BaseTask
 
-BASE_PATH = STORAGE_DIR.joinpath("asset", "raw", "furniture_preview")
-
 
 class Task(BaseTask):
     priority: ClassVar[int] = 1
     name = "FurniturePreview"
+    raw_subdir = "furniture_preview"
 
     def __init__(self, client: Client) -> None:
         super().__init__(client)
@@ -56,12 +54,12 @@ class Task(BaseTask):
                     break
 
             data.image.crop((0, top, scan.width, bottom)).save(
-                BASE_PATH / f"{data.m_Name}.png"
+                self.output_dir / f"{data.m_Name}.png"
             )
             break
 
     async def start(self):
         paths = await self.client.fetch_asset_bundles(list(self.ab_list))
-        BASE_PATH.mkdir(parents=True, exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         for _, ab_path in paths:
             self.unpack(ab_path)

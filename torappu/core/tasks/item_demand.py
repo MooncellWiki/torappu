@@ -2,7 +2,6 @@ import itertools
 import json
 from typing import ClassVar
 
-from torappu.consts import STORAGE_DIR
 from torappu.models import Diff
 
 from .base import BaseTask
@@ -33,25 +32,17 @@ class Task(BaseTask):
 
     async def start(self):
         demand = self.get_item_demand()
-        dest = STORAGE_DIR / "asset" / "raw" / "itemDemand.json"
+        dest = self.config.raw_dir / "itemDemand.json"
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(json.dumps(demand, ensure_ascii=False), encoding="utf-8")
 
     def get_item_demand(self):
-        character_table = get_gamedata(
-            self.client.version.res_version, "excel/character_table.json"
-        )
-        item_table = get_gamedata(
-            self.client.version.res_version, "excel/item_table.json"
-        )
-        char_patch_table = get_gamedata(
-            self.client.version.res_version, "excel/char_patch_table.json"
-        )
-        uniequip_table = get_gamedata(
-            self.client.version.res_version, "excel/uniequip_table.json"
-        )
+        character_table = get_gamedata(self.client, "excel/character_table.json")
+        item_table = get_gamedata(self.client, "excel/item_table.json")
+        char_patch_table = get_gamedata(self.client, "excel/char_patch_table.json")
+        uniequip_table = get_gamedata(self.client, "excel/uniequip_table.json")
         special_operator_table = get_gamedata(
-            self.client.version.res_version, "excel/special_operator_table.json"
+            self.client, "excel/special_operator_table.json"
         )
         special_operator_ids = set(special_operator_table["operatorBasicData"].keys())
 
