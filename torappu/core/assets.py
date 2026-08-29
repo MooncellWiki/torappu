@@ -1,8 +1,8 @@
 import asyncio
 import json
+import shutil
 from functools import cache
 from hashlib import md5
-from io import BytesIO
 from pathlib import Path
 from typing import Any
 from zipfile import ZipFile
@@ -11,6 +11,7 @@ import httpx
 import UnityPy
 from ark_fbs import Options as FBOptions
 from ark_fbs import Schema as FBSchema
+from fastcrc import crc64
 from tenacity import retry, stop_after_attempt
 from UnityPy.classes import MonoBehaviour
 
@@ -75,6 +76,7 @@ class AssetBundleClient:
         self.res_version = res_version
         self.config = config
         self.http_client = httpx.AsyncClient(
+            http2=True,
             timeout=httpx.Timeout(config.timeout, pool=None),
         )
         self.hot_update_list: HotUpdateInfo
@@ -139,22 +141,30 @@ class AssetBundleClient:
         stop=stop_after_attempt(2),
         before_sleep=_log_retry("download_ab"),
     )
-    async def download_ab(self, path: str) -> tuple[bytes, int]:
+    async def download_ab(self, path: str, dest: Path) -> int:
+        """Stream the bundle zip into ``dest``, returning its crc64(xz).
+
+        本地算出的 crc64(xz) 与 oss 的 ``x-oss-hash-crc64ecma`` 响应头一致，
+        这样缓存键不再依赖响应头。下载失败时清理 ``dest``。
+        """
         logger.debug(f"Downloading {path}")
         filename = f"{hg_normalize_url(path.rsplit('.')[0])}.dat"
-        async with self._download_semaphore:
-            resp = await self.http_client.get(
-                HG_CN_BASEURL.join(f"{self.res_version}/{filename}")
-            )
-        resp.raise_for_status()
+        try:
+            async with self._download_semaphore:
+                async with self.http_client.stream(
+                    "GET", HG_CN_BASEURL.join(f"{self.res_version}/{filename}")
+                ) as resp:
+                    resp.raise_for_status()
+                    crc = 0
+                    with dest.open("wb") as f:
+                        async for chunk in resp.aiter_bytes():
+                            f.write(chunk)
+                            crc = crc64.xz(chunk, crc)
+        except BaseException:
+            dest.unlink(missing_ok=True)  # noqa: ASYNC240
+            raise
         logger.debug(f"Downloaded {filename}")
-        crc = resp.headers.get("x-oss-hash-crc64ecma")
-        if crc is None:
-            raise RuntimeError(
-                f"{filename} response has no x-oss-hash-crc64ecma header, "
-                "cannot derive the cache key"
-            )
-        return (resp.content, int(crc))
+        return crc
 
     def _check_cached_ab_path(
         self, path: str, info: ABInfo, hashed_ab_path: Path
@@ -193,14 +203,29 @@ class AssetBundleClient:
 
                 async def _download_and_write(hashed_ab_path: Path) -> str:
                     # 从 2.4.01 24-10-30-15-08-36-72419d 开始引入了anon/*
-                    # hot update list里面的md5只有四位，改用oss给的crc当文件名
+                    # hot update list里面的md5只有四位，改用zip的crc64当文件名
                     hashed_ab_path.parent.mkdir(parents=True, exist_ok=True)
-                    (content, crc) = await self.download_ab(path)
+                    zip_path = ASSETBUNDLE_DIR / f"{hg_normalize_url(path)}.tmp"
+                    try:
+                        crc = await self.download_ab(path, zip_path)
+                        if len(info.md5) == 4:
+                            hashed_ab_path = ASSETBUNDLE_DIR / str(crc)
+                        try:
+                            with (
+                                ZipFile(zip_path) as myzip,
+                                myzip.open(myzip.filelist[0]) as src,
+                                hashed_ab_path.open("wb") as dst,
+                            ):
+                                shutil.copyfileobj(src, dst)
+                        except BaseException:
+                            # 解压中断会留下损坏的缓存文件，必须清掉
+                            hashed_ab_path.unlink(missing_ok=True)
+                            raise
+                    finally:
+                        zip_path.unlink(missing_ok=True)
+
                     if len(info.md5) == 4:
-                        hashed_ab_path = ASSETBUNDLE_DIR / str(crc)
                         self.downloaded[path] = hashed_ab_path
-                    with ZipFile(BytesIO(content)) as myzip:
-                        hashed_ab_path.write_bytes(myzip.read(myzip.filelist[0]))
 
                     return hashed_ab_path.as_posix()
 

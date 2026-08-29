@@ -17,7 +17,7 @@ dependencies = [
   "unitypy (==1.22.5)",
   "tenacity (>=9.0.0,<10.0.0)",
   "pycryptodome (>=3.18.0,<4.0.0)",
-  "httpx (>=0.24.1,<1.0.0,!=0.28.0)",
+  "httpx[http2] (>=0.24.1,<1.0.0,!=0.28.0)",
   "loguru (>=0.7.0,<1.0.0)",
   "pydantic-settings (>=2.0.0,<3.0.0)",
   "sentry-sdk[loguru,httpx] (>=2.13.0,<3.0.0)",
