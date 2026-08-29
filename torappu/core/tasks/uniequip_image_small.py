@@ -1,40 +1,33 @@
-from typing import ClassVar
+from pathlib import Path
+from typing import Annotated
 
 import anyio
 import UnityPy
 from UnityPy.classes import Sprite
 
+from torappu.core.client import Client
 from torappu.core.tasks.utils import read_obj
-from torappu.models import Diff
 
-from .base import BaseTask
+from .base import task
+from .params import OutputDir, changed_bundles
 
 
-class Task(BaseTask):
-    priority: ClassVar[int] = 3
-    name = "UniEquipImageSmall"
-    raw_subdir = "uniequip_img_small"
+async def unpack(ab_path: str, output_dir: Path) -> None:
+    env = UnityPy.load(ab_path)
+    for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
+        if texture := read_obj(Sprite, obj):
+            texture.image.save(output_dir.joinpath(f"{texture.m_Name}.png"))
 
-    async def unpack(self, ab_path: str):
-        env = UnityPy.load(ab_path)
-        for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
-            if texture := read_obj(Sprite, obj):
-                texture.image.save(self.output_dir.joinpath(f"{texture.m_Name}.png"))
 
-    def check(self, diff_list: list[Diff]) -> bool:
-        diff_set = {diff.path for diff in diff_list}
-        self.ab_list = {
-            bundle
-            for asset, bundle in self.client.asset_to_bundle.items()
-            if asset.startswith("arts/ui/uniequipimgsmall/") and bundle in diff_set
-        }
+@task("UniEquipImageSmall", priority=3, raw_subdir="uniequip_img_small")
+async def uniequip_image_small(
+    client: Client,
+    output_dir: OutputDir,
+    bundles: Annotated[set[str], changed_bundles("arts/ui/uniequipimgsmall/")],
+) -> None:
+    paths = await client.fetch_asset_bundles(list(bundles))
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-        return len(self.ab_list) > 0
-
-    async def start(self):
-        paths = await self.client.fetch_asset_bundles(list(self.ab_list))
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-
-        async with anyio.create_task_group() as tg:
-            for _, ab_path in paths:
-                tg.start_soon(self.unpack, ab_path)
+    async with anyio.create_task_group() as tg:
+        for _, ab_path in paths:
+            tg.start_soon(unpack, ab_path, output_dir)

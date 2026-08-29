@@ -1,11 +1,12 @@
 import itertools
 import json
-from typing import ClassVar
+from typing import Annotated, Any
 
-from torappu.models import Diff
+from torappu.config import Config
 
-from .base import BaseTask
-from .utils import get_gamedata, trans_prof
+from .base import task
+from .params import gamedata
+from .utils import trans_prof
 
 
 def ensure_item_exists(item_demand, item_name, char_id, char_detail, skill_num):
@@ -23,69 +24,71 @@ def ensure_item_exists(item_demand, item_name, char_id, char_detail, skill_num):
         }
 
 
-class Task(BaseTask):
-    priority: ClassVar[int] = 1
-    name = "ItemDemand"
+def get_item_demand(
+    character_table: dict[str, Any],
+    item_table: dict[str, Any],
+    char_patch_table: dict[str, Any],
+    uniequip_table: dict[str, Any],
+    special_operator_table: dict[str, Any],
+):
+    special_operator_ids = set(special_operator_table["operatorBasicData"].keys())
 
-    def check(self, diff_list: list[Diff]) -> bool:
-        return True
+    for patch_char_id, patch_char_detail in char_patch_table["patchChars"].items():
+        patch_char_detail["name"] += f"({trans_prof(patch_char_detail['profession'])})"
+        character_table[patch_char_id] = patch_char_detail
 
-    async def start(self):
-        demand = self.get_item_demand()
-        dest = self.config.raw_dir / "itemDemand.json"
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_text(json.dumps(demand, ensure_ascii=False), encoding="utf-8")
+    item_demand = {}
+    for char_id, char_detail in character_table.items():
+        if (
+            char_detail["profession"] == "TRAP"
+            or char_detail["profession"] == "TOKEN"
+            or char_id in special_operator_ids
+        ):
+            continue
 
-    def get_item_demand(self):
-        character_table = get_gamedata(self.client, "excel/character_table.json")
-        item_table = get_gamedata(self.client, "excel/item_table.json")
-        char_patch_table = get_gamedata(self.client, "excel/char_patch_table.json")
-        uniequip_table = get_gamedata(self.client, "excel/uniequip_table.json")
-        special_operator_table = get_gamedata(
-            self.client, "excel/special_operator_table.json"
-        )
-        special_operator_ids = set(special_operator_table["operatorBasicData"].keys())
+        for phase in char_detail["phases"]:
+            if phase["evolveCost"]:
+                for evolve_cost_item in phase["evolveCost"]:
+                    item_name = item_table["items"][evolve_cost_item["id"]]["name"]
+                    ensure_item_exists(
+                        item_demand,
+                        item_name,
+                        char_id,
+                        char_detail,
+                        len(char_detail.get("skills", [{}, {}, {}])),
+                    )
+                    if char_id == "char_1001_amiya2":
+                        item_demand[item_name][char_id]["elite"] = 0
+                        continue
+                    item_demand[item_name][char_id]["elite"] += evolve_cost_item[
+                        "count"
+                    ]
 
-        for patch_char_id, patch_char_detail in char_patch_table["patchChars"].items():
-            patch_char_detail["name"] += (
-                f"({trans_prof(patch_char_detail['profession'])})"
-            )
-            character_table[patch_char_id] = patch_char_detail
+        if not char_detail["skills"]:
+            continue
 
-        item_demand = {}
-        for char_id, char_detail in character_table.items():
-            if (
-                char_detail["profession"] == "TRAP"
-                or char_detail["profession"] == "TOKEN"
-                or char_id in special_operator_ids
-            ):
+        for skill_level_up in char_detail["allSkillLvlup"]:
+            if not skill_level_up["lvlUpCost"]:
                 continue
+            for demand in skill_level_up["lvlUpCost"]:
+                item_name = item_table["items"][demand["id"]]["name"]
+                ensure_item_exists(
+                    item_demand,
+                    item_name,
+                    char_id,
+                    char_detail,
+                    len(char_detail["skills"]),
+                )
+                item_demand[item_name][char_id]["skill"] += demand["count"]
 
-            for phase in char_detail["phases"]:
-                if phase["evolveCost"]:
-                    for evolve_cost_item in phase["evolveCost"]:
-                        item_name = item_table["items"][evolve_cost_item["id"]]["name"]
-                        ensure_item_exists(
-                            item_demand,
-                            item_name,
-                            char_id,
-                            char_detail,
-                            len(char_detail.get("skills", [{}, {}, {}])),
-                        )
-                        if char_id == "char_1001_amiya2":
-                            item_demand[item_name][char_id]["elite"] = 0
-                            continue
-                        item_demand[item_name][char_id]["elite"] += evolve_cost_item[
-                            "count"
-                        ]
-
-            if not char_detail["skills"]:
+        i = 0
+        for skill in char_detail["skills"]:
+            if not skill["levelUpCostCond"]:
                 continue
-
-            for skill_level_up in char_detail["allSkillLvlup"]:
-                if not skill_level_up["lvlUpCost"]:
+            for cost_cond in skill["levelUpCostCond"]:
+                if not cost_cond["levelUpCost"]:
                     continue
-                for demand in skill_level_up["lvlUpCost"]:
+                for demand in cost_cond["levelUpCost"]:
                     item_name = item_table["items"][demand["id"]]["name"]
                     ensure_item_exists(
                         item_demand,
@@ -94,63 +97,70 @@ class Task(BaseTask):
                         char_detail,
                         len(char_detail["skills"]),
                     )
-                    item_demand[item_name][char_id]["skill"] += demand["count"]
+                    item_demand[item_name][char_id]["mastery"][i] += demand["count"]
+            i += 1
 
-            i = 0
-            for skill in char_detail["skills"]:
-                if not skill["levelUpCostCond"]:
-                    continue
-                for cost_cond in skill["levelUpCostCond"]:
-                    if not cost_cond["levelUpCost"]:
-                        continue
-                    for demand in cost_cond["levelUpCost"]:
-                        item_name = item_table["items"][demand["id"]]["name"]
-                        ensure_item_exists(
-                            item_demand,
-                            item_name,
-                            char_id,
-                            char_detail,
-                            len(char_detail["skills"]),
-                        )
-                        item_demand[item_name][char_id]["mastery"][i] += demand["count"]
-                i += 1
-
-        for uniequip_id, uniequip_detail in uniequip_table["equipDict"].items():
-            if (
-                not uniequip_detail["itemCost"]
-                or uniequip_detail["charId"] in special_operator_ids
-            ):
+    for uniequip_id, uniequip_detail in uniequip_table["equipDict"].items():
+        if (
+            not uniequip_detail["itemCost"]
+            or uniequip_detail["charId"] in special_operator_ids
+        ):
+            continue
+        item_costs = list(
+            itertools.chain.from_iterable(uniequip_detail["itemCost"].values())
+        )
+        for demand in item_costs:
+            item_name = item_table["items"][demand["id"]]["name"]
+            char_id = uniequip_detail["charId"]
+            if demand["type"] != "MATERIAL":
                 continue
-            item_costs = list(
-                itertools.chain.from_iterable(uniequip_detail["itemCost"].values())
+            ensure_item_exists(
+                item_demand,
+                item_name,
+                char_id,
+                character_table[char_id],
+                len(character_table[char_id].get("skills", [])),
             )
-            for demand in item_costs:
-                item_name = item_table["items"][demand["id"]]["name"]
-                char_id = uniequip_detail["charId"]
-                if demand["type"] != "MATERIAL":
-                    continue
-                ensure_item_exists(
-                    item_demand,
-                    item_name,
-                    char_id,
-                    character_table[char_id],
-                    len(character_table[char_id].get("skills", [])),
-                )
-                item_demand[item_name][char_id]["uniequip"] += demand["count"]
+            item_demand[item_name][char_id]["uniequip"] += demand["count"]
 
-        delete_demand = []
-        for item_name, demand_detail in item_demand.items():
-            for char_id, char_demand in demand_detail.items():
-                if (
-                    char_demand["elite"] == 0
-                    and char_demand["skill"] == 0
-                    and set(char_demand["mastery"]) == {0}
-                    and char_demand["uniequip"] == 0
-                ):
-                    delete_demand.append((item_name, char_id))
+    delete_demand = []
+    for item_name, demand_detail in item_demand.items():
+        for char_id, char_demand in demand_detail.items():
+            if (
+                char_demand["elite"] == 0
+                and char_demand["skill"] == 0
+                and set(char_demand["mastery"]) == {0}
+                and char_demand["uniequip"] == 0
+            ):
+                delete_demand.append((item_name, char_id))
 
-        for delete_target in delete_demand:
-            item_name, char_id = delete_target
-            del item_demand[item_name][char_id]
+    for delete_target in delete_demand:
+        item_name, char_id = delete_target
+        del item_demand[item_name][char_id]
 
-        return item_demand
+    return item_demand
+
+
+@task("ItemDemand", priority=1)
+async def item_demand(
+    config: Config,
+    character_table: Annotated[dict[str, Any], gamedata("excel/character_table.json")],
+    item_table: Annotated[dict[str, Any], gamedata("excel/item_table.json")],
+    char_patch_table: Annotated[
+        dict[str, Any], gamedata("excel/char_patch_table.json")
+    ],
+    uniequip_table: Annotated[dict[str, Any], gamedata("excel/uniequip_table.json")],
+    special_operator_table: Annotated[
+        dict[str, Any], gamedata("excel/special_operator_table.json")
+    ],
+) -> None:
+    demand = get_item_demand(
+        character_table,
+        item_table,
+        char_patch_table,
+        uniequip_table,
+        special_operator_table,
+    )
+    dest = config.raw_dir / "itemDemand.json"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(json.dumps(demand, ensure_ascii=False), encoding="utf-8")

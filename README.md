@@ -85,6 +85,29 @@ async def fetch():
         await client.aclose()
 ```
 
+Tasks are async functions registered with `@task`; their parameters are
+injected by annotation (FastAPI-style). Register your own before calling
+`run_pipeline` and it is scheduled alongside the built-in ones:
+
+```python
+from typing import Annotated
+
+from torappu import Client, task
+from torappu.core.tasks import OutputDir, changed_bundles
+
+
+@task("MyIcons", priority=3, raw_subdir="my_icons")
+async def my_icons(
+    client: Client,
+    output_dir: OutputDir,
+    # raises SkipTask -> the task is skipped when nothing under the prefix changed
+    bundles: Annotated[set[str], changed_bundles("arts/ui/myicons/")],
+) -> None:
+    paths = await client.fetch_asset_bundles(list(bundles))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    ...
+```
+
 `import torappu` does not touch loguru or sentry; only the CLI configures them.
 Pass your own `torappu.Config(storage_dir=..., fbs_dir=..., assets_dir=...)` via
 `run_pipeline(..., config=config)` / `AssetBundleClient(res_version, config)` to

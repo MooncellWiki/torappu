@@ -1,16 +1,18 @@
+from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar
+from typing import Annotated
 
 import anyio
 import UnityPy
 from UnityPy.classes import Sprite
 
 from torappu.core.client import Client
+from torappu.core.di import Depends
 from torappu.core.tasks.utils import read_obj
 from torappu.core.utils.thread import run_sync
-from torappu.models import Diff
 
-from .base import BaseTask
+from .base import SkipTask, task
+from .params import DiffSet, OutputDir
 
 
 @run_sync
@@ -41,57 +43,58 @@ def unpack_big(ab_path: str, output_dir: Path):
             resized.save(output_dir.joinpath(f"{texture.m_Name}.png"))
 
 
-class Task(BaseTask):
-    priority: ClassVar[int] = 4
-    name = "MapPreview"
-    raw_subdir = "map_preview"
+@dataclass(frozen=True, slots=True)
+class PreviewBundles:
+    """Changed bundles per unpack flavour (see ``unpack_*`` above)."""
 
-    def __init__(self, client: Client) -> None:
-        super().__init__(client)
+    universal: set[str]
+    sandbox: set[str]
+    big: set[str]
 
-        self.ab_list: set[str] = set()
-        self.original_ab_list: set[str] = set()
-        self.big_list: set[str] = set()
 
-    def check(self, diff_list: list[Diff]) -> bool:
-        diff_set = {diff.path for diff in diff_list}
-        for asset, bundle in self.client.asset_to_bundle.items():
-            if bundle not in diff_set:
-                continue
+def _preview_bundles(client: Client, diff_set: DiffSet) -> PreviewBundles:
+    universal: set[str] = set()
+    sandbox: set[str] = set()
+    big: set[str] = set()
+    for asset, bundle in client.asset_to_bundle.items():
+        if bundle not in diff_set:
+            continue
 
-            if asset.startswith("ui/sandboxv2/mappreview"):
-                self.original_ab_list.add(bundle)
-            elif asset.startswith("arts/ui/stage/mappreviews"):
-                self.ab_list.add(bundle)
-            # 促融共竞地图
-            elif "stagebigpreview" in asset and asset.endswith("_preview"):
-                self.big_list.add(bundle)
-            # 雪山降临1101 arts/ui/stage/[uc]mappreviewsspecial/act46side_10
-            elif asset.startswith("arts/ui/stage/[uc]mappreviewsspecial/"):
-                self.original_ab_list.add(bundle)
+        if asset.startswith("ui/sandboxv2/mappreview"):
+            sandbox.add(bundle)
+        elif asset.startswith("arts/ui/stage/mappreviews"):
+            universal.add(bundle)
+        # 促融共竞地图
+        elif "stagebigpreview" in asset and asset.endswith("_preview"):
+            big.add(bundle)
+        # 雪山降临1101 arts/ui/stage/[uc]mappreviewsspecial/act46side_10
+        elif asset.startswith("arts/ui/stage/[uc]mappreviewsspecial/"):
+            sandbox.add(bundle)
 
-        return (
-            len(self.ab_list) > 0
-            or len(self.original_ab_list) > 0
-            or len(self.big_list) > 0
-        )
+    if not (universal or sandbox or big):
+        raise SkipTask("no changed map preview bundle")
+    return PreviewBundles(universal=universal, sandbox=sandbox, big=big)
 
-    async def start(self):
-        paths = await self.client.fetch_asset_bundles(list(self.ab_list))
-        original_paths = await self.client.fetch_asset_bundles(
-            list(self.original_ab_list)
-        )
-        big_paths = await self.client.fetch_asset_bundles(list(self.big_list))
-        self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        async with anyio.create_task_group() as tg:
-            for _, ab_path in paths:
-                tg.start_soon(unpack_universal, ab_path, self.output_dir)
+@task("MapPreview", priority=4, raw_subdir="map_preview")
+async def map_preview(
+    client: Client,
+    output_dir: OutputDir,
+    bundles: Annotated[PreviewBundles, Depends(_preview_bundles)],
+) -> None:
+    paths = await client.fetch_asset_bundles(list(bundles.universal))
+    sandbox_paths = await client.fetch_asset_bundles(list(bundles.sandbox))
+    big_paths = await client.fetch_asset_bundles(list(bundles.big))
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-        async with anyio.create_task_group() as tg:
-            for _, ab_path in original_paths:
-                tg.start_soon(unpack_sandbox, ab_path, self.output_dir)
+    async with anyio.create_task_group() as tg:
+        for _, ab_path in paths:
+            tg.start_soon(unpack_universal, ab_path, output_dir)
 
-        async with anyio.create_task_group() as tg:
-            for _, ab_path in big_paths:
-                tg.start_soon(unpack_big, ab_path, self.output_dir)
+    async with anyio.create_task_group() as tg:
+        for _, ab_path in sandbox_paths:
+            tg.start_soon(unpack_sandbox, ab_path, output_dir)
+
+    async with anyio.create_task_group() as tg:
+        for _, ab_path in big_paths:
+            tg.start_soon(unpack_big, ab_path, output_dir)

@@ -15,7 +15,7 @@ from torappu.log import logger
 from torappu.models import Diff, Version
 
 from .client import Client
-from .tasks.base import BaseTask
+from .tasks.base import SkipTask, Task, registered_tasks
 
 TASKS_MODULE_PATH = importlib.import_module("torappu.core.tasks").__path__
 
@@ -36,33 +36,37 @@ def init_sentry(config: Config | None = None) -> None:
     )
 
 
-def discover_tasks() -> dict[int, list[type[BaseTask]]]:
-    """Every ``torappu.core.tasks.*.Task`` grouped by ``priority`` (ascending)."""
-    registry: defaultdict[int, list[type[BaseTask]]] = defaultdict(list)
+def discover_tasks() -> dict[int, list[Task]]:
+    """Every registered task grouped by ``priority`` (ascending).
+
+    Imports every ``torappu.core.tasks.*`` module first, which is what
+    registers the built-in tasks; tasks registered by the caller (any module
+    that used ``@task`` before this call) are included as well.
+    """
     for _, name, _ in pkgutil.iter_modules(TASKS_MODULE_PATH):
-        module = importlib.import_module(f"torappu.core.tasks.{name}")
-        klass = getattr(module, "Task", None)
-        if klass is None:
-            continue
-        registry[klass.priority].append(klass)
+        importlib.import_module(f"torappu.core.tasks.{name}")
+
+    registry: defaultdict[int, list[Task]] = defaultdict(list)
+    for task in registered_tasks():
+        registry[task.priority].append(task)
     return dict(sorted(registry.items()))
 
 
 async def check_and_run_task(
-    instance: BaseTask, diff: list[Diff], failed: list[str]
+    task: Task, client: Client, diff: list[Diff], failed: list[str]
 ) -> None:
-    name = instance.name or type(instance).__name__
-    if not instance.check(diff):
-        logger.info(f"Skipping task {name}")
-        return
-
     try:
-        logger.info(f"Starting task {name}")
-        await instance.start()
-        logger.info(f"Finished task {name}")
+        kwargs = await task.resolve(client, diff)
+        logger.info(f"Starting task {task.name}")
+        await task.func(**kwargs)
+    except SkipTask as reason:
+        detail = f": {reason}" if str(reason) else ""
+        logger.info(f"Skipping task {task.name}{detail}")
     except Exception as e:
-        logger.opt(exception=e).error(f"Running {name} failed.")
-        failed.append(name)
+        logger.opt(exception=e).error(f"Running {task.name} failed.")
+        failed.append(task.name)
+    else:
+        logger.info(f"Finished task {task.name}")
 
 
 async def run_pipeline(
@@ -73,7 +77,7 @@ async def run_pipeline(
     *,
     config: Config | None = None,
 ) -> list[str]:
-    """Run every task whose ``check()`` accepts the ``prev`` -> ``version`` diff.
+    """Run every task whose dependencies accept the ``prev`` -> ``version`` diff.
 
     Tasks of the same priority run concurrently; priorities run in ascending
     order. A task raising is logged and does not stop the others; the names of
@@ -101,7 +105,7 @@ async def run_pipeline(
                     ):
                         continue
 
-                    tg.start_soon(check_and_run_task, task(client), diff, failed)
+                    tg.start_soon(check_and_run_task, task, client, diff, failed)
     finally:
         await client.aclose()
 

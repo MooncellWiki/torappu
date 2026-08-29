@@ -22,7 +22,8 @@ if TYPE_CHECKING:
     from .core import discover_tasks, run_pipeline
     from .core.assets import AssetBundleClient
     from .core.client import Client
-    from .core.tasks.base import BaseTask
+    from .core.di import Depends
+    from .core.tasks.base import SkipTask, Task, task
     from .models import Diff, Version
 
 try:
@@ -39,25 +40,31 @@ def get_config() -> Config:
 
 __all__ = [
     "AssetBundleClient",
-    "BaseTask",
     "Client",
     "Config",
+    "Depends",
     "Diff",
+    "SkipTask",
+    "Task",
     "Version",
     "__version__",
     "discover_tasks",
     "get_config",
     "run_pipeline",
+    "task",
 ]
 
 _LAZY_EXPORTS = {
     "AssetBundleClient": ("torappu.core.assets", "AssetBundleClient"),
-    "BaseTask": ("torappu.core.tasks.base", "BaseTask"),
     "Client": ("torappu.core.client", "Client"),
+    "Depends": ("torappu.core.di", "Depends"),
     "Diff": ("torappu.models", "Diff"),
+    "SkipTask": ("torappu.core.tasks.base", "SkipTask"),
+    "Task": ("torappu.core.tasks.base", "Task"),
     "Version": ("torappu.models", "Version"),
     "discover_tasks": ("torappu.core", "discover_tasks"),
     "run_pipeline": ("torappu.core", "run_pipeline"),
+    "task": ("torappu.core.tasks.base", "task"),
 }
 
 

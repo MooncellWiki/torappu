@@ -1,43 +1,30 @@
-from typing import ClassVar
+from pathlib import Path
+from typing import Annotated
 
 import UnityPy
 from UnityPy.classes import Sprite
 
 from torappu.core.client import Client
-from torappu.core.tasks.audio import read_obj
-from torappu.models import Diff
+from torappu.core.tasks.utils import read_obj
 
-from .base import BaseTask
+from .base import task
+from .params import OutputDir, changed_bundles
 
 
-class Task(BaseTask):
-    priority: ClassVar[int] = 1
-    name = "BuildSkill"
-    raw_subdir = "build_skill_icon"
+def unpack(ab_path: str, output_dir: Path) -> None:
+    env = UnityPy.load(ab_path)
+    for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
+        if data := read_obj(Sprite, obj):
+            data.image.save(output_dir / f"{data.m_Name}.png")
 
-    def __init__(self, client: Client) -> None:
-        super().__init__(client)
 
-        self.ab_list: set[str] = set()
-
-    def check(self, diff_list: list[Diff]) -> bool:
-        diff_set = {diff.path for diff in diff_list}
-        self.ab_list = {
-            bundle
-            for asset, bundle in self.client.asset_to_bundle.items()
-            if asset.startswith("arts/building/skills/") and bundle in diff_set
-        }
-
-        return len(self.ab_list) > 0
-
-    def unpack(self, ab_path: str):
-        env = UnityPy.load(ab_path)
-        for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
-            if data := read_obj(Sprite, obj):
-                data.image.save(self.output_dir / f"{data.m_Name}.png")
-
-    async def start(self):
-        paths = await self.client.fetch_asset_bundles(list(self.ab_list))
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        for _, ab_path in paths:
-            self.unpack(ab_path)
+@task("BuildSkill", priority=1, raw_subdir="build_skill_icon")
+async def build_skill(
+    client: Client,
+    output_dir: OutputDir,
+    bundles: Annotated[set[str], changed_bundles("arts/building/skills/")],
+) -> None:
+    paths = await client.fetch_asset_bundles(list(bundles))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for _, ab_path in paths:
+        unpack(ab_path, output_dir)

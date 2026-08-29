@@ -5,7 +5,6 @@ import platform
 import struct
 from functools import cache
 from pathlib import Path
-from typing import ClassVar
 
 import anyio
 import bson
@@ -16,12 +15,13 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from UnityPy.classes import TextAsset
 
+from torappu.config import Config
 from torappu.core.client import Client
 from torappu.core.tasks.utils import m_script_to_bytes
 from torappu.core.utils.thread import run_sync
-from torappu.models import Diff, GameDataReady
+from torappu.models import GameDataReady
 
-from .base import BaseTask
+from .base import task
 
 flatbuffer_list = [
     # excel
@@ -108,220 +108,230 @@ def load_flatbuffer_schema(fbs_dir: Path, fb_name: str) -> FBSchema:
     )
 
 
-class Task(BaseTask):
-    priority: ClassVar[int] = 0
-    name = "GameData"
+def _check_not_plaintext(path: str) -> bool:
+    return all(plaintext not in path for plaintext in plaintexts)
 
-    def __init__(self, client: Client) -> None:
-        super().__init__(client)
-        self.gamedata_dir = self.config.gamedata_dir / client.version.res_version
 
-    def check(self, diff_list: list[Diff]) -> bool:
-        return True
+def _get_flatbuffer_name(path: str) -> str | None:
+    matched = [
+        *[flatbuffer for flatbuffer in flatbuffer_list if flatbuffer in path],
+        *[
+            flatbuffer
+            for mapping, flatbuffer in flatbuffer_mappings.items()
+            if mapping in path
+        ],
+    ]
 
-    async def _get_flatbuffer_name(self, path: str):
-        matched = [
-            *[flatbuffer for flatbuffer in flatbuffer_list if flatbuffer in path],
-            *[
-                flatbuffer
-                for mapping, flatbuffer in flatbuffer_mappings.items()
-                if mapping in path
-            ],
-        ]
+    return matched[0] if matched and _check_not_plaintext(path) else None
 
-        return matched[0] if matched and self._check_not_plaintext(path) else None
 
-    def _check_not_plaintext(self, path: str):
-        return all(plaintext not in path for plaintext in plaintexts)
+def _check_encrypted(path: str) -> bool:
+    return (
+        any(encrypted in path for encrypted in encrypted_list)
+        and _check_not_plaintext(path)
+        and "buff_template_data" not in path
+    )
 
-    def _check_encrypted(self, path: str) -> bool:
-        return (
-            any(encrypted in path for encrypted in encrypted_list)
-            and self._check_not_plaintext(path)
-            and "buff_template_data" not in path
+
+def _check_signed(path: str) -> bool:
+    return any(signed in path for signed in signed_list)
+
+
+def _get_flatbuffer_output_name(relative_path: str, fb_name: str) -> str:
+    source_name = Path(relative_path).name.removesuffix(".bytes")
+    if fb_name in {"prts___levels", "bake_muzzle_data"}:
+        return source_name
+    return fb_name
+
+
+@run_sync
+def _decode_flatbuffer(
+    path: str, obj: TextAsset, fb_name: str, gamedata_dir: Path, fbs_dir: Path
+) -> None:
+    relative_path = path.replace("dyn/gamedata/", "")
+    output_name = _get_flatbuffer_output_name(relative_path, fb_name)
+    raw = m_script_to_bytes(obj.m_Script)
+    if fb_name == "bake_muzzle_data":
+        # u32 name length + name bytes, then the flatbuffer
+        (name_len,) = struct.unpack_from("<I", raw, 0)
+        flatbuffer_data = raw[4 + name_len :]
+    else:
+        flatbuffer_data = raw[128:]
+    try:
+        schema = load_flatbuffer_schema(fbs_dir, fb_name)
+        jsons = json.loads(schema.binary_to_json(flatbuffer_data))
+    except Exception as exc:
+        raise RuntimeError(
+            f"failed to decode flatbuffer {fb_name!r} for asset {path!r}"
+        ) from exc
+
+    if fb_name == "activity_table":
+        for k, v in jsons["dynActs"].items():
+            if "base64" in v:
+                jsons["dynActs"][k] = bson.decode_document(
+                    base64.b64decode(v["base64"]), 0
+                )[1]
+    container_path = gamedata_dir / os.path.dirname(relative_path)
+    container_path.mkdir(parents=True, exist_ok=True)
+    json_dest_path = container_path / f"{output_name}.json"
+    json_dest_path.write_text(
+        json.dumps(
+            jsons,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ),
+        encoding="utf-8",
+    )
+
+
+@run_sync
+def _decrypt(path: str, obj: TextAsset, is_signed: bool, gamedata_dir: Path) -> None:
+    key: bytes = chat_mask[:16].encode()
+    iv = chat_mask[16:].encode()
+    cipher_data = (
+        bytearray(m_script_to_bytes(obj.m_Script))[128:]
+        if is_signed
+        else bytearray(m_script_to_bytes(obj.m_Script))
+    )
+    if len(cipher_data) % 16 != 0:
+        raise ValueError(
+            f"asset {path!r}: ciphertext length {len(cipher_data)} is not "
+            "16-byte aligned; likely an unregistered flatbuffer table — "
+            "check flatbuffer_list and OpenArknightsFBS/FBS"
         )
 
-    def _check_signed(self, path: str) -> bool:
-        return any(signed in path for signed in signed_list)
+    for i in range(16):
+        cipher_data[i] ^= iv[i]
 
-    def _get_flatbuffer_output_name(self, relative_path: str, fb_name: str) -> str:
-        source_name = Path(relative_path).name.removesuffix(".bytes")
-        if fb_name in {"prts___levels", "bake_muzzle_data"}:
-            return source_name
-        return fb_name
-
-    def _get_flatbuffer_schema(self, fb_name: str) -> FBSchema:
-        return load_flatbuffer_schema(self.config.fbs_dir, fb_name)
-
-    @run_sync
-    def _decode_flatbuffer(self, path: str, obj: TextAsset, fb_name: str):
-        relative_path = path.replace("dyn/gamedata/", "")
-        output_name = self._get_flatbuffer_output_name(relative_path, fb_name)
-        raw = m_script_to_bytes(obj.m_Script)
-        if fb_name == "bake_muzzle_data":
-            # u32 name length + name bytes, then the flatbuffer
-            (name_len,) = struct.unpack_from("<I", raw, 0)
-            flatbuffer_data = raw[4 + name_len :]
-        else:
-            flatbuffer_data = raw[128:]
-        try:
-            schema = self._get_flatbuffer_schema(fb_name)
-            jsons = json.loads(schema.binary_to_json(flatbuffer_data))
-        except Exception as exc:
-            raise RuntimeError(
-                f"failed to decode flatbuffer {fb_name!r} for asset {path!r}"
-            ) from exc
-
-        if fb_name == "activity_table":
-            for k, v in jsons["dynActs"].items():
-                if "base64" in v:
-                    jsons["dynActs"][k] = bson.decode_document(
-                        base64.b64decode(v["base64"]), 0
-                    )[1]
-        container_path = self.gamedata_dir / os.path.dirname(relative_path)
-        container_path.mkdir(parents=True, exist_ok=True)
-        json_dest_path = container_path / f"{output_name}.json"
-        json_dest_path.write_text(
+    cipher = AES.new(key, AES.MODE_CBC)
+    try:
+        decipher = unpad(bytes(cipher.decrypt(cipher_data)), 16)
+    except ValueError as exc:
+        raise RuntimeError(f"failed to decrypt asset {path!r}") from exc
+    try:
+        res = bytes(
             json.dumps(
-                jsons,
+                bson.decode_document(decipher[16:], 0)[1],
                 ensure_ascii=False,
                 separators=(",", ":"),
             ),
             encoding="utf-8",
         )
+    except Exception:
+        res = decipher[16:]
+    temp_path = gamedata_dir / path.replace("dyn/gamedata/", "")
 
-    @run_sync
-    def _decrypt(self, path: str, obj: TextAsset, is_signed: bool):
-        key: bytes = chat_mask[:16].encode()
-        iv = chat_mask[16:].encode()
-        cipher_data = (
-            bytearray(m_script_to_bytes(obj.m_Script))[128:]
-            if is_signed
-            else bytearray(m_script_to_bytes(obj.m_Script))
-        )
-        if len(cipher_data) % 16 != 0:
-            raise ValueError(
-                f"asset {path!r}: ciphertext length {len(cipher_data)} is not "
-                "16-byte aligned; likely an unregistered flatbuffer table — "
-                "check flatbuffer_list and OpenArknightsFBS/FBS"
-            )
+    if temp_path.name.endswith(".lua.bytes"):
+        temp_path = temp_path.parent.joinpath(obj.m_Name)
+    elif temp_path.name.endswith(".bytes"):
+        temp_path = temp_path.with_suffix(".json")
+    else:
+        temp_path = temp_path.parent
 
-        for i in range(16):
-            cipher_data[i] ^= iv[i]
+    temp_path.parent.mkdir(parents=True, exist_ok=True)
 
-        cipher = AES.new(key, AES.MODE_CBC)
-        try:
-            decipher = unpad(bytes(cipher.decrypt(cipher_data)), 16)
-        except ValueError as exc:
-            raise RuntimeError(f"failed to decrypt asset {path!r}") from exc
-        try:
-            res = bytes(
-                json.dumps(
-                    bson.decode_document(decipher[16:], 0)[1],
-                    ensure_ascii=False,
-                    separators=(",", ":"),
-                ),
-                encoding="utf-8",
-            )
-        except Exception:
-            res = decipher[16:]
-        temp_path = self.gamedata_dir / path.replace("dyn/gamedata/", "")
-
-        if temp_path.name.endswith(".lua.bytes"):
-            temp_path = temp_path.parent.joinpath(obj.m_Name)
-        elif temp_path.name.endswith(".bytes"):
-            temp_path = temp_path.with_suffix(".json")
-        else:
-            temp_path = temp_path.parent
-
-        temp_path.parent.mkdir(parents=True, exist_ok=True)
-
-        try:
-            res = bytes(
-                json.dumps(
-                    bson.decode_document(decipher[16:], 0)[1],
-                    ensure_ascii=False,
-                    separators=(",", ":"),
-                ),
-                encoding="utf-8",
-            )
-        except Exception:
-            res = decipher[16:]
-
-        return temp_path.write_bytes(res)
-
-    async def _unpack_gamedata(self, path: str, obj: TextAsset):
-        script: bytes = m_script_to_bytes(obj.m_Script)
-        is_signed = self._check_signed(path)
-        is_encrypted = self._check_encrypted(path)
-        fb_name = await self._get_flatbuffer_name(path)
-
-        if fb_name is not None:
-            return await self._decode_flatbuffer(path, obj, fb_name)
-
-        if is_encrypted:
-            return await self._decrypt(path, obj, is_signed)
-
-        output_path = self.gamedata_dir / path.replace("dyn/gamedata/", "")
-        if output_path.name.endswith(".lua.bytes"):
-            output_path = output_path.with_suffix("")
-        elif output_path.name.endswith(".bytes"):
-            output_path = output_path.with_suffix(".json")
-
-        try:
-            decoded_data = (
-                bson.decode_document(
-                    (
-                        bytes(script)[128:]
-                        if "buff_template_data" not in path
-                        else bytes(script)
-                    ),
-                    0,
-                )[1]
-                if "gamedata/levels" in path or "buff_template_data" in path
-                else json.loads(obj.m_Script)
-            )
-            pack_data = json.dumps(
-                decoded_data,
+    try:
+        res = bytes(
+            json.dumps(
+                bson.decode_document(decipher[16:], 0)[1],
                 ensure_ascii=False,
                 separators=(",", ":"),
-            )
-
-        except Exception:
-            pack_data = obj.m_Script
-
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(pack_data, encoding="utf-8")
-
-    async def unpack(self, ab_path: str):
-        real_path = await self.client.fetch_asset_bundle(ab_path)
-        env = UnityPy.load(real_path)
-        for path, object in env.container.items():
-            if isinstance((asset := object.read()), TextAsset):
-                await self._unpack_gamedata(path, asset)
-
-    async def start(self):
-        gamedata_abs = [
-            value
-            for (key, value) in self.client.asset_to_bundle.items()
-            if key.startswith("gamedata")
-        ]
-        gamedata_abs = list(set(gamedata_abs))
-        async with anyio.create_task_group() as tg:
-            for ab in gamedata_abs:
-                tg.start_soon(self.client.fetch_asset_bundle, ab)
-        async with anyio.create_task_group() as tg:
-            for ab in gamedata_abs:
-                tg.start_soon(self.unpack, ab)
-
-        if platform.system() != "Windows":
-            latest = self.config.gamedata_dir / "latest"
-            latest.unlink(True)
-            latest.symlink_to(f"./{self.client.version.res_version}", True)
-
-        ready_path = self.gamedata_dir / ".gamedata-ready.json"
-        ready_path.parent.mkdir(parents=True, exist_ok=True)
-        ready_path.write_text(
-            GameDataReady().model_dump_json(indent=2) + "\n",
+            ),
             encoding="utf-8",
         )
+    except Exception:
+        res = decipher[16:]
+
+    temp_path.write_bytes(res)
+
+
+async def _unpack_gamedata(
+    path: str, obj: TextAsset, gamedata_dir: Path, fbs_dir: Path
+) -> None:
+    script: bytes = m_script_to_bytes(obj.m_Script)
+    is_signed = _check_signed(path)
+    is_encrypted = _check_encrypted(path)
+    fb_name = _get_flatbuffer_name(path)
+
+    if fb_name is not None:
+        await _decode_flatbuffer(path, obj, fb_name, gamedata_dir, fbs_dir)
+        return
+
+    if is_encrypted:
+        await _decrypt(path, obj, is_signed, gamedata_dir)
+        return
+
+    output_path = gamedata_dir / path.replace("dyn/gamedata/", "")
+    if output_path.name.endswith(".lua.bytes"):
+        output_path = output_path.with_suffix("")
+    elif output_path.name.endswith(".bytes"):
+        output_path = output_path.with_suffix(".json")
+
+    try:
+        decoded_data = (
+            bson.decode_document(
+                (
+                    bytes(script)[128:]
+                    if "buff_template_data" not in path
+                    else bytes(script)
+                ),
+                0,
+            )[1]
+            if "gamedata/levels" in path or "buff_template_data" in path
+            else json.loads(obj.m_Script)
+        )
+        pack_data = json.dumps(
+            decoded_data,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+
+    except Exception:
+        pack_data = obj.m_Script
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(pack_data, encoding="utf-8")
+
+
+async def unpack(
+    client: Client, ab_path: str, gamedata_dir: Path, fbs_dir: Path
+) -> None:
+    real_path = await client.fetch_asset_bundle(ab_path)
+    env = UnityPy.load(real_path)
+    for path, reader in env.container.items():
+        if isinstance((asset := reader.read()), TextAsset):
+            await _unpack_gamedata(path, asset, gamedata_dir, fbs_dir)
+
+
+@task("GameData", priority=0)
+async def gamedata(client: Client, config: Config) -> None:
+    """Decode every ``gamedata/*`` bundle into ``config.gamedata_dir/<res_version>``.
+
+    Always runs (no diff check): everything downstream reads its output.
+    """
+    gamedata_dir = config.gamedata_dir / client.version.res_version
+    gamedata_abs = list(
+        {
+            bundle
+            for asset, bundle in client.asset_to_bundle.items()
+            if asset.startswith("gamedata")
+        }
+    )
+    async with anyio.create_task_group() as tg:
+        for ab in gamedata_abs:
+            tg.start_soon(client.fetch_asset_bundle, ab)
+    async with anyio.create_task_group() as tg:
+        for ab in gamedata_abs:
+            tg.start_soon(unpack, client, ab, gamedata_dir, config.fbs_dir)
+
+    if platform.system() != "Windows":
+        latest = config.gamedata_dir / "latest"
+        latest.unlink(True)
+        latest.symlink_to(f"./{client.version.res_version}", True)
+
+    ready_path = gamedata_dir / ".gamedata-ready.json"
+    ready_path.parent.mkdir(parents=True, exist_ok=True)
+    ready_path.write_text(
+        GameDataReady().model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
