@@ -23,4 +23,4 @@ jobs:
       - name: Run Pyright
         uses: jakebailey/pyright-action@v3
         with:
-          version: 1.1.408 # https://github.com/microsoft/pyright/issues/11481
+          version: 1.1.413 # https://github.com/microsoft/pyright/issues/11481
