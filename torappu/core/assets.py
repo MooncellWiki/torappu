@@ -7,7 +7,7 @@ from typing import Any
 from zipfile import ZipFile
 
 import anyio
-import httpx
+import httpx2
 import UnityPy
 from ark_fbs import Options as FBOptions
 from ark_fbs import Schema as FBSchema
@@ -67,9 +67,9 @@ class AssetBundleClient:
     def __init__(self, res_version: str, config: Config) -> None:
         self.res_version = res_version
         self.config = config
-        self.http_client = httpx.AsyncClient(
+        self.http_client = httpx2.AsyncClient(
             http2=True,
-            timeout=httpx.Timeout(config.timeout, pool=None),
+            timeout=httpx2.Timeout(config.timeout, pool=None),
         )
         self.hot_update_list: HotUpdateInfo
         self.ab_infos: dict[str, ABInfo] = {}

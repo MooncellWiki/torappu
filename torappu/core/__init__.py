@@ -6,7 +6,7 @@ from collections.abc import Collection
 import anyio
 import sentry_sdk
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
-from sentry_sdk.integrations.httpx import HttpxIntegration
+from sentry_sdk.integrations.httpx2 import Httpx2Integration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 
 from torappu import get_config
@@ -25,7 +25,7 @@ def init_sentry(config: Config | None = None) -> None:
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for performance monitoring.
     # We recommend adjusting this value in production.
-    integrations = [AsyncioIntegration(), LoguruIntegration(), HttpxIntegration()]
+    integrations = [AsyncioIntegration(), LoguruIntegration(), Httpx2Integration()]
     sentry_sdk.init(
         dsn=config.sentry_dsn,
         traces_sample_rate=1.0,

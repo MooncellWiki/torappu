@@ -1,12 +1,12 @@
 from pathlib import Path
 
 import anyio
-import httpx
+import httpx2
 
 from torappu import get_config
 from torappu.core.tasks.map_preview import unpack_sandbox, unpack_universal
 
-client = httpx.AsyncClient(timeout=60)
+client = httpx2.AsyncClient(timeout=60)
 OUTPUT_DIR = get_config().raw_dir / "map_preview"
 
 
