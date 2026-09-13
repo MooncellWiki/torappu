@@ -30,6 +30,9 @@ CHAR_CONTAINER_PREFIX = "dyn/avg/characters/"
 BG_CONTAINER_PREFIX = "dyn/avg/backgrounds/"
 IMAGE_CONTAINER_PREFIX = "dyn/avg/images/"
 ITEM_CONTAINER_PREFIX = "dyn/avg/items/"
+# interlude type=1 cutin images: atlas-packed sprites shipped outside the
+# `avg/*` bundle family (mostly under `spritepack/cutin_char_*.ab`).
+CUTIN_CONTAINER_PREFIX = "dyn/cutin/characters/"
 
 if TYPE_CHECKING:
     from UnityPy.files.SerializedFile import SerializedFile
@@ -655,6 +658,11 @@ async def unpack(
                 _extract_sprite(sprite, "images", container_path, output_dir)
             continue
 
+        if container_path.startswith(CUTIN_CONTAINER_PREFIX):
+            if sprite := read_obj(Sprite, obj):
+                _extract_sprite(sprite, "cutin", container_path, output_dir)
+            continue
+
     return character_links, background_ppus
 
 
@@ -665,7 +673,11 @@ async def avg(
     bundles: Annotated[
         set[str],
         changed_bundles(
-            "avg/characters/", "avg/backgrounds/", "avg/images/", "avg/items/"
+            "avg/characters/",
+            "avg/backgrounds/",
+            "avg/images/",
+            "avg/items/",
+            "cutin/characters/",
         ),
     ],
 ) -> None:
