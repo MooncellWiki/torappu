@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 
-from httpx import URL
+from httpx2 import URL
 
 WINDOWS = sys.platform.startswith("win") or (sys.platform == "cli" and os.name == "nt")
 MACOS = sys.platform == "darwin"
