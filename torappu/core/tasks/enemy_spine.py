@@ -55,27 +55,28 @@ def unpack(
         if (game_obj := read_obj(GameObject, obj)) is None:
             continue
 
-        if game_obj.m_Name == "Spine" and game_obj.object_reader is not None:
-            path = (
-                container_map[game_obj.object_reader.path_id]
-                .replace("dyn/battle/prefabs/enemies/", "")
-                .replace(".prefab", "")
-            )
-            for comp in filter(
-                lambda comp: comp.type.name == "MonoBehaviour",
-                game_obj.m_Components,
-            ):
-                skeleton_animation = cast("MonoBehaviour", comp.read())
-                if (
-                    skeleton_data := getattr(
-                        skeleton_animation, "skeletonDataAsset", None
-                    )
-                ) is None:
-                    continue
-                data: MonoBehaviour = skeleton_data.read()
-                if data.m_Name.endswith("_SkeletonData"):
-                    unpack_skeleton(data, path)
-                    break
+        if game_obj.object_reader is None:
+            continue
+
+        if (container := container_map.get(game_obj.object_reader.path_id)) is None:
+            continue
+
+        path = container.replace("dyn/battle/prefabs/enemies/", "").replace(
+            ".prefab", ""
+        )
+        for comp in filter(
+            lambda comp: comp.type.name == "MonoBehaviour",
+            game_obj.m_Components,
+        ):
+            skeleton_animation = cast("MonoBehaviour", comp.read())
+            if (
+                skeleton_data := getattr(skeleton_animation, "skeletonDataAsset", None)
+            ) is None:
+                continue
+            data: MonoBehaviour = skeleton_data.read()
+            if data.m_Name.endswith("_SkeletonData"):
+                unpack_skeleton(data, path)
+                break
 
 
 @task("EnemySpine", priority=2, raw_subdir="enemy_spine")
