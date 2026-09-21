@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, cast
 
-import anyio
 import UnityPy
 from UnityPy.classes import GameObject, MonoBehaviour
 
@@ -23,8 +22,8 @@ if TYPE_CHECKING:
 
 
 @run_sync
-def unpack_ab(
-    env: UnityPy.Environment, unpacking_source: str, output_dir: Path
+def unpack(
+    env: UnityPy.Environment, unpacking_source: set[str], output_dir: Path
 ) -> None:
     container_map = build_container_path(env)
 
@@ -50,40 +49,34 @@ def unpack_ab(
                 img.save(img_path)
 
     for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
-        if get_source(obj) != unpacking_source:
+        if get_source(obj) not in unpacking_source:
             continue
 
         if (game_obj := read_obj(GameObject, obj)) is None:
             continue
 
-        if game_obj.m_Name == "Spine" and game_obj.object_reader is not None:
-            path = (
-                container_map[game_obj.object_reader.path_id]
-                .replace("dyn/battle/prefabs/enemies/", "")
-                .replace(".prefab", "")
-            )
-            for comp in filter(
-                lambda comp: comp.type.name == "MonoBehaviour",
-                game_obj.m_Components,
-            ):
-                skeleton_animation = cast("MonoBehaviour", comp.read())
-                if (
-                    skeleton_data := getattr(
-                        skeleton_animation, "skeletonDataAsset", None
-                    )
-                ) is None:
-                    continue
-                data: MonoBehaviour = skeleton_data.read()
-                if data.m_Name.endswith("_SkeletonData"):
-                    unpack_skeleton(data, path)
-                    break
+        if game_obj.object_reader is None:
+            continue
 
+        if (container := container_map.get(game_obj.object_reader.path_id)) is None:
+            continue
 
-async def unpack(client: Client, ab_path: str, output_dir: Path) -> None:
-    real_path = await client.fetch_asset_bundle(ab_path)
-    await unpack_ab(
-        UnityPy.load(*client.anon_paths, real_path), Path(real_path).name, output_dir
-    )
+        path = container.replace("dyn/battle/prefabs/enemies/", "").replace(
+            ".prefab", ""
+        )
+        for comp in filter(
+            lambda comp: comp.type.name == "MonoBehaviour",
+            game_obj.m_Components,
+        ):
+            skeleton_animation = cast("MonoBehaviour", comp.read())
+            if (
+                skeleton_data := getattr(skeleton_animation, "skeletonDataAsset", None)
+            ) is None:
+                continue
+            data: MonoBehaviour = skeleton_data.read()
+            if data.m_Name.endswith("_SkeletonData"):
+                unpack_skeleton(data, path)
+                break
 
 
 @task("EnemySpine", priority=2, raw_subdir="enemy_spine")
@@ -92,9 +85,10 @@ async def enemy_spine(
     output_dir: OutputDir,
     bundles: Annotated[set[str], changed_bundles("battle/prefabs/enemies/")],
 ) -> None:
-    async with anyio.create_task_group() as tg:
-        for ab in bundles:
-            tg.start_soon(client.fetch_asset_bundle, ab)
-    async with anyio.create_task_group() as tg:
-        for ab in bundles:
-            tg.start_soon(unpack, client, ab, output_dir)
+    paths = await client.fetch_asset_bundles(list(bundles))
+    resolved_paths = [path[1] for path in paths]
+    resolved_filenames: set[str] = {
+        Path(resolved_path).name for resolved_path in resolved_paths
+    }
+    env = UnityPy.load(*client.anon_paths, *resolved_paths)
+    await unpack(env, resolved_filenames, output_dir)
