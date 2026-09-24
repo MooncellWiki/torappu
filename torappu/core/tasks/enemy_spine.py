@@ -10,7 +10,6 @@ from torappu.core.utils.thread import run_sync
 from .base import task
 from .params import OutputDir, changed_bundles
 from .utils import (
-    build_container_path,
     get_source,
     m_script_to_bytes,
     material2img,
@@ -25,8 +24,6 @@ if TYPE_CHECKING:
 def unpack(
     env: UnityPy.Environment, unpacking_source: set[str], output_dir: Path
 ) -> None:
-    container_map = build_container_path(env)
-
     def unpack_skeleton(data: MonoBehaviour, path: str):
         dest_dir = output_dir / path
         dest_dir.mkdir(parents=True, exist_ok=True)
@@ -58,7 +55,7 @@ def unpack(
         if game_obj.object_reader is None:
             continue
 
-        if (container := container_map.get(game_obj.object_reader.path_id)) is None:
+        if (container := game_obj.object_reader.container) is None:
             continue
 
         path = container.replace("dyn/battle/prefabs/enemies/", "").replace(

@@ -13,11 +13,11 @@ from torappu.log import logger
 from .base import task
 from .params import OutputDir, changed_bundles, gamedata
 from .utils import (
-    build_container_path,
     get_source,
     m_script_to_bytes,
     material2img,
     read_obj,
+    require_container,
 )
 
 
@@ -112,7 +112,6 @@ def unpack(
     char_map: dict[str, str],
     skin_map: dict[str, str],
 ) -> dict[str, SpineConfig]:
-    container_map = build_container_path(env)
     changed_char: dict[str, SpineConfig] = {}
 
     for obj in filter(lambda obj: obj.type.name == "GameObject", env.objects):
@@ -143,7 +142,7 @@ def unpack(
         side = None
         if game_obj.object_reader is None:
             continue
-        container_path = container_map[game_obj.object_reader.path_id]
+        container_path = require_container(game_obj.object_reader)
         # 基建
         if container_path.startswith("dyn/building/vault/characters"):
             # char_485_pallas_epoque_12 or
