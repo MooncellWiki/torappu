@@ -12,7 +12,7 @@ from torappu.log import logger
 
 from .base import task
 from .params import OutputDir, changed_bundles, gamedata
-from .utils import build_container_path, read_obj
+from .utils import read_obj, require_container
 
 
 async def mp3(path: str) -> None:
@@ -40,14 +40,13 @@ async def mp3(path: str) -> None:
 
 async def extract(real_path: str, ab_path: str, output_dir: Path) -> None:
     env = UnityPy.load(real_path)
-    container_map = build_container_path(env)
     for obj in filter(lambda obj: obj.type.name == "AudioClip", env.objects):
         if (clip := read_obj(AudioClip, obj)) is None:
             continue
         for data in clip.samples.values():
             if clip.object_reader is None:
                 continue
-            path = output_dir / container_map[clip.object_reader.path_id].replace(
+            path = output_dir / require_container(clip.object_reader).replace(
                 "dyn/audio/sound_beta_2/", ""
             ).replace(".ogg", ".wav").replace("#", "__")
             path.parent.mkdir(parents=True, exist_ok=True)

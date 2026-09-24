@@ -16,7 +16,6 @@ from UnityPy.files.ObjectReader import ObjectReader
 
 from torappu.core.client import Client
 from torappu.core.tasks.utils import (
-    build_container_path,
     get_source,
     merge_alpha,
     read_obj,
@@ -626,7 +625,6 @@ def _compact_character_links(
 async def unpack(
     env: UnityPy.Environment, unpacking_source: list[str], output_dir: Path
 ) -> tuple[dict[str, CharacterDataJson], dict[str, float]]:
-    container_map = build_container_path(env)
     character_links: dict[str, CharacterDataJson] = {}
     background_ppus: dict[str, float] = {}
     characters_dir = output_dir.joinpath("characters")
@@ -636,7 +634,7 @@ async def unpack(
         if source not in unpacking_source:
             continue
 
-        container_path = container_map.get(obj.path_id)
+        container_path = obj.container
         if container_path is None:
             continue
 
