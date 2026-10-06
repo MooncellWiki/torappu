@@ -22,7 +22,7 @@ dependencies = [
   "pydantic-settings (>=2.0.0,<3.0.0)",
   "sentry-sdk[loguru] (>=2.62.0,<3.0.0)",
   "ark-fbs (>=0.2.1,<0.3.0)",
-  "wannacri>=0.3.3,<0.4",
+  "wannacri (>=0.3.3,<0.4.0)",
 ]
 
 [project.scripts]

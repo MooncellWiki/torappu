@@ -1,5 +1,6 @@
 """Demux the CRI USM cutscenes (``raw/video/*.usm``) into MP4 files."""
 
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -17,75 +18,92 @@ from .params import OutputDir, changed_bundles
 BUNDLE_PREFIX = "raw/video/"
 
 
-def open_usm(path: str) -> Usm:
-    """Parse a USM, tolerating the CN client's GBK source filenames.
+def demux(ab_path: str, real_path: str, tmp: Path) -> tuple[Path, Path | None]:
+    """Write the IVF video and ADX audio (if any) of a USM into ``tmp``.
 
-    demux 不使用 CRID 表里的文件名,但解析表格时必须能把它解码出来;
-    国服把源文件名(如"临时PV:...")按 GBK 打进了表里。
+    CRID 表里的源文件名国服按 GBK 存(如"临时PV:..."),其余为 UTF-8;demux
+    用不到这些名字,按 latin-1 解码(任意字节都合法)一次就能解析。不能靠捕获
+    UnicodeDecodeError 再换编码:root logger 为 DEBUG 时 WannaCRI 会吞掉这个
+    异常并跳过整个 CRID 块,最后只报 "No crid page found"。
     """
-    try:
-        return Usm.open(path, encoding="utf-8")
-    except UnicodeDecodeError:
-        return Usm.open(path, encoding="gbk")
+    usm = Usm.open(real_path, encoding="latin-1")
+    if len(usm.videos) != 1 or len(usm.audios) > 1 or usm.alphas:
+        raise RuntimeError(
+            f"{ab_path!r}: expected 1 video and at most 1 audio stream, got "
+            f"{len(usm.videos)} video / {len(usm.audios)} audio / "
+            f"{len(usm.alphas)} alpha"
+        )
+
+    # 明文 USM:key 为空(None),stream() 走 OpMode.NONE 原样输出分包
+    video_path = tmp / "video.ivf"
+    with video_path.open("wb") as f:
+        for packet, _ in usm.videos[0].stream(OpMode.NONE, None):
+            f.write(packet)
+    if not usm.audios:
+        return video_path, None
+
+    audio_path = tmp / "audio.adx"
+    with audio_path.open("wb") as f:
+        for packet in usm.audios[0].stream(OpMode.NONE, None):
+            f.write(packet)
+    return video_path, audio_path
 
 
-async def mux(video: bytes, audio: bytes, dest: Path) -> None:
+async def mux(ab_path: str, video: Path, audio: Path | None, dest: Path) -> None:
     """Mux demuxed elementary streams (IVF video, ADX audio) into ``dest``.
 
     视频是嵌在流里的完整 IVF(VP9),可直接 copy;ADX 进 MP4 必须转 AAC。
     """
-    with tempfile.TemporaryDirectory() as tmp:
-        inputs: list[str] = []
-        if video:
-            video_path = Path(tmp) / "video.ivf"
-            video_path.write_bytes(video)
-            inputs += ["-i", str(video_path)]
-        if audio:
-            audio_path = Path(tmp) / "audio.adx"
-            audio_path.write_bytes(audio)
-            inputs += ["-i", str(audio_path)]
-        result = await anyio.run_process(
-            [
-                "ffmpeg",
-                "-y",
-                "-hide_banner",
-                "-loglevel",
-                "error",
-                *inputs,
-                "-c:v",
-                "copy",
-                "-c:a",
-                "aac",
-                "-b:a",
-                "192k",
-                str(dest),
-            ],
-            stdout=subprocess.DEVNULL,
-            check=False,
-        )
+    inputs = ["-i", str(video)]
+    if audio is not None:
+        inputs += ["-i", str(audio)]
+    result = await anyio.run_process(
+        [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            # 缺 vp9 parser 的 ffmpeg 会丢光视频包却仍返回 0
+            "-abort_on",
+            "empty_output_stream",
+            *inputs,
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-movflags",
+            "+faststart",
+            str(dest),
+        ],
+        stdout=subprocess.DEVNULL,
+        check=False,
+    )
 
     if result.returncode != 0:
-        # 失败时 ffmpeg 可能已经写出不完整的 mp4,必须清掉
-        dest.unlink(missing_ok=True)  # noqa: ASYNC240
         stderr = result.stderr.decode(errors="replace")
         raise RuntimeError(
-            f"failed to mux {dest}: ffmpeg returned {result.returncode}, {stderr!r}"
+            f"failed to mux {ab_path!r}: ffmpeg returned {result.returncode}, "
+            f"{stderr!r}"
         )
 
 
 async def unpack(ab_path: str, real_path: str, output_dir: Path) -> None:
-    usm = open_usm(real_path)
-    if not usm.videos:
-        raise RuntimeError(f"{ab_path!r} has no video stream")
-
-    # 明文 USM:key 为空(None),stream() 走 OpMode.NONE 原样输出分包
-    video = b"".join(packet for packet, _ in usm.videos[0].stream(OpMode.NONE, None))
-    audio = b"".join(usm.audios[0].stream(OpMode.NONE, None)) if usm.audios else b""
-
     rel = ab_path.removeprefix(BUNDLE_PREFIX).removesuffix(".usm")
     dest = output_dir / f"{rel}.mp4"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    await mux(video, audio, dest)
+
+    # 先在临时目录里合成再移动过去:ffmpeg 失败或被取消(兄弟任务出错、Ctrl-C)
+    # 时 dest 不会留下残缺的 mp4
+    with tempfile.TemporaryDirectory() as tmp:
+        video, audio = await anyio.to_thread.run_sync(
+            demux, ab_path, real_path, Path(tmp)
+        )
+        out = Path(tmp) / "out.mp4"
+        await mux(ab_path, video, audio, out)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        await anyio.to_thread.run_sync(shutil.move, out, dest)
     logger.debug(f"unpacked {ab_path}")
 
 
