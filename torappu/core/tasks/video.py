@@ -24,7 +24,11 @@ BUNDLE_PREFIX = "raw/video/"
 # relative to byte 8 and ``padding`` sits at the end of the chunk, so the
 # payload is ``[8 + payload_offset, 8 + size - padding)``. Only the low two
 # bits of ``type`` matter: 0 stream data, 1 header, 2 section end, 3 metadata.
+# The header is 32 bytes, so ``payload_offset`` is never below 24; a smaller
+# value would leak header bytes into the stream (and ffmpeg would then quietly
+# stop at the first corrupt frame instead of failing).
 CHUNK_HEADER = struct.Struct(">4sIxBHBxxB")
+MIN_PAYLOAD_OFFSET = 32 - 8
 USM_SIGNATURE = b"CRID"
 VIDEO_CHUNK = b"@SFV"
 AUDIO_CHUNK = b"@SFA"
@@ -59,7 +63,11 @@ def _demux_chunks(
             header
         )
         payload_size = chunk_size - offset - padding
-        if payload_size < 0 or pos + 8 + chunk_size > size:
+        if (
+            offset < MIN_PAYLOAD_OFFSET
+            or payload_size < 0
+            or pos + 8 + chunk_size > size
+        ):
             raise RuntimeError(f"invalid {sig!r} chunk at {pos:#x}")
 
         if sig in (VIDEO_CHUNK, AUDIO_CHUNK, ALPHA_CHUNK):
