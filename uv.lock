@@ -299,18 +299,6 @@ wheels = [
 ]
 
 [[package]]
-name = "ffmpeg-python"
-version = "0.2.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "future" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/dd/5e/d5f9105d59c1325759d838af4e973695081fbbc97182baf73afc78dec266/ffmpeg-python-0.2.0.tar.gz", hash = "sha256:65225db34627c578ef0e11c8b1eb528bb35e024752f6f10b78c011f6f64c4127", size = 21543, upload-time = "2019-07-06T00:19:08.989Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/0c/56be52741f75bad4dc6555991fabd2e07b432d333da82c11ad701123888a/ffmpeg_python-0.2.0-py3-none-any.whl", hash = "sha256:ac441a0404e053f8b6a1113a77c0f452f1cfc62f6344a769475ffdc0f56c23c5", size = 25024, upload-time = "2019-07-06T00:19:07.215Z" },
-]
-
-[[package]]
 name = "filelock"
 version = "4.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -361,15 +349,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/77/cd/9be253869fc42e764de7f3dedd6969af7d44ff9c3375214a3442a6f3fc08/fsspec-2026.9.0.tar.gz", hash = "sha256:0f08147951c8cb31d844c3547d631053b127863b60be04cf06e121333ee0e2fe", size = 333545, upload-time = "2026-09-18T17:50:42.825Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6c/c0/a98505f18594f1bce828bb159cec0fcf9860562f1a2c85913409fc8f3d9e/fsspec-2026.9.0-py3-none-any.whl", hash = "sha256:8dd6e646e99ea382bd85f97a45e6b526a442d79423a7dc673f1e2756d05fcb5f", size = 221738, upload-time = "2026-09-18T17:50:41.341Z" },
-]
-
-[[package]]
-name = "future"
-version = "1.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a7/b2/4140c69c6a66432916b26158687e821ba631a4c9273c474343badf84d3ba/future-1.0.0.tar.gz", hash = "sha256:bd2968309307861edae1458a4f8a4f3598c03be43b97521076aebf5d94c07b05", size = 1228490, upload-time = "2024-02-21T11:52:38.461Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/71/ae30dadffc90b9006d77af76b393cb9dfbfc9629f339fc1574a1c52e6806/future-1.0.0-py3-none-any.whl", hash = "sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216", size = 491326, upload-time = "2024-02-21T11:52:35.956Z" },
 ]
 
 [[package]]
@@ -887,15 +866,6 @@ wheels = [
 ]
 
 [[package]]
-name = "python-json-logger"
-version = "2.0.7"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4f/da/95963cebfc578dabd323d7263958dfb68898617912bb09327dd30e9c8d13/python-json-logger-2.0.7.tar.gz", hash = "sha256:23e7ec02d34237c5aa1e29a070193a4ea87583bb4e7f8fd06d3de8264c4b2e1c", size = 10508, upload-time = "2023-02-21T17:40:06.209Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/35/a6/145655273568ee78a581e734cf35beb9e33a370b29c5d3c8fee3744de29f/python_json_logger-2.0.7-py3-none-any.whl", hash = "sha256:f380b826a991ebbe3de4d897aeec42760035ac760345e57b812938dc8b35e2bd", size = 8067, upload-time = "2023-02-21T17:40:05.117Z" },
-]
-
-[[package]]
 name = "pyyaml"
 version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1035,7 +1005,6 @@ dependencies = [
     { name = "sentry-sdk", extra = ["loguru"] },
     { name = "tenacity" },
     { name = "unitypy" },
-    { name = "wannacri" },
 ]
 
 [package.dev-dependencies]
@@ -1059,7 +1028,6 @@ requires-dist = [
     { name = "sentry-sdk", extras = ["loguru"], specifier = ">=2.62.0,<3.0.0" },
     { name = "tenacity", specifier = ">=9.0.0,<10.0.0" },
     { name = "unitypy", specifier = "==1.25.3" },
-    { name = "wannacri", specifier = ">=0.3.3,<0.4" },
 ]
 
 [package.metadata.requires-dev]
@@ -1073,18 +1041,6 @@ name = "tpk-ar"
 version = "0.2.4"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/fa/02/654a73cbd323970b5c1551881968dbadec1d697984fff5fdd33b66764dfc/tpk_ar-0.2.4.tar.gz", hash = "sha256:d64897e5a0bcddd58e8a7d4dd922f372da984a0f98bc3b460ec869aab906ee78", size = 10796, upload-time = "2026-08-01T17:52:56.473Z" }
-
-[[package]]
-name = "tqdm"
-version = "4.70.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0d/ea/b2a5bd54b28a324dae8211928b2d730b6547500342c7e6c6dea08bd0a485/tqdm-4.70.1.tar.gz", hash = "sha256:cefd0eca11b2a37a3aee776544d4f4ae913f02688135b5556b8788dfa474afc4", size = 171846, upload-time = "2026-09-11T07:25:16.601Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a7/03/921a3d3c75785aca9ebfbfcabfbc3a1be12e2ab5265deb026d55a5a3f83e/tqdm-4.70.1-py3-none-any.whl", hash = "sha256:c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73", size = 80199, upload-time = "2026-09-11T07:25:14.599Z" },
-]
 
 [[package]]
 name = "truststore"
@@ -1185,20 +1141,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/81/a3/4d9dede34649537601a64700558e350f43dd552a12db166e0ff1bc81087d/virtualenv-21.12.0.tar.gz", hash = "sha256:bc5923d9f3e25f4114d6335e99c265978386d3ce8a6a0ec061b18d9b1635b016", size = 5396320, upload-time = "2026-09-24T01:27:44.502Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/99/1f/f05fdfddce78d80a9269db1d4b63a4666f102f4e5302b54a7e3a8d4ac75b/virtualenv-21.12.0-py3-none-any.whl", hash = "sha256:7c48862b3f355c3f5f08d0e21af8a9ea601e0c56385f8e189c7117809ef0b4db", size = 5485590, upload-time = "2026-09-24T01:27:41.85Z" },
-]
-
-[[package]]
-name = "wannacri"
-version = "0.3.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "ffmpeg-python" },
-    { name = "python-json-logger" },
-    { name = "tqdm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/56/82/9fd56fa1eae00b5626da9548acbfd792b63d5db30ca6ded8ec1f5732a604/wannacri-0.3.3.tar.gz", hash = "sha256:8c657ab58c4d49314ce6b8dc6334eef83c9fe89e8243ac4b97f3c7e05b718d5c", size = 29922, upload-time = "2026-09-14T20:54:29.208Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/96/bb/6e5d1a851cd110c34f358cc3f074451a030ab84f53cff9cd574c690b3242/wannacri-0.3.3-py3-none-any.whl", hash = "sha256:3d96b35c9a76632d2e773eeb2372810e854d9d77b381f81dc348d92f9aacde5c", size = 32821, upload-time = "2026-09-14T20:54:28.122Z" },
 ]
 
 [[package]]

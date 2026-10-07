@@ -1,13 +1,13 @@
 """Demux the CRI USM cutscenes (``raw/video/*.usm``) into MP4 files."""
 
 import shutil
+import struct
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Annotated
+from typing import IO, Annotated
 
 import anyio
-from wannacri.usm import OpMode, Usm
 
 from torappu.core.client import Client
 from torappu.log import logger
@@ -17,35 +17,96 @@ from .params import OutputDir, changed_bundles
 
 BUNDLE_PREFIX = "raw/video/"
 
+# USM (CRI Sofdec2) is a flat sequence of chunks. Chunk header, big-endian:
+#   signature(4) size(4) _(1) payload_offset(1) padding(2) channel(1) _(2) type(1)
+#   frame_time(4) frame_rate(4) _(8)
+# ``size`` counts everything after the first 8 bytes, ``payload_offset`` is
+# relative to byte 8 and ``padding`` sits at the end of the chunk, so the
+# payload is ``[8 + payload_offset, 8 + size - padding)``. Only the low two
+# bits of ``type`` matter: 0 stream data, 1 header, 2 section end, 3 metadata.
+CHUNK_HEADER = struct.Struct(">4sIxBHBxxB")
+USM_SIGNATURE = b"CRID"
+VIDEO_CHUNK = b"@SFV"
+AUDIO_CHUNK = b"@SFA"
+ALPHA_CHUNK = b"@ALP"
+STREAM_PAYLOAD = 0
+
+IVF_SIGNATURE = b"DKIF"
+ADX_SIGNATURE = b"\x80\x00"
+
+
+def _demux_chunks(
+    src: IO[bytes], sinks: dict[bytes, IO[bytes]]
+) -> dict[bytes, set[int]]:
+    """Append every stream chunk's payload to the sink of its signature.
+
+    Returns the channel numbers seen per media signature (``@SFV``/``@SFA``/
+    ``@ALP``), so the caller can reject layouts it does not handle.
+    """
+    size = src.seek(0, 2)
+    src.seek(0)
+    if src.read(4) != USM_SIGNATURE:
+        raise RuntimeError("not a USM file (missing CRID signature)")
+
+    channels: dict[bytes, set[int]] = {}
+    pos = 0
+    while pos < size:
+        src.seek(pos)
+        header = src.read(CHUNK_HEADER.size)
+        if len(header) < CHUNK_HEADER.size:
+            raise RuntimeError(f"truncated chunk header at {pos:#x}")
+        sig, chunk_size, offset, padding, channel, payload_type = CHUNK_HEADER.unpack(
+            header
+        )
+        payload_size = chunk_size - offset - padding
+        if payload_size < 0 or pos + 8 + chunk_size > size:
+            raise RuntimeError(f"invalid {sig!r} chunk at {pos:#x}")
+
+        if sig in (VIDEO_CHUNK, AUDIO_CHUNK, ALPHA_CHUNK):
+            channels.setdefault(sig, set()).add(channel)
+            sink = sinks.get(sig)
+            if sink is not None and payload_type & 3 == STREAM_PAYLOAD:
+                src.seek(pos + 8 + offset)
+                sink.write(src.read(payload_size))
+        pos += 8 + chunk_size
+    return channels
+
 
 def demux(ab_path: str, real_path: str, tmp: Path) -> tuple[Path, Path | None]:
     """Write the IVF video and ADX audio (if any) of a USM into ``tmp``.
 
-    CRID 表里的源文件名国服按 GBK 存(如"临时PV:..."),其余为 UTF-8;demux
-    用不到这些名字,按 latin-1 解码(任意字节都合法)一次就能解析。不能靠捕获
-    UnicodeDecodeError 再换编码:root logger 为 DEBUG 时 WannaCRI 会吞掉这个
-    异常并跳过整个 CRID 块,最后只报 "No crid page found"。
+    @SFV / @SFA 流 chunk 的 payload 顺序拼起来就是完整的 IVF / ADX 文件,
+    直接分包流式写出。CRID 元数据表(国服里文件名是 GBK)这里用不到,不解析。
+    流为明文(ADX 头 flags 为 0,客户端也没有调用 SetDecryptionKey),
+    不用解密;拼出来的文件头不对就当作数据有问题报错。
     """
-    usm = Usm.open(real_path, encoding="latin-1")
-    if len(usm.videos) != 1 or len(usm.audios) > 1 or usm.alphas:
+    video_path = tmp / "video.ivf"
+    audio_path = tmp / "audio.adx"
+    with (
+        open(real_path, "rb") as src,
+        video_path.open("wb") as video,
+        audio_path.open("wb") as audio,
+    ):
+        channels = _demux_chunks(src, {VIDEO_CHUNK: video, AUDIO_CHUNK: audio})
+
+    videos = channels.get(VIDEO_CHUNK, set())
+    audios = channels.get(AUDIO_CHUNK, set())
+    alphas = channels.get(ALPHA_CHUNK, set())
+    if len(videos) != 1 or len(audios) > 1 or alphas:
         raise RuntimeError(
             f"{ab_path!r}: expected 1 video and at most 1 audio stream, got "
-            f"{len(usm.videos)} video / {len(usm.audios)} audio / "
-            f"{len(usm.alphas)} alpha"
+            f"{len(videos)} video / {len(audios)} audio / {len(alphas)} alpha"
         )
 
-    # 明文 USM:key 为空(None),stream() 走 OpMode.NONE 原样输出分包
-    video_path = tmp / "video.ivf"
-    with video_path.open("wb") as f:
-        for packet, _ in usm.videos[0].stream(OpMode.NONE, None):
-            f.write(packet)
-    if not usm.audios:
+    with video_path.open("rb") as f:
+        if f.read(len(IVF_SIGNATURE)) != IVF_SIGNATURE:
+            raise RuntimeError(f"{ab_path!r}: video stream is not IVF")
+    if not audios:
+        audio_path.unlink()
         return video_path, None
-
-    audio_path = tmp / "audio.adx"
-    with audio_path.open("wb") as f:
-        for packet in usm.audios[0].stream(OpMode.NONE, None):
-            f.write(packet)
+    with audio_path.open("rb") as f:
+        if f.read(len(ADX_SIGNATURE)) != ADX_SIGNATURE:
+            raise RuntimeError(f"{ab_path!r}: audio stream is not ADX")
     return video_path, audio_path
 
 
