@@ -9,10 +9,12 @@ ENV UV_LINK_MODE=copy \
   UV_PYTHON_DOWNLOADS=never \
   UV_PROJECT_ENVIRONMENT=/opt/venv
 
-# ffmpeg (audio-only build). Fetched here so the runtime image never needs apt/curl.
+# Static ffmpeg from MooncellWiki/ffmpeg-build: audio codecs plus the IVF/VP9,
+# ADX and MP4/AAC components the Video task needs (v8.0-4+). Fetched here so
+# the runtime image never needs apt/curl.
 RUN ARCH=$(uname -m | sed 's/^aarch64$/arm64/') \
   && mkdir -p /opt/ffmpeg \
-  && curl -fsSL "https://github.com/MooncellWiki/ffmpeg-build/releases/download/v8.0-3/ffmpeg-8.0-audio-$ARCH-linux-gnu.tar.gz" \
+  && curl -fsSL "https://github.com/MooncellWiki/ffmpeg-build/releases/download/v8.0-4/ffmpeg-8.0-audio-$ARCH-linux-gnu.tar.gz" \
   | tar -xz -C /opt/ffmpeg --strip-components=2 --wildcards '*/bin/*' \
   && chmod +x /opt/ffmpeg/*
 
