@@ -120,6 +120,13 @@ that case.
 
 ### Docker Usage
 
+The image runs as UID/GID `10001:10001`. Source files and dependencies remain
+root-owned; extraction writes to `/app/storage`, with home/cache under `/tmp`.
+For bind mounts, create the storage directory first and run with its owner's
+non-root UID/GID. Existing production data must be made writable by
+`10001:10001` (or your configured UID/GID) before upgrading; bind-mount
+ownership is not changed by the image.
+
 ```bash
 # Build the image
 docker build -t torappu .
@@ -133,13 +140,18 @@ docker run torappu [CLIENT_VERSION] [RES_VERSION] -c [PREV_CLIENT_VERSION] -r [P
 # Include specific tasks
 docker run torappu [CLIENT_VERSION] [RES_VERSION] -i CharArts,MapPreview
 
-# With persistent storage
-docker run -v "$(pwd)/storage:/app/storage" torappu [CLIENT_VERSION] [RES_VERSION]
-
-# With environment variables (.env is not copied into the image)
-docker run -e ENVIRONMENT=production -e SENTRY_DSN=your_sentry_dsn torappu [CLIENT_VERSION] [RES_VERSION]
-docker run --env-file .env torappu [CLIENT_VERSION] [RES_VERSION]
+# With environment variables
+mkdir -p storage
+docker run --rm --user "$(id -u):$(id -g)" --cap-drop=ALL \
+  --security-opt=no-new-privileges -e TOKEN=your_token \
+  -v "$(pwd)/storage:/app/storage" torappu [CLIENT_VERSION] [RES_VERSION]
 ```
+
+Kubernetes launchers should set `runAsNonRoot: true`, disable privilege
+escalation, drop all capabilities, and use RuntimeDefault seccomp. Set
+`runAsUser` / `runAsGroup` when the output volume uses different non-root
+IDs. Prepare hostPath ownership on the node before launching; upgrading
+the image alone does not grant access to existing root-owned files.
 
 ## Project Structure
 

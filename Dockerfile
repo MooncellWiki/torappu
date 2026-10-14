@@ -42,7 +42,16 @@ FROM python:3.13-slim-bookworm
 WORKDIR /app
 
 ENV TZ=Asia/Shanghai \
-  PATH=/opt/venv/bin:$PATH
+  PATH=/opt/venv/bin:$PATH \
+  PYTHONDONTWRITEBYTECODE=1 \
+  HOME=/tmp \
+  XDG_CACHE_HOME=/tmp/.cache
+
+# A numeric USER lets Kubernetes verify runAsNonRoot. Runtime UID/GID
+# overrides can still use /tmp for home/cache without writing to /root.
+RUN groupadd --gid 10001 torappu \
+  && useradd --uid 10001 --gid 10001 --no-create-home --no-log-init \
+    --home-dir /tmp --shell /usr/sbin/nologin torappu
 
 COPY --from=builder /opt/ffmpeg/ /usr/bin/
 COPY --from=builder /opt/venv /opt/venv
@@ -52,5 +61,9 @@ ARG VERSION=dev
 ENV SENTRY_RELEASE=torappu@${VERSION}
 
 COPY . /app/
+
+RUN install -d -o 10001 -g 10001 /app/storage
+
+USER 10001:10001
 
 ENTRYPOINT ["torappu", "run"]
