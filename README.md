@@ -120,12 +120,21 @@ that case.
 
 ### Docker Usage
 
-The image runs as UID/GID `10001:10001`. Source files and dependencies remain
+The image runs as UID/GID `10001:0`. Source files and dependencies remain
 root-owned; extraction writes to `/app/storage`, with home/cache under `/tmp`.
-For bind mounts, create the storage directory first and run with its owner's
-non-root UID/GID. Existing production data must be made writable by
-`10001:10001` (or your configured UID/GID) before upgrading; bind-mount
-ownership is not changed by the image.
+The built-in storage directory is owned by `10001:0` with mode `2775`, following
+the [OpenShift arbitrary UID convention](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/images/creating-images).
+Any non-root UID with group `0` can write there, including when only a storage
+subdirectory is mounted. The setgid bit makes new subdirectories inherit group
+`0`; it does not grant group write permission to files created with a restrictive
+umask. For another primary GID, add `--group-add 0` or mount the entire
+`/app/storage` directory with permissions for the selected identity.
+
+Mounts retain their own ownership and modes, covering the image's permissions
+at that path. Existing data must be made writable by the runtime UID or one of
+its groups before upgrading from a root-running image. Changing `--user` or
+upgrading the image does not change existing files; insufficient permissions
+cause extraction to fail on its first write.
 
 ```bash
 # Build the image
@@ -140,18 +149,60 @@ docker run torappu [CLIENT_VERSION] [RES_VERSION] -c [PREV_CLIENT_VERSION] -r [P
 # Include specific tasks
 docker run torappu [CLIENT_VERSION] [RES_VERSION] -i CharArts,MapPreview
 
-# With environment variables
+# With an arbitrary UID and the root group
+docker run --rm --user 12345:0 torappu [CLIENT_VERSION] [RES_VERSION]
+
+# With environment variables and a bind mount (run from a non-root shell)
 mkdir -p storage
+# Migrate existing storage previously written by a root-running container:
+sudo chown -R "$(id -u):$(id -g)" storage
 docker run --rm --user "$(id -u):$(id -g)" --cap-drop=ALL \
   --security-opt=no-new-privileges -e TOKEN=your_token \
   -v "$(pwd)/storage:/app/storage" torappu [CLIENT_VERSION] [RES_VERSION]
 ```
 
+Run the bind-mount example from a non-root shell (`id -u` must not be `0`) so
+`--user` selects your non-root identity. Omit the `chown` step for a new directory
+already owned by that user.
+
+Existing Docker named volumes also need a one-time permission migration;
+Docker does not update a reused volume's ownership from the new image. Stop
+extraction, then run the following maintenance command as root to prepare an
+existing `torappu-storage` volume for `10001:0` (replace the volume name and
+identity for your deployment):
+
+```bash
+docker run --rm --user 0:0 --entrypoint sh \
+  -v torappu-storage:/app/storage torappu \
+  -c 'chown -R 10001:0 /app/storage && chmod -R u+rwX,g+rwX /app/storage'
+```
+
+Only `/app/storage` is prepared by the image. When overriding `STORAGE_DIR`,
+create and grant access to the target directory before startup, or mount a
+writable volume over the whole target. A non-root process cannot create a new
+directory directly under `/`. For example, after preparing the bind-mount
+directory above:
+
+```bash
+docker run --rm --user "$(id -u):$(id -g)" \
+  -e STORAGE_DIR=/data -v "$(pwd)/storage:/data" \
+  torappu [CLIENT_VERSION] [RES_VERSION]
+```
+
 Kubernetes launchers should set `runAsNonRoot: true`, disable privilege
 escalation, drop all capabilities, and use RuntimeDefault seccomp. Set
-`runAsUser` / `runAsGroup` when the output volume uses different non-root
-IDs. Prepare hostPath ownership on the node before launching; upgrading
-the image alone does not grant access to existing root-owned files.
+`runAsUser` / `runAsGroup` when the output volume requires a specific identity;
+keep group `0` available if using the built-in storage directory. On OpenShift,
+allow the cluster to assign the UID and groups required by its security policy.
+For PVCs, use a Pod-level
+[`fsGroup`](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#configure-volume-permission-and-ownership-change-policy-for-pods)
+permitted by the cluster to grant volume access when the storage driver supports
+it. Prepare hostPath ownership and permissions on the node before launching.
+
+With `readOnlyRootFilesystem: true`, mount writable volumes at both the storage
+path and `/tmp`; use an `emptyDir` for `/tmp`. Home/cache files and the Video
+task's temporary demux and MP4 output use `/tmp`, so allow enough space for the
+video being processed.
 
 ## Project Structure
 

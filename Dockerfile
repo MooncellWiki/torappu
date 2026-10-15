@@ -46,12 +46,11 @@ ENV TZ=Asia/Shanghai \
   PYTHONDONTWRITEBYTECODE=1 \
   HOME=/tmp
 
-# A numeric USER lets Kubernetes verify runAsNonRoot. Runtime UID/GID
-# overrides can still use /tmp for home/cache without writing to /root.
-RUN groupadd --gid 10001 torappu \
-  && useradd --uid 10001 --gid 10001 --no-create-home --no-log-init \
+# A numeric UID lets Kubernetes verify runAsNonRoot. Root-group write access
+# lets OpenShift's arbitrary UIDs use storage; setgid preserves that group.
+RUN useradd --uid 10001 --gid 0 --no-create-home --no-log-init \
     --home-dir /tmp --shell /usr/sbin/nologin torappu \
-  && install -d -o 10001 -g 10001 /app/storage
+  && install -d -o 10001 -g 0 -m 2775 /app/storage
 
 COPY --from=builder /opt/ffmpeg/ /usr/bin/
 COPY --from=builder /opt/venv /opt/venv
@@ -67,6 +66,6 @@ COPY . /app/
 RUN chmod -R a+rX /app \
   && python -m compileall -q /app/torappu
 
-USER 10001:10001
+USER 10001:0
 
 ENTRYPOINT ["torappu", "run"]
