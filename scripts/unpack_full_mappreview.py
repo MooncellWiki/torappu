@@ -8,6 +8,7 @@ from torappu.core.tasks.map_preview import unpack_sandbox, unpack_universal
 
 client = httpx2.AsyncClient(timeout=60)
 OUTPUT_DIR = get_config().raw_dir / "map_preview"
+CACHE_DIR = get_config().assetbundle_dir / "map_preview"
 
 
 async def download_ab(path: str, dest_path: Path):
@@ -24,6 +25,7 @@ async def download_ab(path: str, dest_path: Path):
 
 async def _main():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
     async with await anyio.open_file(
         Path(__file__).parent / "data" / "map_preview_list.txt"
     ) as f:
@@ -38,7 +40,7 @@ async def _main():
 
         path = raw_path.strip()
         download_path = Path(path.replace("./storage/", ""))
-        dest_path = Path(__file__).parent / "temp" / download_path.name
+        dest_path = CACHE_DIR / download_path.name
         files_list.append((path, download_path, dest_path))
 
         if dest_path.exists():
