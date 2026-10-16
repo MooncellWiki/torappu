@@ -101,12 +101,9 @@ default = repo root) and are exposed as properties; never hard-code them.
 
 ## Config (Env)
 
-- `ENVIRONMENT`, `LOG_LEVEL`, `TIMEOUT`
-- `TOKEN`, `BACKEND_ENDPOINT` (for upload-related tasks, e.g. `ItemDemand`)
+- `ENVIRONMENT`, `LOG_LEVEL`, `TIMEOUT`, `MAX_CONCURRENT_DOWNLOADS`
 - `SENTRY_DSN`
 - `STORAGE_DIR`, `FBS_DIR`, `ASSETS_DIR`: filesystem layout (see Key Paths); `~` is expanded
-
-Use `BACKEND_ENDPOINT` (not `ENDPOINT`).
 
 ## Minimal Dev Commands
 
