@@ -120,15 +120,13 @@ that case.
 
 ### Docker Usage
 
-The image runs as UID/GID `10001:0`. Source files and dependencies remain
+The image runs as UID/GID `10001:10001`. Source files and dependencies remain
 root-owned; extraction writes to `/app/storage`, with home/cache under `/tmp`.
-The built-in storage directory is owned by `10001:0` with mode `2775`, following
-the [OpenShift arbitrary UID convention](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/images/creating-images).
-Any non-root UID with group `0` can write there, including when only a storage
-subdirectory is mounted. The setgid bit makes new subdirectories inherit group
-`0`; it does not grant group write permission to files created with a restrictive
-umask. For another primary GID, add `--group-add 0` or mount the entire
-`/app/storage` directory with permissions for the selected identity.
+The built-in storage directory is owned by `10001:10001` with mode `0755`;
+only UID `10001` can write there. When overriding the runtime UID/GID, mount
+the entire `/app/storage` directory with permissions for the selected identity.
+Mounting only `/app/storage/asset` is insufficient for a different UID: the
+process also needs to create and write `assetbundle` and `hot_update_list`.
 
 Mounts retain their own ownership and modes, covering the image's permissions
 at that path. Existing data must be made writable by the runtime UID or one of
@@ -149,9 +147,6 @@ docker run torappu [CLIENT_VERSION] [RES_VERSION] -c [PREV_CLIENT_VERSION] -r [P
 # Include specific tasks
 docker run torappu [CLIENT_VERSION] [RES_VERSION] -i CharArts,MapPreview
 
-# With an arbitrary UID and the root group
-docker run --rm --user 12345:0 torappu [CLIENT_VERSION] [RES_VERSION]
-
 # With environment variables and a bind mount (run from a non-root shell)
 mkdir -p storage
 # Migrate existing storage previously written by a root-running container:
@@ -168,13 +163,13 @@ already owned by that user.
 Existing Docker named volumes also need a one-time permission migration;
 Docker does not update a reused volume's ownership from the new image. Stop
 extraction, then run the following maintenance command as root to prepare an
-existing `torappu-storage` volume for `10001:0` (replace the volume name and
+existing `torappu-storage` volume for `10001:10001` (replace the volume name and
 identity for your deployment):
 
 ```bash
 docker run --rm --user 0:0 --entrypoint sh \
   -v torappu-storage:/app/storage torappu \
-  -c 'chown -R 10001:0 /app/storage && chmod -R u+rwX,g+rwX /app/storage'
+  -c 'chown -R 10001:10001 /app/storage && chmod -R u+rwX,g+rwX /app/storage'
 ```
 
 Only `/app/storage` is prepared by the image. When overriding `STORAGE_DIR`,
@@ -192,8 +187,10 @@ docker run --rm --user "$(id -u):$(id -g)" \
 Kubernetes launchers should set `runAsNonRoot: true`, disable privilege
 escalation, drop all capabilities, and use RuntimeDefault seccomp. Set
 `runAsUser` / `runAsGroup` when the output volume requires a specific identity;
-keep group `0` available if using the built-in storage directory. On OpenShift,
-allow the cluster to assign the UID and groups required by its security policy.
+mount the entire storage directory with permissions for that identity when
+overriding the UID. On OpenShift, use a writable storage volume accessible to
+the UID and groups assigned by the cluster; the built-in directory does not
+support arbitrary UIDs without such a volume.
 For PVCs, use a Pod-level
 [`fsGroup`](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#configure-volume-permission-and-ownership-change-policy-for-pods)
 permitted by the cluster to grant volume access when the storage driver supports
