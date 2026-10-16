@@ -31,6 +31,12 @@ pip install -e .
 Environment variables can be set using `.env` file or system environment variables.
 
 ```bash
+ENVIRONMENT=production          # production | debug (default), also the Sentry environment
+LOG_LEVEL=INFO                  # default: DEBUG
+TIMEOUT=10                      # HTTP timeout in seconds
+MAX_CONCURRENT_DOWNLOADS=16
+SENTRY_DSN=your_sentry_dsn_here
+
 # Filesystem layout (defaults: <repo>/storage, <repo>/OpenArknightsFBS/FBS, <repo>/assets)
 STORAGE_DIR=/data/torappu/storage
 FBS_DIR=/opt/OpenArknightsFBS/FBS
@@ -129,6 +135,10 @@ docker run torappu [CLIENT_VERSION] [RES_VERSION] -i CharArts,MapPreview
 
 # With persistent storage
 docker run -v "$(pwd)/storage:/app/storage" torappu [CLIENT_VERSION] [RES_VERSION]
+
+# With environment variables (.env is not copied into the image)
+docker run -e ENVIRONMENT=production -e SENTRY_DSN=your_sentry_dsn torappu [CLIENT_VERSION] [RES_VERSION]
+docker run --env-file .env torappu [CLIENT_VERSION] [RES_VERSION]
 ```
 
 ## Project Structure
