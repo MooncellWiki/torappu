@@ -31,9 +31,6 @@ pip install -e .
 Environment variables can be set using `.env` file or system environment variables.
 
 ```bash
-TOKEN=your_token_here
-BACKEND_ENDPOINT=your_backend_endpoint_here
-
 # Filesystem layout (defaults: <repo>/storage, <repo>/OpenArknightsFBS/FBS, <repo>/assets)
 STORAGE_DIR=/data/torappu/storage
 FBS_DIR=/opt/OpenArknightsFBS/FBS
@@ -130,8 +127,8 @@ docker run torappu [CLIENT_VERSION] [RES_VERSION] -c [PREV_CLIENT_VERSION] -r [P
 # Include specific tasks
 docker run torappu [CLIENT_VERSION] [RES_VERSION] -i CharArts,MapPreview
 
-# With environment variables
-docker run -e TOKEN=your_token -v $(pwd)/storage:/app/storage torappu [CLIENT_VERSION] [RES_VERSION]
+# With persistent storage
+docker run -v "$(pwd)/storage:/app/storage" torappu [CLIENT_VERSION] [RES_VERSION]
 ```
 
 ## Project Structure
