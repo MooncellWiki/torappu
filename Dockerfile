@@ -42,7 +42,16 @@ FROM python:3.13-slim-bookworm
 WORKDIR /app
 
 ENV TZ=Asia/Shanghai \
-  PATH=/opt/venv/bin:$PATH
+  PATH=/opt/venv/bin:$PATH \
+  HOME=/tmp
+
+# A numeric UID lets Kubernetes verify runAsNonRoot.
+# HOME also covers arbitrary runtime UIDs without a passwd entry.
+RUN groupadd --gid 10001 torappu \
+  && useradd --uid 10001 --gid 10001 --no-create-home --no-log-init \
+    --home-dir /tmp --shell /usr/sbin/nologin torappu \
+  && install -d -o 10001 -g 10001 -m 0755 /app/storage \
+    /app/storage/asset /app/storage/assetbundle /app/storage/hot_update_list
 
 COPY --from=builder /opt/ffmpeg/ /usr/bin/
 COPY --from=builder /opt/venv /opt/venv
@@ -52,5 +61,12 @@ ARG VERSION=dev
 ENV SENTRY_RELEASE=torappu@${VERSION}
 
 COPY . /app/
+
+# Normalize both restrictive and permissive build-context modes.
+# Keep the code root-owned and readable, without group/other write access.
+RUN chmod -R u=rwX,go=rX /app \
+  && python -m compileall -q /app/torappu
+
+USER 10001:10001
 
 ENTRYPOINT ["torappu", "run"]

@@ -120,6 +120,24 @@ that case.
 
 ### Docker Usage
 
+The image runs as UID/GID `10001:10001`. Source files and dependencies remain
+root-owned; extraction writes to `/app/storage`, with home/cache under `/tmp`.
+The built-in storage directory and its `asset`, `assetbundle` and `hot_update_list`
+subdirectories are owned by `10001:10001` with mode `0755`; only UID `10001`
+can write there. A new, empty Docker named volume mounted at any of these paths
+inherits that directory's ownership. When overriding the runtime UID/GID, mount
+the entire `/app/storage` directory, owned by the selected runtime UID.
+Mounting only `/app/storage/asset` is insufficient for a different UID: the
+process also needs to create and write `assetbundle` and `hot_update_list`.
+
+Mounts retain their own ownership and modes, covering the image's permissions
+at that path. Before upgrading from a root-running image, make existing data
+owned by the selected runtime UID and writable by its owner. Group write access
+alone is insufficient: the Video task preserves timestamps when replacing
+files, which requires file ownership. New files also use the default umask
+`022`, so use the same runtime UID for subsequent extraction runs. Changing
+`--user` or upgrading the image does not migrate existing files.
+
 ```bash
 # Build the image
 docker build -t torappu .
@@ -133,13 +151,68 @@ docker run torappu [CLIENT_VERSION] [RES_VERSION] -c [PREV_CLIENT_VERSION] -r [P
 # Include specific tasks
 docker run torappu [CLIENT_VERSION] [RES_VERSION] -i CharArts,MapPreview
 
-# With persistent storage
-docker run -v "$(pwd)/storage:/app/storage" torappu [CLIENT_VERSION] [RES_VERSION]
+# With a bind mount (rootful Docker, run from a non-root shell)
+mkdir -p storage
+# Migrate existing storage previously written by a root-running container:
+sudo chown -R "$(id -u):$(id -g)" storage
+docker run --rm --user "$(id -u):$(id -g)" --cap-drop=ALL \
+  --security-opt=no-new-privileges \
+  -v "$(pwd)/storage:/app/storage" torappu [CLIENT_VERSION] [RES_VERSION]
 
 # With environment variables (.env is not copied into the image)
 docker run -e ENVIRONMENT=production -e SENTRY_DSN=your_sentry_dsn torappu [CLIENT_VERSION] [RES_VERSION]
 docker run --env-file .env torappu [CLIENT_VERSION] [RES_VERSION]
 ```
+
+Run the bind-mount example from a non-root shell (`id -u` must not be `0`) so
+`--user` selects your non-root identity. Omit the `chown` step for a new directory
+already owned by that user.
+
+Rootless runtimes map container IDs to host IDs differently. With rootless
+Docker, `--user 0:0` maps to the unprivileged host user and can write a bind mount
+owned by that user; the rootful `--user "$(id -u):$(id -g)"` example instead maps
+to subordinate host IDs. With rootless Podman, preserve the host identity:
+
+```bash
+podman run --rm --userns=keep-id --user "$(id -u):$(id -g)" \
+  -v "$(pwd)/storage:/app/storage:Z" torappu [CLIENT_VERSION] [RES_VERSION]
+```
+
+Existing Docker named volumes also need a one-time permission migration;
+Docker does not update a reused volume's ownership from the new image. Stop
+extraction, then run the following maintenance command as root to prepare an
+existing `torappu-storage` volume for `10001:10001` (replace the volume name and
+identity for your deployment):
+
+```bash
+docker run --rm --user 0:0 --entrypoint sh \
+  -v torappu-storage:/app/storage torappu \
+  -c 'chown -R 10001:10001 /app/storage && chmod -R u+rwX /app/storage'
+```
+
+Only `/app/storage` and its three subdirectories are prepared by the image.
+When overriding `STORAGE_DIR`,
+create and grant access to the target directory before startup, or mount a
+writable volume over the whole target. A non-root process cannot create a new
+directory directly under `/`. For example, after preparing the bind-mount
+directory above:
+
+```bash
+docker run --rm --user "$(id -u):$(id -g)" \
+  -e STORAGE_DIR=/data -v "$(pwd)/storage:/data" \
+  torappu [CLIENT_VERSION] [RES_VERSION]
+```
+
+Use absolute container paths for `STORAGE_DIR`, `FBS_DIR` and `ASSETS_DIR`.
+Because `HOME=/tmp`, `~/storage` now expands to `/tmp/storage`, so an existing
+mount at `/root/storage` would no longer receive that output. Paths under
+`/root` are also inaccessible to the non-root user; move those mounts to an
+accessible path such as `/data` before upgrading.
+
+The container also needs a writable `/tmp` for home/cache files and the Video
+task's temporary demux and MP4 output. If the root filesystem is read-only,
+mount writable storage and `/tmp`, with enough temporary space for the video
+being processed.
 
 ## Project Structure
 
