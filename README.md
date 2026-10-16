@@ -184,22 +184,10 @@ docker run --rm --user "$(id -u):$(id -g)" \
   torappu [CLIENT_VERSION] [RES_VERSION]
 ```
 
-Kubernetes launchers should set `runAsNonRoot: true`, disable privilege
-escalation, drop all capabilities, and use RuntimeDefault seccomp. Set
-`runAsUser` / `runAsGroup` when the output volume requires a specific identity;
-mount the entire storage directory with permissions for that identity when
-overriding the UID. On OpenShift, use a writable storage volume accessible to
-the UID and groups assigned by the cluster; the built-in directory does not
-support arbitrary UIDs without such a volume.
-For PVCs, use a Pod-level
-[`fsGroup`](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#configure-volume-permission-and-ownership-change-policy-for-pods)
-permitted by the cluster to grant volume access when the storage driver supports
-it. Prepare hostPath ownership and permissions on the node before launching.
-
-With `readOnlyRootFilesystem: true`, mount writable volumes at both the storage
-path and `/tmp`; use an `emptyDir` for `/tmp`. Home/cache files and the Video
-task's temporary demux and MP4 output use `/tmp`, so allow enough space for the
-video being processed.
+The container also needs a writable `/tmp` for home/cache files and the Video
+task's temporary demux and MP4 output. If the root filesystem is read-only,
+mount writable storage and `/tmp`, with enough temporary space for the video
+being processed.
 
 ## Project Structure
 
