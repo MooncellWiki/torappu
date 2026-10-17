@@ -6,10 +6,26 @@ import UnityPy
 from UnityPy.classes import Sprite
 
 from torappu.core.client import Client
-from torappu.core.tasks.utils import read_obj, require_container
+from torappu.core.tasks.utils import read_obj, require_container, sprite_image
 
 from .base import task
 from .params import OutputDir, changed_bundles
+
+CONTAINER_PREFIX = "dyn/arts/ui/mixstory/"
+
+# Map source directories to target directories. 游戏按类型从各自的 hub 取图
+# (MixStoryUtil._GetTargetHubPathBySpriteType)，每个 hub 对应这里的一个子目录；
+# retrobkgs 是 BRIEF_BKG，即 stage_table storylineStorySets 里各 *Data.backgroundId
+TARGET_DIRS = {
+    "abbrs": "abbr",
+    "splits": "deco",
+    "decos": "deco",
+    "logos": "deco",
+    "kvs": "kv",
+    "titles": "title",
+    "backgrounds": "background",
+    "retrobkgs": "retrobkg",
+}
 
 
 async def unpack(ab_path: str, output_dir: Path) -> None:
@@ -20,40 +36,22 @@ async def unpack(ab_path: str, output_dir: Path) -> None:
                 continue
             container_path = require_container(texture.object_reader)
 
-            # Map source directories to target directories
-            if container_path.startswith("dyn/arts/ui/mixstory/abbrs/"):
-                target_path = container_path.replace(
-                    "dyn/arts/ui/mixstory/abbrs/", "abbr/"
+            if not container_path.startswith(CONTAINER_PREFIX):
+                raise ValueError(
+                    f"mixstory sprite {texture.m_Name} outside {CONTAINER_PREFIX}: "
+                    f"{container_path}"
                 )
-            elif container_path.startswith("dyn/arts/ui/mixstory/splits/"):
-                target_path = container_path.replace(
-                    "dyn/arts/ui/mixstory/splits/", "deco/"
+            source_dir, _, rest = container_path[len(CONTAINER_PREFIX) :].partition("/")
+            # 新的子目录要先确认游戏怎么用、映射到哪，不能悄悄跳过
+            if not rest or (target_dir := TARGET_DIRS.get(source_dir)) is None:
+                raise ValueError(
+                    f"unknown mixstory sprite directory {source_dir!r} "
+                    f"({container_path})"
                 )
-            elif container_path.startswith("dyn/arts/ui/mixstory/decos/"):
-                target_path = container_path.replace(
-                    "dyn/arts/ui/mixstory/decos/", "deco/"
-                )
-            elif container_path.startswith("dyn/arts/ui/mixstory/logos/"):
-                target_path = container_path.replace(
-                    "dyn/arts/ui/mixstory/logos/", "deco/"
-                )
-            elif container_path.startswith("dyn/arts/ui/mixstory/kvs/"):
-                target_path = container_path.replace("dyn/arts/ui/mixstory/kvs/", "kv/")
-            elif container_path.startswith("dyn/arts/ui/mixstory/titles/"):
-                target_path = container_path.replace(
-                    "dyn/arts/ui/mixstory/titles/", "title/"
-                )
-            elif container_path.startswith("dyn/arts/ui/mixstory/backgrounds/"):
-                target_path = container_path.replace(
-                    "dyn/arts/ui/mixstory/backgrounds/", "background/"
-                )
-            else:
-                # Skip if it doesn't match any expected path
-                continue
 
-            path = output_dir.joinpath(target_path)
+            path = output_dir.joinpath(target_dir, rest)
             path.parent.mkdir(parents=True, exist_ok=True)
-            texture.image.save(path)
+            sprite_image(texture).save(path)
 
 
 @task("MixStory", priority=3, raw_subdir="mixstory")
