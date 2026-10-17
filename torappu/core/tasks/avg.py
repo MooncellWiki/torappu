@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Literal, Protocol, TypedDict, cast
 
 import UnityPy
+from PIL import Image
 from UnityPy.classes import (
     MonoBehaviour,
     PPtr,
@@ -311,6 +312,18 @@ def _read_texture(texture_pptr: PPtr[Texture2D] | None) -> Texture2D | None:
     return texture_pptr.deref_parse_as_object()
 
 
+def _render_character_texture(
+    rgb_texture: Texture2D, alpha_texture: Texture2D | None
+) -> Image.Image:
+    # `AlphaSplitImageHolder.SetSprite` 只在有 alphaTex 时打开 `_UseAlphaSplit`，
+    # 否则直接用主纹理自带的 alpha；`AVG_Char_AlphaSplit` 是
+    # `Blend SrcAlpha OneMinusSrcAlpha`，纹理本身是直 alpha，不能再预乘
+    if alpha_texture is None:
+        return rgb_texture.image.convert("RGBA")
+    merged, _ = merge_alpha(alpha_texture, rgb_texture)
+    return merged
+
+
 def _extract_character_sprite(
     key: str,
     sprite_pptr: PPtr[Sprite],
@@ -322,9 +335,9 @@ def _extract_character_sprite(
         raise ValueError(f"Sprite pointer is empty for `{key}`")
     sprite = sprite_pptr.deref_parse_as_object()
 
-    rgb_texture = sprite.m_RD.texture.read()
+    rgb_texture = cast("PPtr[Texture2D]", sprite.m_RD.texture).read()
     alpha_texture = _read_texture(alpha_pptr)
-    out_image, _ = merge_alpha(alpha_texture, rgb_texture)  # type: ignore
+    out_image = _render_character_texture(rgb_texture, alpha_texture)
 
     sprite_name = sprite.m_Name
     image_name = _build_character_image_key(key, sprite_name)
