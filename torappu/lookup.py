@@ -31,7 +31,8 @@ from torappu.config import Config
 from torappu.core.assets import AssetBundleClient
 from torappu.log import logger
 
-_SNAPSHOT_PATTERN = re.compile(r"^\d{2}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}_[0-9a-f]+$")
+# 旧格式 26-09-22-07-47-20_6c71fa，2.7.81 起变成 26-10-14-13-45-10-99469376
+_SNAPSHOT_PATTERN = re.compile(r"^\d{2}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}[-_][0-9a-f]+$")
 MAX_SEARCH_RESULTS = 50
 # Transform 与 RectTransform 是不同的 ClassID，UI prefab 用的是后者
 TRANSFORM_TYPES = frozenset({"Transform", "RectTransform"})
