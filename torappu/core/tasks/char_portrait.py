@@ -9,7 +9,7 @@ from torappu.core.utils.thread import run_sync
 
 from .base import task
 from .params import OutputDir, changed_bundles
-from .utils import get_source, read_obj
+from .utils import get_source, read_obj, sprite_image
 
 
 @run_sync
@@ -29,7 +29,7 @@ def unpack(
         if texture:
             texture.image.save(output_dir / "atlas" / f"{sprite.m_Name}.png")
 
-        sprite.image.save(output_dir / f"{sprite.m_Name}.png")
+        sprite_image(sprite).save(output_dir / f"{sprite.m_Name}.png")
 
 
 @task("CharPortrait", priority=3, raw_subdir="char_portrait")

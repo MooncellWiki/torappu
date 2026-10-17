@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from PIL import Image
-from UnityPy.classes import FastPropertyName, Material, Texture2D, UnityTexEnv
+from UnityPy.classes import FastPropertyName, Material, Sprite, Texture2D, UnityTexEnv
 from UnityPy.files.ObjectReader import ObjectReader
 
 from torappu.consts import PROFESSIONS
@@ -120,3 +120,22 @@ def get_name(src: FastPropertyName | str) -> str:
     if isinstance(src, FastPropertyName):
         return src.name
     return src
+
+
+def sprite_image(sprite: Sprite) -> Image.Image:
+    """The sprite at its full ``m_Rect`` size, the way UGUI's Image draws it.
+
+    UnityPy's ``sprite.image`` crops tight-mesh sprites to their content
+    (``textureRect``); paste that back at ``textureRectOffset`` so the padding
+    and alignment the game relies on survive.
+    """
+    image = sprite.image
+    width, height = round(sprite.m_Rect.width), round(sprite.m_Rect.height)
+    if image.size == (width, height):
+        return image
+
+    offset = sprite.m_RD.textureRectOffset
+    canvas = Image.new("RGBA", (width, height))
+    # textureRectOffset 以左下角为原点，PIL 以左上角为原点
+    canvas.paste(image, (round(offset.x), height - image.height - round(offset.y)))
+    return canvas
