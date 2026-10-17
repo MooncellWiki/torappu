@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
@@ -8,11 +9,15 @@ from UnityPy.classes import Sprite
 
 from torappu.core.client import Client
 from torappu.core.di import Depends
-from torappu.core.tasks.utils import read_obj
+from torappu.core.tasks.utils import read_obj, sprite_image
 from torappu.core.utils.thread import run_sync
 
 from .base import SkipTask, task
 from .params import DiffSet, OutputDir
+
+# 生息演算 v3 各主题的地图预览：UI/SandboxV3/Topics/[UC]{0}/MapPreview/map_preview_hub
+# (SandboxV3Util.LoadMapPreviewSprite)。主题包里还有大量别的 sprite，按 container 过滤
+SANDBOX_V3_MAP_PREVIEW = re.compile(r"ui/sandboxv3/topics/[^/]+/mappreview/")
 
 
 @run_sync
@@ -20,7 +25,7 @@ def unpack_sandbox(ab_path: str, output_dir: Path):
     env = UnityPy.load(ab_path)
     for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
         if texture := read_obj(Sprite, obj):
-            texture.image.save(output_dir.joinpath(f"{texture.m_Name}.png"))
+            sprite_image(texture).save(output_dir.joinpath(f"{texture.m_Name}.png"))
 
 
 @run_sync
@@ -28,8 +33,21 @@ def unpack_universal(ab_path: str, output_dir: Path):
     env = UnityPy.load(ab_path)
     for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
         if texture := read_obj(Sprite, obj):
-            resized = texture.image.resize((1280, 720))
+            resized = sprite_image(texture).resize((1280, 720))
             resized.save(output_dir.joinpath(f"{texture.m_Name}.png"))
+
+
+@run_sync
+def unpack_sandbox_v3(ab_path: str, output_dir: Path):
+    env = UnityPy.load(ab_path)
+    for obj in filter(lambda obj: obj.type.name == "Sprite", env.objects):
+        container = obj.container
+        if container is None or not SANDBOX_V3_MAP_PREVIEW.match(
+            container.removeprefix("dyn/")
+        ):
+            continue
+        if texture := read_obj(Sprite, obj):
+            sprite_image(texture).save(output_dir.joinpath(f"{texture.m_Name}.png"))
 
 
 @run_sync
@@ -39,7 +57,7 @@ def unpack_big(ab_path: str, output_dir: Path):
         if texture := read_obj(Sprite, obj):
             if not texture.m_Name.endswith("_preview"):
                 continue
-            resized = texture.image.resize((1280, 720))
+            resized = sprite_image(texture).resize((1280, 720))
             resized.save(output_dir.joinpath(f"{texture.m_Name}.png"))
 
 
@@ -49,12 +67,14 @@ class PreviewBundles:
 
     universal: set[str]
     sandbox: set[str]
+    sandbox_v3: set[str]
     big: set[str]
 
 
 def _preview_bundles(client: Client, diff_set: DiffSet) -> PreviewBundles:
     universal: set[str] = set()
     sandbox: set[str] = set()
+    sandbox_v3: set[str] = set()
     big: set[str] = set()
     for asset, bundle in client.asset_to_bundle.items():
         if bundle not in diff_set:
@@ -62,6 +82,8 @@ def _preview_bundles(client: Client, diff_set: DiffSet) -> PreviewBundles:
 
         if asset.startswith("ui/sandboxv2/mappreview"):
             sandbox.add(bundle)
+        elif SANDBOX_V3_MAP_PREVIEW.match(asset):
+            sandbox_v3.add(bundle)
         elif asset.startswith("arts/ui/stage/mappreviews"):
             universal.add(bundle)
         # 促融共竞地图
@@ -71,9 +93,11 @@ def _preview_bundles(client: Client, diff_set: DiffSet) -> PreviewBundles:
         elif asset.startswith("arts/ui/stage/[uc]mappreviewsspecial/"):
             sandbox.add(bundle)
 
-    if not (universal or sandbox or big):
+    if not (universal or sandbox or sandbox_v3 or big):
         raise SkipTask("no changed map preview bundle")
-    return PreviewBundles(universal=universal, sandbox=sandbox, big=big)
+    return PreviewBundles(
+        universal=universal, sandbox=sandbox, sandbox_v3=sandbox_v3, big=big
+    )
 
 
 @task("MapPreview", priority=4, raw_subdir="map_preview")
@@ -84,6 +108,7 @@ async def map_preview(
 ) -> None:
     paths = await client.fetch_asset_bundles(list(bundles.universal))
     sandbox_paths = await client.fetch_asset_bundles(list(bundles.sandbox))
+    sandbox_v3_paths = await client.fetch_asset_bundles(list(bundles.sandbox_v3))
     big_paths = await client.fetch_asset_bundles(list(bundles.big))
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -94,6 +119,10 @@ async def map_preview(
     async with anyio.create_task_group() as tg:
         for _, ab_path in sandbox_paths:
             tg.start_soon(unpack_sandbox, ab_path, output_dir)
+
+    async with anyio.create_task_group() as tg:
+        for _, ab_path in sandbox_v3_paths:
+            tg.start_soon(unpack_sandbox_v3, ab_path, output_dir)
 
     async with anyio.create_task_group() as tg:
         for _, ab_path in big_paths:
