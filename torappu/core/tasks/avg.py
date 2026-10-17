@@ -1,11 +1,11 @@
 import json
-import re
 from dataclasses import dataclass
-from math import isfinite
+from math import isclose, isfinite
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Literal, Protocol, TypedDict, cast
 
 import UnityPy
+from PIL import Image
 from UnityPy.classes import (
     MonoBehaviour,
     PPtr,
@@ -19,12 +19,12 @@ from torappu.core.tasks.utils import (
     get_source,
     merge_alpha,
     read_obj,
+    sprite_image,
 )
 
 from .base import task
 from .params import OutputDir, changed_bundles
 
-CHAR_NAME_REGEX = re.compile(r"^(\d+(?:\$\d+)?)(?:\.png)?$", re.IGNORECASE)
 CHAR_CONTAINER_PREFIX = "dyn/avg/characters/"
 BG_CONTAINER_PREFIX = "dyn/avg/backgrounds/"
 IMAGE_CONTAINER_PREFIX = "dyn/avg/images/"
@@ -304,10 +304,33 @@ def _get_face_rect(group: CharacterSpriteGroup) -> tuple[int, int, int, int]:
     return (x, y, w, h)
 
 
+def _has_face(group: CharacterSpriteGroup) -> bool:
+    # `AVGCharacterSpriteHub(Group)._HasFace`：faceSize 不近似为零就算有表情，
+    # 容差对应 `MathUtil.Similar` 用的 LARGE_EPS
+    if group.face_size is None:
+        return False
+    return not (
+        isclose(group.face_size.x, 0.0, abs_tol=1e-5)
+        and isclose(group.face_size.y, 0.0, abs_tol=1e-5)
+    )
+
+
 def _read_texture(texture_pptr: PPtr[Texture2D] | None) -> Texture2D | None:
     if texture_pptr is None or not texture_pptr:
         return None
     return texture_pptr.deref_parse_as_object()
+
+
+def _render_character_texture(
+    rgb_texture: Texture2D, alpha_texture: Texture2D | None
+) -> Image.Image:
+    # `AlphaSplitImageHolder.SetSprite` 只在有 alphaTex 时打开 `_UseAlphaSplit`，
+    # 否则直接用主纹理自带的 alpha；`AVG_Char_AlphaSplit` 是
+    # `Blend SrcAlpha OneMinusSrcAlpha`，纹理本身是直 alpha，不能再预乘
+    if alpha_texture is None:
+        return rgb_texture.image.convert("RGBA")
+    merged, _ = merge_alpha(alpha_texture, rgb_texture)
+    return merged
 
 
 def _extract_character_sprite(
@@ -321,9 +344,9 @@ def _extract_character_sprite(
         raise ValueError(f"Sprite pointer is empty for `{key}`")
     sprite = sprite_pptr.deref_parse_as_object()
 
-    rgb_texture = sprite.m_RD.texture.read()
+    rgb_texture = cast("PPtr[Texture2D]", sprite.m_RD.texture).read()
     alpha_texture = _read_texture(alpha_pptr)
-    out_image, _ = merge_alpha(alpha_texture, rgb_texture)  # type: ignore
+    out_image = _render_character_texture(rgb_texture, alpha_texture)
 
     sprite_name = sprite.m_Name
     image_name = _build_character_image_key(key, sprite_name)
@@ -349,8 +372,10 @@ def _extract_character_group(
         return []
 
     face_x, face_y, face_w, face_h = _get_face_rect(group)
-    is_face = face_w > 0 and face_h > 0 and len(sprites) > 1
+    # 只有一张时底图就是它自己，游戏按单图显示
+    is_face = _has_face(group) and len(sprites) > 1
 
+    # `_PickSetImageImpl`：有表情时非 isWholeBody 的条目叠在最后一张上
     last_sprite = sprites[-1]
     base_sprite = last_sprite.sprite
     base_alpha = last_sprite.alpha_tex
@@ -372,7 +397,8 @@ def _extract_character_group(
         if not item.sprite:
             continue
 
-        if is_face and (item.sprite == base_sprite and item.alpha_tex == base_alpha):
+        # 底图不单列；但它本身是 isWholeBody 时，游戏会直接单独显示它
+        if is_face and item is last_sprite and not item.is_whole_body:
             continue
 
         image_name, sprite_name = _extract_character_sprite(
@@ -384,12 +410,7 @@ def _extract_character_group(
         )
         item_name = _normalize_sprite_name(sprite_name)
 
-        if (
-            is_face
-            and CHAR_NAME_REGEX.match(sprite_name)
-            and base_image_name is not None
-            and not item.is_whole_body
-        ):
+        if is_face and base_image_name is not None and not item.is_whole_body:
             render: CharacterRender = CharacterRenderFaceOverlay(
                 base=base_image_name,
                 face=image_name,
@@ -532,7 +553,7 @@ def _sprite_filename(container_path: str) -> str:
 def _extract_sprite(sprite: Sprite, subdir: str, container_path: str, output_dir: Path):
     output_path = output_dir.joinpath(subdir, _sprite_filename(container_path))
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    sprite.image.save(output_path)
+    sprite_image(sprite).save(output_path)
 
 
 def _collect_background_ppu(
