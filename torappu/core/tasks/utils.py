@@ -66,7 +66,31 @@ def merge_alpha(alpha_texture: Texture2D | None, rgb_texture: Texture2D | None):
     return Image.merge("RGBA", (r, g, b, a)), rgb_texture.m_Name
 
 
+# 贴图是直 alpha、要由 shader 乘上 alpha 的关键字：
+# Torappu/Spine/Skeleton-AlphaSplit 系列的 _USEBLEED_ON，
+# Spine/Skeleton 的 _STRAIGHT_ALPHA_INPUT
+STRAIGHT_ALPHA_KEYWORDS = frozenset({"_USEBLEED_ON", "_STRAIGHT_ALPHA_INPUT"})
+
+
+def material_keywords(mat: Material) -> set[str]:
+    """Shader keywords enabled on ``mat``."""
+    if mat.m_ValidKeywords is not None:
+        return set(mat.m_ValidKeywords)
+    keywords = mat.m_ShaderKeywords or []
+    if isinstance(keywords, str):
+        keywords = keywords.split()
+    return set(keywords)
+
+
 def material2img(mat: Material):
+    """Premultiplied-alpha texture of a Spine material, as its shader sees it.
+
+    The Spine shaders all blend with ``One OneMinusSrcAlpha``; the keywords
+    decide how they read the textures. ``_USEALPHATEX_OFF`` takes alpha from
+    ``_MainTex`` instead of ``_AlphaTex``, and only with a straight-alpha
+    keyword does the shader multiply RGB by alpha; otherwise the texture is
+    premultiplied already and is used as is.
+    """
     atexture: Texture2D | None = None
     rgbtexture: Texture2D | None = None
     for key, tex in mat.m_SavedProperties.m_TexEnvs:
@@ -74,12 +98,22 @@ def material2img(mat: Material):
             texture = tex.m_Texture.read()
             if isinstance(texture, Texture2D):
                 atexture = texture
-        if key == "_MainTex" and tex.m_Texture:
+        if get_name(key) == "_MainTex" and tex.m_Texture:
             texture = tex.m_Texture.read()
             if isinstance(texture, Texture2D):
                 rgbtexture = texture
 
-    return merge_alpha(atexture, rgbtexture)
+    if rgbtexture is None:
+        raise ValueError(f"material {mat.m_Name} has no _MainTex texture")
+
+    keywords = material_keywords(mat)
+    if atexture is not None and "_USEALPHATEX_OFF" not in keywords:
+        img, _ = merge_alpha(atexture, rgbtexture)
+    else:
+        img = rgbtexture.image.convert("RGBA")
+    if keywords & STRAIGHT_ALPHA_KEYWORDS:
+        img = apply_premultiplied_alpha(img)
+    return img, rgbtexture.m_Name
 
 
 def require_container(obj: ObjectReader) -> str:
