@@ -36,11 +36,9 @@ async def unpack(ab_path: str, output_dir: Path) -> None:
                 continue
             container_path = require_container(texture.object_reader)
 
+            # 同包里不属于 mixstory 的 sprite 不归这个任务
             if not container_path.startswith(CONTAINER_PREFIX):
-                raise ValueError(
-                    f"mixstory sprite {texture.m_Name} outside {CONTAINER_PREFIX}: "
-                    f"{container_path}"
-                )
+                continue
             source_dir, _, rest = container_path[len(CONTAINER_PREFIX) :].partition("/")
             # 新的子目录要先确认游戏怎么用、映射到哪，不能悄悄跳过
             if not rest or (target_dir := TARGET_DIRS.get(source_dir)) is None:
