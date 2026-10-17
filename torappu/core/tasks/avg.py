@@ -19,6 +19,7 @@ from torappu.core.tasks.utils import (
     get_source,
     merge_alpha,
     read_obj,
+    sprite_image,
 )
 
 from .base import task
@@ -532,7 +533,7 @@ def _sprite_filename(container_path: str) -> str:
 def _extract_sprite(sprite: Sprite, subdir: str, container_path: str, output_dir: Path):
     output_path = output_dir.joinpath(subdir, _sprite_filename(container_path))
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    sprite.image.save(output_path)
+    sprite_image(sprite).save(output_path)
 
 
 def _collect_background_ppu(
