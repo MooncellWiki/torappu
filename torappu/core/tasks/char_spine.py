@@ -63,8 +63,9 @@ def unpack_asset(data: MonoBehaviour, base_dir: Path) -> str:
         atlas: TextAsset = atlas_mono_behaviour.atlasFile.read()  # type: ignore
         # 文件名上不能有`#`，都替换成`_`
         atlas_content = re.sub(r"#([^.]*\.png)", r"_\1", atlas.m_Script)
-        with open(base_dir / atlas.m_Name.replace("#", "_"), "w") as f:
-            f.write(atlas_content)
+        (base_dir / atlas.m_Name.replace("#", "_")).write_bytes(
+            m_script_to_bytes(atlas_content)
+        )
         materials: list[PPtr] = atlas_mono_behaviour.materials  # type: ignore
         for mat_pptr in materials:
             mat: Material = mat_pptr.read()
@@ -99,9 +100,26 @@ def update_config(
         logger.warning(f"skin {skin} not found, skipped")
         return
     changed_char[name].skin.setdefault(skin_name, {})
-    changed_char[name].skin[skin_name][SIDE_NAMES[side]] = FileConfig(
+    changed_char[name].skin[skin_name][SIDE_NAMES.get(side, side)] = FileConfig(
         file=f"{skin}/{side}/{filename}"
     )
+
+
+def find_skeleton_data(game_obj: GameObject) -> MonoBehaviour | None:
+    """SkeletonDataAsset of the Spine component (SkeletonAnimation) on ``game_obj``."""
+    for comp in filter(
+        lambda comp: comp.type.name == "MonoBehaviour",
+        game_obj.m_Components,
+    ):
+        skeleton_animation = comp.deref_parse_as_object()
+        skeleton_data = getattr(skeleton_animation, "skeletonDataAsset", None)
+        # 不是骨骼组件，或者没挂骨骼数据（比如 build_char_proto）
+        if not skeleton_data:
+            continue
+        data: MonoBehaviour = skeleton_data.read()
+        if data.m_Name.endswith("_SkeletonData"):
+            return data
+    return None
 
 
 @run_sync
@@ -122,12 +140,10 @@ def unpack(
         if (game_obj := read_obj(GameObject, obj)) is None:
             continue
 
-        if (
-            game_obj.m_Name != "Spine"
-            and game_obj.m_Name != "Front"
-            and game_obj.m_Name != "Back"
-            and game_obj.m_Name != "Down"
-        ):
+        if game_obj.object_reader is None:
+            continue
+
+        if (data := find_skeleton_data(game_obj)) is None:
             continue
 
         name = None
@@ -140,8 +156,6 @@ def unpack(
             "Down": "down",
         }
         side = None
-        if game_obj.object_reader is None:
-            continue
         container_path = require_container(game_obj.object_reader)
         # 基建
         if container_path.startswith("dyn/building/vault/characters"):
@@ -178,34 +192,19 @@ def unpack(
             )
             name = tmp[0]
             skin = tmp[1]
-            side = side_map[game_obj.m_Name]
+            side = side_map.get(game_obj.m_Name, game_obj.m_Name)
         if container_path.startswith("dyn/battle/prefabs/[uc]tokens/"):
             name = (
                 container_path.replace("dyn/battle/prefabs/[uc]tokens/", "")
                 .replace(".prefab", "")
                 .replace("#", "_")
             )
-            side = side_map[game_obj.m_Name]
+            # 其他节点名照用，比如 trap_186_cnvfwks 的 trap_186_cnvfwks_1 ~ 4
+            side = side_map.get(game_obj.m_Name, game_obj.m_Name)
         if name is None or side is None:
             continue
-        for comp in filter(
-            lambda comp: comp.type.name == "MonoBehaviour",
-            game_obj.m_Components,
-        ):
-            skeleton_animation = comp.deref_parse_as_object()
-            if (
-                skeleton_data := getattr(skeleton_animation, "skeletonDataAsset", None)
-            ) is None:
-                break
-            data: MonoBehaviour = skeleton_data.read()
-            if data.m_Name.endswith("_SkeletonData"):
-                if skel_name := unpack_asset(
-                    data, output_dir / f"{name}/{skin}/{side}"
-                ):
-                    update_config(
-                        changed_char, char_map, skin_map, name, skin, side, skel_name
-                    )
-                break
+        if skel_name := unpack_asset(data, output_dir / f"{name}/{skin}/{side}"):
+            update_config(changed_char, char_map, skin_map, name, skin, side, skel_name)
 
     return changed_char
 
@@ -260,7 +259,8 @@ async def char_spine(
     char_map = build_char_map(character_table, char_patch_table)
     skin_map = build_skin_map(skin_table)
 
-    paths = await client.fetch_asset_bundles(list(bundles))
+    # 按名字排序，让 bundle 的加载顺序和 meta.json 的键序可复现
+    paths = await client.fetch_asset_bundles(sorted(bundles))
     resolved_paths = [path[1] for path in paths]
     resolved_filenames: list[str] = [
         Path(resolved_path).name for resolved_path in resolved_paths
