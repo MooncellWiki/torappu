@@ -13,8 +13,9 @@ from .params import OutputDir, changed_bundles
 
 CONTAINER_PREFIX = "dyn/arts/ui/mixstory/"
 
-# Map source directories to target directories. 游戏按类型从各自的 hub 取图
-# (MixStoryUtil._GetTargetHubPathBySpriteType)，每个 hub 对应这里的一个子目录；
+# Map source directories to target directories. 游戏按 sprite 类型从各自的 hub 取图
+# (MixStoryUtil._GetTargetHubPathBySpriteType)，每个源子目录是一个类型的 hub；
+# SPLIT/DECO/LOGO 在游戏里是三个 hub，输出沿用旧约定合并到 deco/。
 # retrobkgs 是 BRIEF_BKG，即 stage_table storylineStorySets 里各 *Data.backgroundId
 TARGET_DIRS = {
     "abbrs": "abbr",
