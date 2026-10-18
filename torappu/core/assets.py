@@ -1,5 +1,7 @@
 import json
+import os
 import shutil
+import uuid
 from functools import cache
 from hashlib import md5
 from pathlib import Path
@@ -33,6 +35,15 @@ def resource_manifest_schema(assets_dir: Path) -> FBSchema:
         include_paths=[str(assets_dir)],
         options=FBOptions(),
     )
+
+
+def _temp_path(directory: Path, name: str) -> Path:
+    """A unique ``.tmp`` path next to the cache entry ``name``.
+
+    放在同一目录下，``os.replace`` 才是原子的；文件名唯一，多个进程共用一个缓存
+    目录时不会互相截断、删掉对方的临时文件。
+    """
+    return directory / f"{name}.{uuid.uuid4().hex}.tmp"
 
 
 def _log_retry(name: str):
@@ -199,22 +210,25 @@ class AssetBundleClient:
         # hot update list里面的md5只有四位，改用zip的crc64当文件名
         assetbundle_dir = self.config.assetbundle_dir
         assetbundle_dir.mkdir(parents=True, exist_ok=True)
-        zip_path = assetbundle_dir / f"{hg_normalize_url(path)}.tmp"
+        zip_path = _temp_path(assetbundle_dir, hg_normalize_url(path))
         try:
             crc = await self.download_ab(path, zip_path)
             if len(info.md5) == 4:
                 hashed_ab_path = assetbundle_dir / str(crc)
+            # 先解压到临时文件再原子替换：解压中断不会留下损坏的缓存，其他进程
+            # 也读不到写了一半的文件；缓存项是软链时替换的是软链本身，不会写穿到
+            # 它指向的文件
+            unpacked_path = _temp_path(assetbundle_dir, hashed_ab_path.name)
             try:
                 with (
                     ZipFile(zip_path) as myzip,
                     myzip.open(myzip.filelist[0]) as src,
-                    hashed_ab_path.open("wb") as dst,
+                    unpacked_path.open("wb") as dst,
                 ):
                     shutil.copyfileobj(src, dst)
-            except BaseException:
-                # 解压中断会留下损坏的缓存文件，必须清掉
-                hashed_ab_path.unlink(missing_ok=True)
-                raise
+                os.replace(unpacked_path, hashed_ab_path)
+            finally:
+                unpacked_path.unlink(missing_ok=True)
         finally:
             zip_path.unlink(missing_ok=True)
 
