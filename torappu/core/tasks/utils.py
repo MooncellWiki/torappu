@@ -127,12 +127,21 @@ def sprite_image(sprite: Sprite) -> Image.Image:
 
     UnityPy's ``sprite.image`` crops tight-mesh sprites to their content
     (``textureRect``); paste that back at ``textureRectOffset`` so the padding
-    and alignment the game relies on survive.
+    and alignment the game relies on survive. Only standalone sprites are
+    handled: a sprite packed into an atlas raises unless it is already full-rect.
     """
     image = sprite.image
     width, height = round(sprite.m_Rect.width), round(sprite.m_Rect.height)
     if image.size == (width, height):
         return image
+
+    # 图集里的 sprite 会被旋转、按网格紧密打包，UnityPy 裁出来的范围不一定是
+    # textureRect，贴回去的位置没法保证；现有任务用到的都是独立贴图
+    if sprite.m_RD.settingsRaw & 1 or sprite.m_SpriteAtlas or sprite.m_AtlasTags:
+        raise ValueError(
+            f"sprite {sprite.m_Name!r} is packed into an atlas; "
+            "sprite_image() only pads standalone sprites"
+        )
 
     offset = sprite.m_RD.textureRectOffset
     canvas = Image.new("RGBA", (width, height))
