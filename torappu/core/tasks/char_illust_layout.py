@@ -72,7 +72,12 @@ LayoutMap = TypeAdapter(dict[str, IllustLayout])
 def drawn_size(
     rect: RectTransform, sprite: "Sprite", preserve_aspect: bool
 ) -> tuple[float, float]:
-    """The rect ``Image.GenerateSimpleSprite`` fills, scaled by ``localScale``."""
+    """The rect ``Image.GenerateSimpleSprite`` fills, scaled by ``localScale``.
+
+    The padding ``DataUtility.GetPadding`` takes off (a tight sprite's trimmed
+    transparent margin; 1467 of 2439 illusts in 2.7.81) comes off the quad and
+    its UVs alike, so what is visible stays where this full rect puts it.
+    """
     width, height = rect.m_SizeDelta.x, rect.m_SizeDelta.y
     if preserve_aspect:
         ratio = sprite.m_Rect.width / sprite.m_Rect.height
@@ -91,7 +96,9 @@ def charinfo_params(
 ) -> CharinfoParams:
     """Match the illust's width and centre on the PRTS stage.
 
-    PRTS keeps the image's aspect ratio, so an illust the game stretches
+    PRTS shows the whole texture CharArts exports; ``illust_layout`` checks the
+    sprite covers it, so the sprite's aspect ratio is the image's. PRTS keeps
+    that ratio, so an illust the game stretches
     (``sizeDelta`` off the sprite's ratio, ``preserveAspect`` off; up to 3.5%
     in 2.7.81) ends up as wide and centred but not as tall.
     """
@@ -133,6 +140,18 @@ def illust_layout(go: GameObject, container: str) -> IllustLayout:
     if not sprite_pptr:
         raise ValueError(f"Image of {container!r} has no sprite")
     sprite = sprite_pptr.read()
+    texture = sprite.m_RD.texture.read()
+    sprite_rect = sprite.m_Rect
+    if (
+        round(sprite_rect.x),
+        round(sprite_rect.y),
+        round(sprite_rect.width),
+        round(sprite_rect.height),
+    ) != (0, 0, texture.m_Width, texture.m_Height):
+        raise ValueError(
+            f"sprite of {container!r} does not cover its texture "
+            f"({texture.m_Width}x{texture.m_Height}): {sprite_rect}"
+        )
 
     size = drawn_size(rect, sprite, bool(image.m_PreserveAspect))  # type: ignore
     # 适配比例和 localScale 都保持 pivot 不动，pivot 不在中心时（mlynar_2）要换回中心
