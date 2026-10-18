@@ -11,6 +11,19 @@ from torappu.core.tasks.utils import read_obj, require_container, sprite_image
 from .base import task
 from .params import OutputDir, changed_bundles
 
+ASSET_PREFIX = "arts/camplogo/"
+
+
+def check_flat_names(client: Client) -> None:
+    """Raise if two logos would be written to the same flat file name."""
+    sources: dict[str, str] = {}
+    for asset in client.asset_to_bundle:
+        if not asset.startswith(ASSET_PREFIX):
+            continue
+        name = PurePosixPath(asset).name
+        if (other := sources.setdefault(name, asset)) != asset:
+            raise ValueError(f"camplogo {name!r} is both {other} and {asset}")
+
 
 async def unpack(ab_path: str, output_dir: Path) -> None:
     env = UnityPy.load(ab_path)
@@ -29,8 +42,10 @@ async def unpack(ab_path: str, output_dir: Path) -> None:
 async def camplogo(
     client: Client,
     output_dir: OutputDir,
-    bundles: Annotated[set[str], changed_bundles("arts/camplogo/")],
+    bundles: Annotated[set[str], changed_bundles(ASSET_PREFIX)],
 ) -> None:
+    # 平铺输出后同名的图会互相覆盖，没变的 bundle 也要算上，所以按整个清单查
+    check_flat_names(client)
     paths = await client.fetch_asset_bundles(list(bundles))
     output_dir.mkdir(parents=True, exist_ok=True)
 
