@@ -1,5 +1,6 @@
 import os
 import subprocess
+import uuid
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -91,8 +92,9 @@ async def unpack(
 
 def combine(intro_path: Path, loop_path: Path, combine_path: Path) -> None:
     # 先写临时文件再替换：ffmpeg 失败时不会留下残缺的 bank，
-    # 否则它比 intro/loop 新，下次会被当成最新的而跳过重建
-    tmp_path = combine_path.with_name(f".{combine_path.name}.tmp")
+    # 否则它比 intro/loop 新，下次会被当成最新的而跳过重建。
+    # 文件名唯一，多个进程同时合成同一个 bank 时不会互相截断
+    tmp_path = combine_path.with_name(f".{combine_path.name}.{uuid.uuid4().hex}.tmp")
     try:
         result = subprocess.run(
             [
