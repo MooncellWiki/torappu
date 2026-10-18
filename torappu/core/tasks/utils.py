@@ -1,9 +1,10 @@
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
 from PIL import Image
-from UnityPy.classes import FastPropertyName, Material, Texture2D, UnityTexEnv
+from UnityPy.classes import FastPropertyName, Material, Sprite, Texture2D, UnityTexEnv
 from UnityPy.files.ObjectReader import ObjectReader
 
 from torappu.consts import PROFESSIONS
@@ -120,3 +121,52 @@ def get_name(src: FastPropertyName | str) -> str:
     if isinstance(src, FastPropertyName):
         return src.name
     return src
+
+
+RECT_SUBDIR = "rect"
+"""Subdirectory of a task's output where :func:`save_sprite` puts full-rect sprites."""
+
+
+def sprite_image(sprite: Sprite) -> Image.Image:
+    """The sprite at its full ``m_Rect`` size, the way UGUI's Image draws it.
+
+    UnityPy's ``sprite.image`` crops tight-mesh sprites to their content
+    (``textureRect``); paste that back at ``textureRectOffset`` so the padding
+    and alignment the game relies on survive. Only standalone sprites are
+    handled: a sprite packed into an atlas raises unless it is already full-rect.
+    """
+    return _pad_to_rect(sprite, sprite.image)
+
+
+def save_sprite(sprite: Sprite, output_dir: Path, filename: str) -> None:
+    """Save ``sprite.image`` to ``output_dir`` and :func:`sprite_image` to ``rect/``.
+
+    The cropped image keeps its old path and size since wiki pages lay it out
+    as is; the full-rect copy under ``output_dir / RECT_SUBDIR`` is for
+    consumers that want the game's padding and alignment.
+    """
+    image = sprite.image
+    image.save(output_dir / filename)
+    rect_dir = output_dir / RECT_SUBDIR
+    rect_dir.mkdir(exist_ok=True)
+    _pad_to_rect(sprite, image).save(rect_dir / filename)
+
+
+def _pad_to_rect(sprite: Sprite, image: Image.Image) -> Image.Image:
+    width, height = round(sprite.m_Rect.width), round(sprite.m_Rect.height)
+    if image.size == (width, height):
+        return image
+
+    # 图集里的 sprite 会被旋转、按网格紧密打包，UnityPy 裁出来的范围不一定是
+    # textureRect，贴回去的位置没法保证；现有任务用到的都是独立贴图
+    if sprite.m_RD.settingsRaw & 1 or sprite.m_SpriteAtlas or sprite.m_AtlasTags:
+        raise ValueError(
+            f"sprite {sprite.m_Name!r} is packed into an atlas; "
+            "only standalone sprites can be padded to m_Rect"
+        )
+
+    offset = sprite.m_RD.textureRectOffset
+    canvas = Image.new("RGBA", (width, height))
+    # textureRectOffset 以左下角为原点，PIL 以左上角为原点
+    canvas.paste(image, (round(offset.x), height - image.height - round(offset.y)))
+    return canvas
