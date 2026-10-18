@@ -7,9 +7,13 @@ battle variant, ``CharSkinData.GetIllustIdForBattle``) and instantiates the
 ``Image`` on its root GameObject. That Image comes in two layouts, told apart
 by ``CharacterTransResultView._IsAlphaSplitMaterial``:
 
-- material on the ``Torappu/UI/AlphaSplit`` shader: RGB from ``_MainTex``,
-  alpha from ``_AlphaTex`` (ETC textures);
+- material on the ``Torappu/UI/AlphaSplit`` shader: alpha from ``_AlphaTex``
+  (ETC textures);
 - no such material: the sprite texture already carries alpha (ASTC).
+
+Either way the RGB is the sprite's texture: UGUI's ``Image.mainTexture`` hands
+it to the material as ``_MainTex``, so the material's own ``_MainTex`` (empty
+or stale on a few illusts) only shows on an Image without a sprite.
 """
 
 from pathlib import Path
@@ -20,6 +24,7 @@ from UnityPy.classes import GameObject, MonoBehaviour
 
 from torappu.core.client import Client
 from torappu.core.utils.thread import run_sync
+from torappu.log import logger
 
 from .base import task
 from .params import OutputDir, changed_bundles
@@ -44,38 +49,45 @@ def root_image(go: GameObject, container: str) -> MonoBehaviour:
     raise ValueError(f"illust prefab {container!r} has no Image on its root")
 
 
-def render_illust(image: MonoBehaviour, container: str) -> tuple["PILImage", str]:
-    """Composite the illust as the game draws it; named after its RGB texture."""
+def render_illust(
+    image: MonoBehaviour, container: str
+) -> tuple["PILImage", str] | None:
+    """Composite the illust as the game draws it; named after its RGB texture.
+
+    ``None`` when the Image has neither a sprite nor a ``_MainTex``: the game
+    draws a blank quad there and there is nothing to export.
+    """
+    textures: dict[str, PPtr[Texture2D]] = {}
     material_pptr = cast("PPtr[Material]", image.m_Material)  # type: ignore
     if material_pptr:
-        material = material_pptr.read()
         textures = {
             get_name(key): cast("PPtr[Texture2D]", tex_env.m_Texture)
-            for key, tex_env in material.m_SavedProperties.m_TexEnvs
+            for key, tex_env in material_pptr.read().m_SavedProperties.m_TexEnvs
+            if tex_env.m_Texture
         }
-        # 着色器不在 anon/refs 里读不到名字，只有 AlphaSplit 会设 _AlphaTex
-        if alpha_pptr := textures.get("_AlphaTex"):
-            rgb_pptr = textures.get("_MainTex")
-            if not rgb_pptr:
-                raise ValueError(
-                    f"AlphaSplit material {material.m_Name!r} of {container!r} "
-                    "has _AlphaTex but no _MainTex"
-                )
-            rgb_texture = rgb_pptr.read()
-            merged, _ = merge_alpha(alpha_pptr.read(), rgb_texture)
-            return merged, rgb_texture.m_Name
 
     sprite_pptr = cast("PPtr[Sprite]", image.m_Sprite)  # type: ignore
-    if not sprite_pptr:
-        raise ValueError(
-            f"Image of {container!r} has neither an AlphaSplit material nor a sprite"
-        )
-    render_data = sprite_pptr.read().m_RD
-    texture = cast("PPtr[Texture2D]", render_data.texture).read()
-    if alpha_pptr := cast("PPtr[Texture2D] | None", render_data.alphaTexture):
-        merged, _ = merge_alpha(alpha_pptr.read(), texture)
-        return merged, texture.m_Name
-    return texture.image, texture.m_Name
+    render_data = sprite_pptr.read().m_RD if sprite_pptr else None
+    rgb_pptr = (
+        cast("PPtr[Texture2D]", render_data.texture)
+        if render_data
+        else textures.get("_MainTex")
+    )
+    if not rgb_pptr:
+        return None
+    rgb_texture = rgb_pptr.read()
+
+    # Image.UpdateMaterial 只在 sprite 有分离的 alpha 贴图时才覆盖 _AlphaTex；
+    # 着色器不在 anon/refs 里读不到名字，只有 AlphaSplit 会设 _AlphaTex
+    alpha_pptr = (
+        cast("PPtr[Texture2D] | None", render_data.alphaTexture)
+        if render_data
+        else None
+    ) or textures.get("_AlphaTex")
+    if alpha_pptr:
+        merged, _ = merge_alpha(alpha_pptr.read(), rgb_texture)
+        return merged, rgb_texture.m_Name
+    return rgb_texture.image, rgb_texture.m_Name
 
 
 @run_sync
@@ -87,7 +99,11 @@ def unpack(env: UnityPy.Environment, output_dir: Path) -> None:
         if not isinstance(go := pptr.deref_parse_as_object(), GameObject):
             continue
 
-        image, name = render_illust(root_image(go, container), container)
+        if (rendered := render_illust(root_image(go, container), container)) is None:
+            # 根节点的 Image 什么都没挂（如还没放出图的 liesel_1b），游戏里只是一块纯色
+            logger.warning(f"illust prefab {container!r} has nothing to draw, skipped")
+            continue
+        image, name = rendered
         image.save(output_dir / f"{name}.png")
 
 
