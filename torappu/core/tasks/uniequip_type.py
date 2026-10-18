@@ -7,7 +7,7 @@ import UnityPy
 from UnityPy.classes import Sprite
 
 from torappu.core.client import Client
-from torappu.core.tasks.utils import read_obj, require_container, sprite_image
+from torappu.core.tasks.utils import read_obj, require_container
 
 from .base import task
 from .params import OutputDir, changed_bundles
@@ -23,7 +23,7 @@ async def unpack(ab_path: str, output_dir: Path) -> None:
             filename = os.path.basename(container_path)
             if not filename.lower().endswith(".png"):
                 filename = f"{filename}.png"
-            sprite_image(texture).save(output_dir.joinpath(filename))
+            texture.image.save(output_dir.joinpath(filename))
 
 
 @task("UniEquipType", priority=3, raw_subdir="uniequip_type")

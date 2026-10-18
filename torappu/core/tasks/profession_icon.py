@@ -6,7 +6,7 @@ import UnityPy
 from UnityPy.classes import Sprite
 
 from torappu.core.client import Client
-from torappu.core.tasks.utils import read_obj, sprite_image
+from torappu.core.tasks.utils import read_obj
 
 from .base import task
 from .params import OutputDir, changed_bundles
@@ -24,7 +24,7 @@ async def unpack(ab_path: str, output_dir: Path) -> None:
         if not (obj.container or "").startswith(CONTAINER_PREFIX):
             continue
         if texture := read_obj(Sprite, obj):
-            sprite_image(texture).save(output_dir.joinpath(f"{texture.m_Name}.png"))
+            texture.image.save(output_dir.joinpath(f"{texture.m_Name}.png"))
 
 
 @task("ProfessionIcon", priority=3, raw_subdir="profession_icon")
