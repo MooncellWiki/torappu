@@ -314,12 +314,12 @@ def _get_face_rect(group: CharacterSpriteGroup) -> tuple[int, int, int, int]:
 
 def _has_face(group: CharacterSpriteGroup) -> bool:
     # `AVGCharacterSpriteHub(Group)._HasFace`：faceSize 不近似为零就算有表情，
-    # 容差对应 `MathUtil.Similar` 用的 LARGE_EPS
+    # 即 `!MathUtil.Similar(faceSize, Vector2.zero)`，逐分量 `|d| <= 0.01f`
     if group.face_size is None:
         return False
     return not (
-        isclose(group.face_size.x, 0.0, abs_tol=1e-5)
-        and isclose(group.face_size.y, 0.0, abs_tol=1e-5)
+        isclose(group.face_size.x, 0.0, abs_tol=1e-2)
+        and isclose(group.face_size.y, 0.0, abs_tol=1e-2)
     )
 
 
