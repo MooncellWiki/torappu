@@ -60,6 +60,8 @@ class CharacterArrayFaceJson(TypedDict):
     alias: str
     group: int
     face: str
+    body: int
+    index: int
 
 
 class CharacterArraySingleJson(TypedDict):
@@ -67,6 +69,8 @@ class CharacterArraySingleJson(TypedDict):
     alias: str
     group: Literal[-1]
     image: str
+    body: int
+    index: int
 
 
 CharacterArrayJson = CharacterArrayFaceJson | CharacterArraySingleJson
@@ -259,6 +263,10 @@ class CharacterLinkItem:
     name: str
     alias: str
     render: CharacterRender
+    # 剧情里 `$N#M` 选的是 spriteGroups[N-1].sprites[M-1]：body 是组号，index 是
+    # 组内下标，都按 prefab 原样计数（跳过的底图和占位行也占位置）
+    body: int
+    index: int
 
 
 @dataclass(slots=True)
@@ -363,6 +371,7 @@ def _extract_character_sprite(
 
 def _extract_character_group(
     key: str,
+    body: int,
     group: CharacterSpriteGroup,
     output_dir: Path,
     exported_images: set[str],
@@ -393,7 +402,7 @@ def _extract_character_group(
         is_face = False
 
     output: list[CharacterLinkItem] = []
-    for item in sprites:
+    for index, item in enumerate(sprites):
         if not item.sprite:
             continue
 
@@ -420,7 +429,13 @@ def _extract_character_group(
             render = CharacterRenderSingle(base=image_name)
 
         output.append(
-            CharacterLinkItem(name=item_name, alias=item.alias, render=render)
+            CharacterLinkItem(
+                name=item_name,
+                alias=item.alias,
+                render=render,
+                body=body,
+                index=index,
+            )
         )
     return output
 
@@ -529,10 +544,10 @@ def _extract_character_mono(
     char_link = CharacterLinkData(pos=pos, size=size, array=[])
 
     exported_images: set[str] = set()
-    for group in groups:
+    for body, group in enumerate(groups):
         char_link.array.extend(
             _extract_character_group(
-                game_object_name, group, characters_dir, exported_images
+                game_object_name, body, group, characters_dir, exported_images
             )
         )
 
@@ -618,6 +633,8 @@ def _compact_character_links(
                     "alias": item.alias,
                     "group": group_index,
                     "face": render.face,
+                    "body": item.body,
+                    "index": item.index,
                 }
             )
         elif isinstance(render, CharacterRenderSingle):
@@ -627,6 +644,8 @@ def _compact_character_links(
                     "alias": item.alias,
                     "group": -1,
                     "image": render.base,
+                    "body": item.body,
+                    "index": item.index,
                 }
             )
         else:
