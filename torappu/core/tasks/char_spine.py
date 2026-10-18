@@ -259,7 +259,8 @@ async def char_spine(
     char_map = build_char_map(character_table, char_patch_table)
     skin_map = build_skin_map(skin_table)
 
-    paths = await client.fetch_asset_bundles(list(bundles))
+    # 按名字排序，让 bundle 的加载顺序和 meta.json 的键序可复现
+    paths = await client.fetch_asset_bundles(sorted(bundles))
     resolved_paths = [path[1] for path in paths]
     resolved_filenames: list[str] = [
         Path(resolved_path).name for resolved_path in resolved_paths

@@ -73,7 +73,12 @@ STRAIGHT_ALPHA_KEYWORDS = frozenset({"_USEBLEED_ON", "_STRAIGHT_ALPHA_INPUT"})
 
 
 def material_keywords(mat: Material) -> set[str]:
-    """Shader keywords enabled on ``mat``."""
+    """Shader keywords enabled on ``mat``.
+
+    Unity serialises the chosen variant of every keyword toggle, ``_OFF``
+    included, so "``_USEALPHATEX_OFF`` not in the set" means the shader reads
+    alpha from ``_AlphaTex``; the set is never empty for a real toggle.
+    """
     if mat.m_ValidKeywords is not None:
         return set(mat.m_ValidKeywords)
     keywords = mat.m_ShaderKeywords or []
