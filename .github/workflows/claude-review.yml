@@ -69,5 +69,6 @@ jobs:
             触发评论如下，`@claude review` 之后的内容（如果有）是额外的审查要求：
             ${{ github.event.comment.body }}
           claude_args: |
+            --model claude-opus-5-5
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"
             --disallowedTools "Edit,Write,NotebookEdit"
