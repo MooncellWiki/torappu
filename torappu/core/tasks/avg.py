@@ -2,7 +2,15 @@ import json
 from dataclasses import dataclass
 from math import isclose, isfinite
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Literal, Protocol, TypedDict, cast
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Literal,
+    NotRequired,
+    Protocol,
+    TypedDict,
+    cast,
+)
 
 import UnityPy
 from PIL import Image
@@ -81,6 +89,7 @@ class CharacterDataJson(TypedDict):
     size: Vector2Json
     array: list[CharacterArrayJson]
     groups: list[CharacterGroupJson]
+    bodies: NotRequired[list[int]]
 
 
 class NamedGameObject(Protocol):
@@ -274,6 +283,13 @@ class CharacterLinkData:
     pos: FloatVector2
     size: FloatVector2
     array: list[CharacterLinkItem]
+    # 每个 body 的 sprites 数（spriteGroups[body].sprites.Length），只有
+    # `AVGCharacterSpriteHubGroup` 才有。它的 `SetImage` 越界检查差一：
+    # body > spriteGroups.Length、index > sprites.Length 才退回 0，恰好等于
+    # 长度时抛 IndexOutOfRangeException，剧情协程就此中止。array 不列底图和
+    # 占位行，下游从条目里看不出长度，所以单独导出。旧版扁平
+    # `AVGCharacterSpriteHub` 的检查没有差一，为 None
+    bodies: list[int] | None
 
 
 def _container_filename(container_path: str) -> str:
@@ -443,7 +459,9 @@ def _extract_character_group(
 def _resolve_character_groups(
     behaviour: MonoBehaviour,
     data: dict[str, object],
-) -> list[CharacterSpriteGroup] | None:
+) -> tuple[list[CharacterSpriteGroup], bool] | None:
+    """Returns the sprite groups and whether the prefab is grouped
+    (`AVGCharacterSpriteHubGroup`) rather than a legacy flat hub."""
     # Newer avg prefabs store groups directly under `spriteGroups`.
     groups = data.get("spriteGroups")
     if groups is not None:
@@ -458,11 +476,11 @@ def _resolve_character_groups(
             if normalized is None:
                 raise ValueError("Invalid sprite group type in character prefab")
             normalized_groups.append(normalized)
-        return normalized_groups
+        return normalized_groups, True
 
     # Older prefabs keep a flat `sprites` list plus top-level face metadata.
     legacy_group = CharacterSpriteGroup.from_legacy_object(behaviour)
-    return [legacy_group] if legacy_group is not None else None
+    return ([legacy_group], False) if legacy_group is not None else None
 
 
 def _resolve_character_game_object(
@@ -530,9 +548,10 @@ def _extract_character_mono(
     if not isinstance(data, dict):
         return
 
-    groups = _resolve_character_groups(behaviour, data)
-    if groups is None:
+    resolved = _resolve_character_groups(behaviour, data)
+    if resolved is None:
         return
+    groups, grouped = resolved
 
     game_object_name, game_object = _resolve_character_game_object(
         behaviour, container_path
@@ -541,7 +560,8 @@ def _extract_character_mono(
         raise ValueError(f"Duplicate character key `{game_object_name}`")
 
     pos, size = _build_character_rect_link(game_object_name, game_object)
-    char_link = CharacterLinkData(pos=pos, size=size, array=[])
+    bodies = [len(group.sprites) for group in groups] if grouped else None
+    char_link = CharacterLinkData(pos=pos, size=size, array=[], bodies=bodies)
 
     exported_images: set[str] = set()
     for body, group in enumerate(groups):
@@ -654,12 +674,15 @@ def _compact_character_links(
                 f"at index `{index}`"
             )
 
-    return {
+    result: CharacterDataJson = {
         "pos": character_data.pos.to_json(),
         "size": character_data.size.to_json(),
         "groups": groups,
         "array": compact_array,
     }
+    if character_data.bodies is not None:
+        result["bodies"] = character_data.bodies
+    return result
 
 
 async def unpack(
