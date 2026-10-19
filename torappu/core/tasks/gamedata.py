@@ -1,10 +1,31 @@
-import base64
+"""Decode the ``gamedata/*`` TextAssets the way the client loads them.
+
+Each gamedata asset is read by one loader in the client, and that loader picks
+the ``Torappu.DB.ConverterFactory.ConverterType`` (checked against 2.7.81):
+
+- DB tables: ``DBOptions.tableAssets`` (ScriptableObjects in the APK), whose
+  ``_prodConfig`` holds ``assetPath`` and ``convertType``. Almost all of them
+  are ``FLAT_BUFFER``, and for those ``AbstractTable._GenerateRuntimeResPath``
+  appends the root type hash to ``assetPath``
+  (``excel/item_table`` -> ``excel/item_table1c04fa``); the others are listed
+  in :data:`TABLE_CONVERTERS`.
+- ``LevelUtils``: ``levels/**`` is ``FLAT_BUFFER`` with root ``LevelData``.
+- ``BakeMuzzleUtil``: ``bakemuzzledata/**`` goes through
+  ``FlatBufferUniversalSerializer``, root ``BakedSpineData``.
+- ``LuaManager``: ``[uc]lua/**`` is ``LuaOptions.cryptType``
+  (``CRYPTIC_WITH_SIGN``), kept as the decrypted Lua source.
+- ``.json`` (art tables, level scripts, story variables) is parsed as plain
+  JSON, ``.txt`` (story scripts, ``data_version``) is used as is.
+"""
+
 import json
-import os
 import platform
+import re
 import struct
+from enum import IntEnum
 from functools import cache
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from typing import Any
 
 import anyio
 import bson
@@ -18,289 +39,206 @@ from UnityPy.classes import TextAsset
 from torappu.config import Config
 from torappu.core.client import Client
 from torappu.core.tasks.utils import m_script_to_bytes
+from torappu.core.utils.concurrency import amap
 from torappu.core.utils.thread import run_sync
 from torappu.models import GameDataReady
 
 from .base import task
 
-flatbuffer_list = [
-    # excel
-    "activity_table",
-    "arkvent_table",
-    "audio_data",
-    "battle_equip_table",
-    "building_data",
-    "campaign_table",
-    "chapter_table",
-    "char_master_table",
-    "char_meta_table",
-    "char_patch_table",
-    "character_table",
-    "charm_table",
-    "charword_table",
-    "checkin_table",
-    "climb_tower_table",
-    "clue_data",
-    "crisis_table",
-    "crisis_v2_table",
-    "display_meta_table",
-    "enemy_handbook_table",
-    "favor_table",
-    "gacha_table",
-    "gamedata_const",
-    "handbook_info_table",
-    "handbook_team_table",
-    "hotupdate_meta_table",
-    "init_text",
-    "item_table",
-    "level_script_table",
-    "main_text",
-    "medal_table",
-    "meta_ui_table",
-    "mission_table",
-    "open_server_table",
-    "replicate_table",
-    "retro_table",
-    "roguelike_topic_table",
-    "sandbox_perm_table",
-    "shop_client_table",
-    "skill_table",
-    "skin_table",
-    "special_operator_table",
-    "stage_table",
-    "story_review_meta_table",
-    "story_review_table",
-    "story_table",
-    "tip_table",
-    "token_table",
-    "uniequip_table",
-    "zone_table",
-    # battle
-    "cooperate_battle_table",
-    "ep_breakbuff_table",
-    "extra_battlelog_table",
-    "legion_mode_buff_table",
-    # building
-    "building_local_data",
-]
-encrypted_list = [
-    "[uc]lua",
-    "gamedata/excel",
-    "gamedata/battle",
-]
-flatbuffer_mappings = {
-    "gamedata/bakemuzzledata/": "bake_muzzle_data",
-    "gamedata/levels/enemydata/enemy_database": "enemy_database",
-    "gamedata/levels/": "prts___levels",
-    "gamedata/buff_table": "buff_table",
+
+class ConverterType(IntEnum):
+    """``ConverterFactory.ConverterType`` values of the non-flatbuffer converters.
+
+    ``FLAT_BUFFER`` (7) also needs the root type's schema, so
+    :func:`decode_asset` handles it itself.
+    """
+
+    JSON_DOT_NET = 0
+    CRYPTIC_WITH_SIGN = 4
+    BSON_CRYPTIC_WITH_SIGN = 5
+    UNITY_SERIALIZER_BSON = 8
+
+
+CONTAINER_PREFIX = "dyn/gamedata/"
+
+# CrypticConverter_WithSign: RSA-MD5 signature over the payload. Not verified,
+# the public key (GlobalOptions) only ships in the APK.
+SIGN_HEADER_LENGTH = 128
+# PlayerData.chatMask, the CrypticConverter_A token: AES key + IV mask
+CHAT_MASK = b"UITpAi82pHAWwnzqHRMCwPonJLIB3WCl"
+# assetPath + FlatLookupConverter.GetMD5(root type), see _GenerateRuntimeResPath
+FLAT_TABLE_NAME = re.compile(r"(?P<table>.+)[0-9a-f]{6}")
+
+# DBOptions tables whose convertType is not FLAT_BUFFER, by assetPath
+TABLE_CONVERTERS = {
+    "battle/battle_misc_table": ConverterType.BSON_CRYPTIC_WITH_SIGN,
+    "battle/buff_template_data": ConverterType.UNITY_SERIALIZER_BSON,
+    "excel/range_table": ConverterType.CRYPTIC_WITH_SIGN,
 }
-plaintexts = ["levels/levels_meta.json", "data_version.txt"]
-signed_list = ["excel", "_table", "[uc]lua"]
-chat_mask = "UITpAi82pHAWwnzqHRMCwPonJLIB3WCl"
+# DBOptions.excelEncryptType: excel tables no DB loads any more
+# (ark_odc_table, player_avatar_table, ...) still ship encrypted with it
+EXCEL_CONVERTER = ConverterType.CRYPTIC_WITH_SIGN
+# LevelUtils.LEVEL_CONVERTER_TYPE is FLAT_BUFFER
+LEVEL_SCHEMA = "prts___levels"
+BAKE_MUZZLE_SCHEMA = "bake_muzzle_data"
 
 
 @cache
 def load_flatbuffer_schema(fbs_dir: Path, fb_name: str) -> FBSchema:
+    path = fbs_dir / f"{fb_name}.fbs"
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"no flatbuffer schema {path} (update OpenArknightsFBS)"
+        )
     return FBSchema.from_fbs_file(
-        str(fbs_dir / f"{fb_name}.fbs"),
+        str(path),
         include_paths=[str(fbs_dir)],
         options=FBOptions(),
     )
 
 
-def _check_not_plaintext(path: str) -> bool:
-    return all(plaintext not in path for plaintext in plaintexts)
-
-
-def _get_flatbuffer_name(path: str) -> str | None:
-    matched = [
-        *[flatbuffer for flatbuffer in flatbuffer_list if flatbuffer in path],
-        *[
-            flatbuffer
-            for mapping, flatbuffer in flatbuffer_mappings.items()
-            if mapping in path
-        ],
-    ]
-
-    return matched[0] if matched and _check_not_plaintext(path) else None
-
-
-def _check_encrypted(path: str) -> bool:
-    return (
-        any(encrypted in path for encrypted in encrypted_list)
-        and _check_not_plaintext(path)
-        and "buff_template_data" not in path
-    )
-
-
-def _check_signed(path: str) -> bool:
-    return any(signed in path for signed in signed_list)
-
-
-def _get_flatbuffer_output_name(relative_path: str, fb_name: str) -> str:
-    source_name = Path(relative_path).name.removesuffix(".bytes")
-    if fb_name in {"prts___levels", "bake_muzzle_data"}:
-        return source_name
-    return fb_name
-
-
-@run_sync
-def _decode_flatbuffer(
-    path: str, obj: TextAsset, fb_name: str, gamedata_dir: Path, fbs_dir: Path
-) -> None:
-    relative_path = path.replace("dyn/gamedata/", "")
-    output_name = _get_flatbuffer_output_name(relative_path, fb_name)
-    raw = m_script_to_bytes(obj.m_Script)
-    if fb_name == "bake_muzzle_data":
-        # u32 name length + name bytes, then the flatbuffer
-        (name_len,) = struct.unpack_from("<I", raw, 0)
-        flatbuffer_data = raw[4 + name_len :]
-    else:
-        flatbuffer_data = raw[128:]
-    try:
-        schema = load_flatbuffer_schema(fbs_dir, fb_name)
-        jsons = json.loads(schema.binary_to_json(flatbuffer_data))
-    except Exception as exc:
-        raise RuntimeError(
-            f"failed to decode flatbuffer {fb_name!r} for asset {path!r}"
-        ) from exc
-
-    if fb_name == "activity_table":
-        for k, v in jsons["dynActs"].items():
-            if "base64" in v:
-                jsons["dynActs"][k] = bson.decode_document(
-                    base64.b64decode(v["base64"]), 0
-                )[1]
-    container_path = gamedata_dir / os.path.dirname(relative_path)
-    container_path.mkdir(parents=True, exist_ok=True)
-    json_dest_path = container_path / f"{output_name}.json"
-    json_dest_path.write_text(
-        json.dumps(
-            jsons,
-            ensure_ascii=False,
-            separators=(",", ":"),
-        ),
-        encoding="utf-8",
-    )
-
-
-@run_sync
-def _decrypt(path: str, obj: TextAsset, is_signed: bool, gamedata_dir: Path) -> None:
-    key: bytes = chat_mask[:16].encode()
-    iv = chat_mask[16:].encode()
-    cipher_data = (
-        bytearray(m_script_to_bytes(obj.m_Script))[128:]
-        if is_signed
-        else bytearray(m_script_to_bytes(obj.m_Script))
-    )
-    if len(cipher_data) % 16 != 0:
+def _strip_sign(data: bytes) -> bytes:
+    """``CrypticConverter_WithSign.ReadContentBytes`` with the SIGN option."""
+    if len(data) < SIGN_HEADER_LENGTH:
         raise ValueError(
-            f"asset {path!r}: ciphertext length {len(cipher_data)} is not "
-            "16-byte aligned; likely an unregistered flatbuffer table — "
-            "check flatbuffer_list and OpenArknightsFBS/FBS"
+            f"{len(data)} bytes, shorter than the {SIGN_HEADER_LENGTH}-byte sign header"
         )
+    return data[SIGN_HEADER_LENGTH:]
 
-    for i in range(16):
-        cipher_data[i] ^= iv[i]
 
-    cipher = AES.new(key, AES.MODE_CBC)
-    try:
-        decipher = unpad(bytes(cipher.decrypt(cipher_data)), 16)
-    except ValueError as exc:
-        raise RuntimeError(f"failed to decrypt asset {path!r}") from exc
-    try:
-        res = bytes(
-            json.dumps(
-                bson.decode_document(decipher[16:], 0)[1],
-                ensure_ascii=False,
-                separators=(",", ":"),
-            ),
-            encoding="utf-8",
+def _decrypt(data: bytes) -> bytes:
+    """``CrypticConverter_A.DecodeInternal``.
+
+    AES-128-CBC/PKCS7 over ``data[16:]``, key ``CHAT_MASK[:16]``, IV
+    ``CHAT_MASK[16:]`` XOR ``data[:16]``.
+    """
+    if len(data) < 2 * AES.block_size or len(data) % AES.block_size:
+        raise ValueError(f"{len(data)} bytes of ciphertext is not whole AES blocks")
+    iv = bytes(m ^ d for m, d in zip(CHAT_MASK[16:], data[:16], strict=True))
+    cipher = AES.new(CHAT_MASK[:16], AES.MODE_CBC, iv)
+    return unpad(cipher.decrypt(data[16:]), AES.block_size)
+
+
+def _strip_type_hash(data: bytes) -> bytes:
+    """``FlatBufferUniversalSerializer``: ``[i32 n][n-byte type hash][flatbuffer]``.
+
+    The client also checks the hash against the root type's; those hashes are
+    compiled into the client, so that check is not repeated here.
+    """
+    (length,) = struct.unpack_from("<i", data)
+    if length < 0 or 4 + length > len(data):
+        raise ValueError(
+            f"type hash length {length} out of range for {len(data)} bytes"
         )
-    except Exception:
-        res = decipher[16:]
-    temp_path = gamedata_dir / path.replace("dyn/gamedata/", "")
+    return data[4 + length :]
 
-    if temp_path.name.endswith(".lua.bytes"):
-        temp_path = temp_path.parent.joinpath(obj.m_Name)
-    elif temp_path.name.endswith(".bytes"):
-        temp_path = temp_path.with_suffix(".json")
-    else:
-        temp_path = temp_path.parent
 
-    temp_path.parent.mkdir(parents=True, exist_ok=True)
+def _parse_json(data: bytes) -> Any:
+    # TextAsset.text and StreamReader both drop a UTF-8 BOM
+    return json.loads(data.decode("utf-8-sig"))
 
-    try:
-        res = bytes(
-            json.dumps(
-                bson.decode_document(decipher[16:], 0)[1],
-                ensure_ascii=False,
-                separators=(",", ":"),
-            ),
-            encoding="utf-8",
+
+def _parse_bson(data: bytes) -> Any:
+    end, document = bson.decode_document(data, 0)
+    if end != len(data):
+        raise ValueError(f"BSON document ends at {end} of {len(data)} bytes")
+    return document
+
+
+def _parse_flatbuffer(data: bytes, schema: FBSchema) -> Any:
+    # ark_fbs expands hg__internal__JObject (base64 BSON) like FlatStoreUtil does
+    return json.loads(schema.binary_to_json(data))
+
+
+def _deserialize(converter: ConverterType, data: bytes) -> Any:
+    """``ConverterFactory.Create(converter).Deserialize``."""
+    match converter:
+        case ConverterType.JSON_DOT_NET:
+            return _parse_json(data)
+        case ConverterType.CRYPTIC_WITH_SIGN:
+            return _parse_json(_decrypt(_strip_sign(data)))
+        case ConverterType.BSON_CRYPTIC_WITH_SIGN:
+            return _parse_bson(_decrypt(_strip_sign(data)))
+        case ConverterType.UNITY_SERIALIZER_BSON:
+            return _parse_bson(data)
+
+
+def _dump_json(value: Any) -> bytes:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+def decode_asset(
+    path: PurePosixPath, name: str, data: bytes, fbs_dir: Path
+) -> tuple[PurePosixPath, bytes]:
+    """Output path and content of the gamedata TextAsset at ``path``.
+
+    ``path`` is relative to ``gamedata/`` with the extension
+    (``excel/item_table1c04fa.bytes``), ``name`` the TextAsset's ``m_Name``;
+    the output path is relative to the decoded res_version directory.
+    """
+    match path.suffix:
+        case ".txt":
+            return path, data
+        case ".json":
+            return path, _dump_json(_parse_json(data))
+        case ".bytes":
+            pass
+        case _:
+            raise ValueError(f"unknown gamedata asset type {path.suffix!r}")
+
+    stem = path.with_suffix("")
+    if path.parts[0] == "[uc]lua":
+        # LuaManager._CustomLoader: DeserializeBytes, i.e. the Lua source
+        return path.with_name(name), _decrypt(_strip_sign(data))
+    if path.parts[0] == "bakemuzzledata":
+        schema = load_flatbuffer_schema(fbs_dir, BAKE_MUZZLE_SCHEMA)
+        content = _parse_flatbuffer(_strip_type_hash(data), schema)
+        return path.with_suffix(".json"), _dump_json(content)
+    if match := FLAT_TABLE_NAME.fullmatch(stem.name):
+        table = match["table"]
+        content = _parse_flatbuffer(
+            _strip_sign(data), load_flatbuffer_schema(fbs_dir, table)
         )
-    except Exception:
-        res = decipher[16:]
+        return path.with_name(f"{table}.json"), _dump_json(content)
+    if path.parts[0] == "levels":
+        schema = load_flatbuffer_schema(fbs_dir, LEVEL_SCHEMA)
+        content = _parse_flatbuffer(_strip_sign(data), schema)
+        return path.with_suffix(".json"), _dump_json(content)
 
-    temp_path.write_bytes(res)
-
-
-async def _unpack_gamedata(
-    path: str, obj: TextAsset, gamedata_dir: Path, fbs_dir: Path
-) -> None:
-    script: bytes = m_script_to_bytes(obj.m_Script)
-    is_signed = _check_signed(path)
-    is_encrypted = _check_encrypted(path)
-    fb_name = _get_flatbuffer_name(path)
-
-    if fb_name is not None:
-        await _decode_flatbuffer(path, obj, fb_name, gamedata_dir, fbs_dir)
-        return
-
-    if is_encrypted:
-        await _decrypt(path, obj, is_signed, gamedata_dir)
-        return
-
-    output_path = gamedata_dir / path.replace("dyn/gamedata/", "")
-    if output_path.name.endswith(".lua.bytes"):
-        output_path = output_path.with_suffix("")
-    elif output_path.name.endswith(".bytes"):
-        output_path = output_path.with_suffix(".json")
-
-    try:
-        decoded_data = (
-            bson.decode_document(
-                (
-                    bytes(script)[128:]
-                    if "buff_template_data" not in path
-                    else bytes(script)
-                ),
-                0,
-            )[1]
-            if "gamedata/levels" in path or "buff_template_data" in path
-            else json.loads(obj.m_Script)
-        )
-        pack_data = json.dumps(
-            decoded_data,
-            ensure_ascii=False,
-            separators=(",", ":"),
-        )
-
-    except Exception:
-        pack_data = obj.m_Script
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(pack_data, encoding="utf-8")
+    converter = TABLE_CONVERTERS.get(stem.as_posix())
+    if converter is None and path.parts[0] == "excel":
+        converter = EXCEL_CONVERTER
+    if converter is None:
+        raise ValueError("no client loader known for this asset")
+    return path.with_suffix(".json"), _dump_json(_deserialize(converter, data))
 
 
-async def unpack(
-    client: Client, ab_path: str, gamedata_dir: Path, fbs_dir: Path
-) -> None:
-    real_path = await client.fetch_asset_bundle(ab_path)
-    env = UnityPy.load(real_path)
-    for path, reader in env.container.items():
-        if isinstance((asset := reader.read()), TextAsset):
-            await _unpack_gamedata(path, asset, gamedata_dir, fbs_dir)
+@run_sync
+def _unpack_bundle(bundle_path: str, gamedata_dir: Path, fbs_dir: Path) -> None:
+    env = UnityPy.load(bundle_path)
+    for container, reader in env.container.items():
+        if not container.startswith(CONTAINER_PREFIX):
+            continue
+        asset = reader.read()
+        if not isinstance(asset, TextAsset):
+            raise TypeError(
+                f"{container!r} in {bundle_path!r} is a {type(asset).__name__}, "
+                "not a TextAsset"
+            )
+        try:
+            output, content = decode_asset(
+                PurePosixPath(container.removeprefix(CONTAINER_PREFIX)),
+                asset.m_Name,
+                m_script_to_bytes(asset.m_Script),
+                fbs_dir,
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                f"failed to decode gamedata asset {container!r} in {bundle_path!r}"
+            ) from exc
+        dest = gamedata_dir / output
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(content)
 
 
 @task("GameData", priority=0)
@@ -310,19 +248,17 @@ async def gamedata(client: Client, config: Config) -> None:
     Always runs (no diff check): everything downstream reads its output.
     """
     gamedata_dir = config.gamedata_dir / client.version.res_version
-    gamedata_abs = list(
+    bundles = sorted(
         {
             bundle
             for asset, bundle in client.asset_to_bundle.items()
-            if asset.startswith("gamedata")
+            if asset.startswith("gamedata/")
         }
     )
+    paths = await amap(client.fetch_asset_bundle, bundles)
     async with anyio.create_task_group() as tg:
-        for ab in gamedata_abs:
-            tg.start_soon(client.fetch_asset_bundle, ab)
-    async with anyio.create_task_group() as tg:
-        for ab in gamedata_abs:
-            tg.start_soon(unpack, client, ab, gamedata_dir, config.fbs_dir)
+        for path in paths:
+            tg.start_soon(_unpack_bundle, path, gamedata_dir, config.fbs_dir)
 
     if platform.system() != "Windows":
         latest = config.gamedata_dir / "latest"

@@ -28,6 +28,7 @@ Common flags:
 - `torappu/core/di.py`: dependency injection (`Depends`, `analyze()`, `Resolver`); generic, knows nothing about tasks
 - `torappu/core/tasks/base.py`: `@task` registration, `Task`, `TaskContext`, `SkipTask`
 - `torappu/core/tasks/params.py`: ready-made dependencies (`OutputDir`, `DiffList`, `DiffSet`, `changed_bundles()`, `gamedata()`)
+- `torappu/core/tasks/gamedata.py`: `GameData` task; decodes each `gamedata/*` TextAsset with the converter its client loader uses (`ConverterFactory.ConverterType`, see the module docstring). An asset no rule covers raises instead of being guessed
 - `torappu/config.py`: env config incl. filesystem layout (`storage_dir`/`fbs_dir`/`assets_dir` + derived properties)
 - `torappu/core/utils/concurrency.py`: `amap()` — ordered concurrent map on anyio task groups (the `asyncio.gather` replacement)
 
