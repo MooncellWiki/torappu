@@ -2,7 +2,13 @@
 
 FROM python:3.13-bookworm AS builder
 
-COPY --from=ghcr.io/astral-sh/uv:0.12.3 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.4 /uv /bin/uv
+
+# Both stages need the eMudhra distrust update, even with a cached base image.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge '20250419~deb12u2' \
+  && rm -rf /var/lib/apt/lists/*
 
 ENV UV_LINK_MODE=copy \
   UV_COMPILE_BYTECODE=1 \
@@ -38,6 +44,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
   uv sync --locked --no-dev
 
 FROM python:3.13-slim-bookworm
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge '20250419~deb12u2' \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

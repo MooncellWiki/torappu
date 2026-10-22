@@ -12,6 +12,7 @@ runs:
   steps:
     - uses: astral-sh/setup-uv@v10.0.1
       with:
+          version: "0.13.4"
           python-version: ${{ inputs.python-version }}
 
     - run: uv sync --all-extras --locked
