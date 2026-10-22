@@ -1,7 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# These multi-platform digests include the eMudhra CA distrust update.
-FROM python:3.13-bookworm@sha256:d0d07bbf0643a833ef149a44626a827dd42b748a7d6fa1d6bc9c4d878029bf0f AS builder
+FROM python:3.13-bookworm AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:0.13.4 /uv /bin/uv
 
@@ -38,7 +37,7 @@ COPY torappu ./torappu
 RUN --mount=type=cache,target=/root/.cache/uv \
   uv sync --locked --no-dev
 
-FROM python:3.13-slim-bookworm@sha256:a881a81282cca8c57f97014867fa651def1b3799030cc6b1cff45ed55ba8ef36
+FROM python:3.13-slim-bookworm
 
 WORKDIR /app
 
