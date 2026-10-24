@@ -31,8 +31,6 @@ def init_sentry(config: Config | None = None) -> None:
         traces_sample_rate=1.0,
         environment=config.environment,
         integrations=integrations,
-        profiles_sample_rate=1.0,
-        profiler_mode="thread",
     )
 
 
