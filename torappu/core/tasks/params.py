@@ -53,6 +53,10 @@ Not created for you: ``mkdir`` it once the task knows it will write.
 def changed_bundles(*prefixes: str, skip_if_empty: bool = True) -> Depends:
     """Bundles holding a changed asset whose name starts with one of ``prefixes``.
 
+    Matching is plain ``str.startswith``: end a directory prefix with ``/`` so
+    ``arts/enemies/`` does not also catch ``arts/enemies_xxx``; a full asset
+    name such as the hub ``arts/elite_hub`` is passed as is.
+
     Raises :class:`SkipTask` when nothing matches -- the old ``check()`` --
     unless ``skip_if_empty=False``.
     """

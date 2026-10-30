@@ -128,13 +128,13 @@ def _preview_bundles(client: Client, diff_set: DiffSet) -> PreviewBundles:
         if bundle not in diff_set:
             continue
 
-        if asset.startswith("ui/sandboxv2/mappreview"):
+        if asset.startswith("ui/sandboxv2/mappreview/"):
             sandbox.add(bundle)
         elif SANDBOX_V3_MAP_PREVIEW.match(asset):
             sandbox_v3.add(bundle)
         elif asset.startswith(META_UI_MAP_PREVIEW_PREFIX):
             meta_ui.add(bundle)
-        elif asset.startswith("arts/ui/stage/mappreviews"):
+        elif asset.startswith("arts/ui/stage/mappreviews/"):
             universal.add(bundle)
         # 促融共竞地图
         elif "stagebigpreview" in asset and asset.endswith("_preview"):

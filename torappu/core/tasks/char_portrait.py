@@ -36,7 +36,7 @@ def unpack(
 async def char_portrait(
     client: Client,
     output_dir: OutputDir,
-    bundles: Annotated[set[str], changed_bundles("arts/charportraits")],
+    bundles: Annotated[set[str], changed_bundles("arts/charportraits/")],
 ) -> None:
     paths = await client.fetch_asset_bundles(list(bundles))
     resolved_paths = [path[1] for path in paths]

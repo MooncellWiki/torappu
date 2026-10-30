@@ -23,7 +23,7 @@ async def unpack(ab_path: str, output_dir: Path) -> None:
 async def player_avatar(
     client: Client,
     output_dir: OutputDir,
-    bundles: Annotated[set[str], changed_bundles("arts/ui/playeravatar")],
+    bundles: Annotated[set[str], changed_bundles("arts/ui/playeravatar/")],
 ) -> None:
     paths = await client.fetch_asset_bundles(list(bundles))
     output_dir.mkdir(parents=True, exist_ok=True)
