@@ -187,7 +187,7 @@ def unpack(
 async def char_illust_layout(
     client: Client,
     output_dir: OutputDir,
-    bundles: Annotated[set[str], changed_bundles("arts/characters")],
+    bundles: Annotated[set[str], changed_bundles("arts/characters/")],
     skin_table: Annotated[dict[str, Any], gamedata("excel/skin_table.json")],
 ) -> None:
     # container 路径是小写的，skin_table 里的 id 不一定

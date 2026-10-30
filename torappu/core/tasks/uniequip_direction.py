@@ -30,7 +30,7 @@ async def unpack(ab_path: str, output_dir: Path) -> None:
 async def uniequip_direction(
     client: Client,
     output_dir: OutputDir,
-    bundles: Annotated[set[str], changed_bundles("arts/ui/uniequipdirection")],
+    bundles: Annotated[set[str], changed_bundles("arts/ui/uniequipdirection/")],
 ) -> None:
     paths = await client.fetch_asset_bundles(list(bundles))
     output_dir.mkdir(parents=True, exist_ok=True)

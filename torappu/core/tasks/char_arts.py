@@ -111,7 +111,7 @@ def unpack(env: UnityPy.Environment, output_dir: Path) -> None:
 async def char_arts(
     client: Client,
     output_dir: OutputDir,
-    bundles: Annotated[set[str], changed_bundles("arts/characters")],
+    bundles: Annotated[set[str], changed_bundles("arts/characters/")],
 ) -> None:
     paths = await client.fetch_asset_bundles(list(bundles))
     output_dir.mkdir(parents=True, exist_ok=True)
