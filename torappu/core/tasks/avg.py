@@ -1,4 +1,5 @@
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from math import isclose, isfinite
 from pathlib import Path
@@ -624,6 +625,20 @@ def _load_json_object(path: Path) -> dict[str, object]:
     return current
 
 
+def _update_json_object(path: Path, updates: Mapping[str, object]) -> None:
+    """Merge ``updates`` into the JSON object at ``path`` and write it key-sorted.
+
+    The bundles come from a set and incremental runs append to the old file,
+    so without sorting the key order would depend on load order and history.
+    """
+    current = _load_json_object(path)
+    current.update(updates)
+    path.write_text(
+        json.dumps(dict(sorted(current.items())), ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
 def _compact_character_links(
     key: str, character_data: CharacterLinkData
 ) -> CharacterDataJson:
@@ -752,19 +767,7 @@ async def avg(
     character_links, background_ppus = await unpack(env, resolved_filenames, output_dir)
 
     if background_ppus:
-        background_ppu_path = output_dir.joinpath("background.json")
-        background_data = _load_json_object(background_ppu_path)
-        background_data.update(background_ppus)
-        background_ppu_path.write_text(
-            json.dumps(background_data, ensure_ascii=False), encoding="utf-8"
-        )
+        _update_json_object(output_dir.joinpath("background.json"), background_ppus)
 
-    if len(character_links) == 0:
-        return
-
-    character_link_path = output_dir.joinpath("character.json")
-    current_data = _load_json_object(character_link_path)
-    current_data.update(character_links)
-    character_link_path.write_text(
-        json.dumps(current_data, ensure_ascii=False), encoding="utf-8"
-    )
+    if character_links:
+        _update_json_object(output_dir.joinpath("character.json"), character_links)
