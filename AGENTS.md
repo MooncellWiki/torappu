@@ -26,7 +26,7 @@ Common flags:
 - `torappu/core/__init__.py`: `discover_tasks()` + `run_pipeline()` scheduler (priority order, same priority concurrent; returns failed task names)
 - `torappu/core/client.py`: hot update list, diff, bundle fetch/cache
 - `torappu/core/di.py`: dependency injection (`Depends`, `analyze()`, `Resolver`); generic, knows nothing about tasks
-- `torappu/core/tasks/base.py`: `@task` registration, `Task`, `TaskContext`, `SkipTask`
+- `torappu/core/tasks/base.py`: `@task` registration, `Task`, `TaskContext`, `SkipTask`, `UpstreamFailed`
 - `torappu/core/tasks/params.py`: ready-made dependencies (`OutputDir`, `DiffList`, `DiffSet`, `changed_bundles()`, `gamedata()`)
 - `torappu/core/tasks/gamedata.py`: `GameData` task; decodes each `gamedata/*` TextAsset with the converter its client loader uses (`ConverterFactory.ConverterType`, see the module docstring). An asset no rule covers raises instead of being guessed
 - `torappu/config.py`: env config incl. filesystem layout (`storage_dir`/`fbs_dir`/`assets_dir` + derived properties)
@@ -80,6 +80,10 @@ async def elite_icon(
   skipped task never resolves the later ones. A task without such a dependency
   always runs (`GameData`, `ItemDemand`).
 - Gamedata tables: `Annotated[dict[str, Any], gamedata("excel/item_table.json")]`.
+  When `GameData` failed earlier in the run it raises `UpstreamFailed` (a
+  `SkipTask`): the task is skipped with a warning and not counted as another
+  failure. A dependency reading another task's output does the same via
+  `context.failed_tasks` (names that failed at a lower priority).
 - No per-task mutable state: helpers are module-level functions taking what
   they need (`output_dir`, lookup maps, ...) as parameters and returning
   results, never storing them on a shared object.

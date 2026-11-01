@@ -29,7 +29,7 @@ skipped task never reaches the ones after it.
 """
 
 import inspect
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Collection
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -45,6 +45,7 @@ __all__ = [
     "Task",
     "TaskContext",
     "TaskFunc",
+    "UpstreamFailed",
     "register",
     "registered_tasks",
     "task",
@@ -60,13 +61,27 @@ class SkipTask(Exception):
     """
 
 
+class UpstreamFailed(SkipTask):
+    """Raised by a dependency whose input comes from a task that failed earlier.
+
+    Logged as a warning and not counted as a failure: the upstream task's own
+    failure already is, so one broken input shows up as one failed task.
+    """
+
+
 @dataclass(frozen=True, slots=True)
 class TaskContext:
-    """What one task run is about; injectable as ``context: TaskContext``."""
+    """What one task run is about; injectable as ``context: TaskContext``.
+
+    ``failed_tasks`` holds the names of the tasks that failed at a lower
+    priority in this pipeline run (same-priority tasks run concurrently, so
+    their outcome is not known yet).
+    """
 
     task: "Task"
     client: Client
     diff: list[Diff]
+    failed_tasks: frozenset[str] = frozenset()
 
 
 class Task:
@@ -102,13 +117,21 @@ class Task:
             raise TypeError(f"task {self.name!r} does not declare raw_subdir")
         return config.raw_dir / self.raw_subdir
 
-    async def resolve(self, client: Client, diff: list[Diff]) -> dict[str, Any]:
+    async def resolve(
+        self,
+        client: Client,
+        diff: list[Diff],
+        failed_tasks: Collection[str] = (),
+    ) -> dict[str, Any]:
         """Resolve the task function's arguments for this run.
 
         Raises :class:`SkipTask` when a dependency decides there is nothing
         to do; any other exception from a dependency propagates as-is.
+        ``failed_tasks`` becomes :attr:`TaskContext.failed_tasks`.
         """
-        context = TaskContext(task=self, client=client, diff=diff)
+        context = TaskContext(
+            task=self, client=client, diff=diff, failed_tasks=frozenset(failed_tasks)
+        )
         resolver = Resolver(
             {
                 TaskContext: context,
@@ -119,9 +142,14 @@ class Task:
         )
         return await resolver.solve_params(self.dependant)
 
-    async def run(self, client: Client, diff: list[Diff]) -> None:
+    async def run(
+        self,
+        client: Client,
+        diff: list[Diff],
+        failed_tasks: Collection[str] = (),
+    ) -> None:
         """:meth:`resolve` then call the task function."""
-        await self.func(**await self.resolve(client, diff))
+        await self.func(**await self.resolve(client, diff, failed_tasks))
 
 
 PROVIDED_TYPES: tuple[type, ...] = (TaskContext, Task, Client, Config)

@@ -17,7 +17,8 @@ from torappu.core.client import Client
 from torappu.core.di import Depends
 from torappu.models import Diff
 
-from .base import SkipTask, Task, TaskContext
+from .base import SkipTask, Task, TaskContext, UpstreamFailed
+from .gamedata import gamedata as gamedata_task
 from .utils import get_gamedata
 
 __all__ = ["DiffList", "DiffSet", "OutputDir", "changed_bundles", "gamedata"]
@@ -77,10 +78,17 @@ def gamedata(path: str) -> Depends:
 
     ``path`` is relative to the res_version directory, e.g.
     ``excel/item_table.json``. Each task run gets its own copy, so mutating it
-    is safe.
+    is safe. Raises :class:`UpstreamFailed` when ``GameData`` failed earlier in
+    this run (its output is missing or stale); when ``GameData`` is merely not
+    part of the run (``-i``/``-e``), whatever was decoded before is read.
     """
 
-    def dependency(client: Client) -> Any:
+    def dependency(client: Client, context: TaskContext) -> Any:
+        if gamedata_task.name in context.failed_tasks:
+            raise UpstreamFailed(
+                f"{gamedata_task.name} failed, {path} of {client.res_version} "
+                "is unavailable"
+            )
         return get_gamedata(client, path)
 
     return Depends(dependency)

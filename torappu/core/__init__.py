@@ -15,7 +15,7 @@ from torappu.log import logger
 from torappu.models import Diff, Version
 
 from .client import Client
-from .tasks.base import SkipTask, Task, registered_tasks
+from .tasks.base import SkipTask, Task, UpstreamFailed, registered_tasks
 
 TASKS_MODULE_PATH = importlib.import_module("torappu.core.tasks").__path__
 
@@ -54,9 +54,11 @@ async def check_and_run_task(
     task: Task, client: Client, diff: list[Diff], failed: list[str]
 ) -> None:
     try:
-        kwargs = await task.resolve(client, diff)
+        kwargs = await task.resolve(client, diff, failed)
         logger.info(f"Starting task {task.name}")
         await task.func(**kwargs)
+    except UpstreamFailed as reason:
+        logger.warning(f"Skipping task {task.name}: {reason}")
     except SkipTask as reason:
         detail = f": {reason}" if str(reason) else ""
         logger.info(f"Skipping task {task.name}{detail}")
@@ -79,7 +81,9 @@ async def run_pipeline(
 
     Tasks of the same priority run concurrently; priorities run in ascending
     order. A task raising is logged and does not stop the others; the names of
-    such tasks are returned. Failing to initialise the client (hot update list,
+    such tasks are returned. A task whose input comes from one of them (e.g.
+    ``gamedata()`` after ``GameData`` failed) is skipped with a warning instead
+    of being counted again. Failing to initialise the client (hot update list,
     manifest, anon prefetch) raises instead, since nothing can run without it.
     """
     if prev == version:
