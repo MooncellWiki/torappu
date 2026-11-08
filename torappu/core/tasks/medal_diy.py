@@ -32,14 +32,14 @@ class MedalPosition:
 def _suitbkg_bundles(client: Client, diff_set: DiffSet) -> set[str]:
     """Suit backgrounds to rebuild: changed ones, or all when any medal icon changed."""
     has_medal_icon_diff = any(
-        asset.startswith("arts/ui/medalicon") and bundle in diff_set
+        asset.startswith("arts/ui/medalicon/") and bundle in diff_set
         for asset, bundle in client.asset_to_bundle.items()
     )
 
     bundles = {
         bundle
         for asset, bundle in client.asset_to_bundle.items()
-        if asset.startswith("arts/ui/medal/suitbkg")
+        if asset.startswith("arts/ui/medal/suitbkg/")
         and (bundle in diff_set or has_medal_icon_diff)
     }
     if not bundles:
@@ -170,7 +170,7 @@ async def medal_diy(
             {
                 bundle
                 for asset, bundle in client.asset_to_bundle.items()
-                if asset.startswith("ui/medal/[uc]groupframe")
+                if asset.startswith("ui/medal/[uc]groupframe/")
             }
         )
     )

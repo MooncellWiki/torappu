@@ -158,7 +158,7 @@ def unpack(
         side = None
         container_path = require_container(game_obj.object_reader)
         # 基建
-        if container_path.startswith("dyn/building/vault/characters"):
+        if container_path.startswith("dyn/building/vault/characters/"):
             # char_485_pallas_epoque_12 or
             # char_485_pallas
             fullname = (
@@ -245,9 +245,9 @@ async def char_spine(
     bundles: Annotated[
         set[str],
         changed_bundles(
-            "battle/prefabs/skins/character",  # 干员以及token的皮肤
-            "building/vault/characters",  # 干员的基建
-            "battle/prefabs/[uc]tokens",  # token的初始
+            "battle/prefabs/skins/character/",  # 干员以及token的皮肤
+            "building/vault/characters/",  # 干员的基建
+            "battle/prefabs/[uc]tokens/",  # token的初始
         ),
     ],
     character_table: Annotated[dict[str, Any], gamedata("excel/character_table.json")],
