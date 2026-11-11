@@ -14,7 +14,7 @@ import UnityPy
 from ark_fbs import Options as FBOptions
 from ark_fbs import Schema as FBSchema
 from fastcrc import crc64
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from tenacity import retry, stop_after_attempt
 from UnityPy.classes import MonoBehaviour
 
@@ -133,12 +133,13 @@ class AssetBundleClient:
 
     def load_local_hot_update_list(self, res_version: str) -> HotUpdateInfo | None:
         path = self.config.hot_update_list_dir / res_version
-
-        return (
-            HotUpdateInfo.model_validate_json(path.read_text(encoding="utf-8"))
-            if path.exists()
-            else None
-        )
+        if not path.exists():
+            return None
+        try:
+            return HotUpdateInfo.model_validate_json(path.read_text(encoding="utf-8"))
+        except ValidationError as exc:
+            # 缓存未命中时会扫描所有本地快照，报错时指明是哪个文件
+            raise ValueError(f"invalid hot update list {path}") from exc
 
     @retry(
         stop=stop_after_attempt(2),
@@ -213,17 +214,23 @@ class AssetBundleClient:
         if not cache_dir.is_dir():
             return {}
         filenames = {path.name for path in cache_dir.iterdir()}
-        entries: dict[str, list[ABInfo]] = {}
+        entries: dict[str, dict[tuple[str, str, str], ABInfo]] = {}
         for path in sorted(self.config.hot_update_list_dir.glob("*"), reverse=True):
-            if not path.is_file() or path.suffix == ".tmp":
+            # 跳过临时文件和 .DS_Store 之类的隐藏文件
+            if not path.is_file() or path.suffix == ".tmp" or path.name.startswith("."):
                 continue
             snapshot = self.load_local_hot_update_list(path.name)
             if snapshot is None:
                 continue
             for previous in snapshot.ab_infos:
                 if len(previous.md5) == 32 and previous.md5 in filenames:
-                    entries.setdefault(previous.name, []).append(previous)
-        return entries
+                    # 未变化的条目在每个快照里都会重复出现，按签名去重，
+                    # 内存只随不同的签名数增长，不随快照数增长
+                    signature = (previous.hash, previous.md5, previous.type_hash)
+                    entries.setdefault(previous.name, {}).setdefault(
+                        signature, previous
+                    )
+        return {name: list(infos.values()) for name, infos in entries.items()}
 
     def _find_cached_bundle(self, info: ABInfo) -> _CachedBundle | None:
         cache_dir = self.config.assetbundle_dir

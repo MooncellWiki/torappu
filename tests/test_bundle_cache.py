@@ -124,6 +124,25 @@ class BundleCacheTests(unittest.TestCase):
         self.assertEqual(self.fetch("v3", next_info, new_bytes), legacy)
         self.assertEqual(self.requests, [])
 
+    def test_legacy_scan_dedupes_snapshots_and_skips_dotfiles(self):
+        payload = b"cached bundle"
+        info = ABInfo(name="test.ab", hash="a", md5=md5(payload).hexdigest())
+        for version in ("v1", "v2", "v3"):
+            self.write_snapshot(version, info)
+        (self.config.hot_update_list_dir / ".DS_Store").write_bytes(b"\0\0\0\1Bud1")
+        self.config.assetbundle_dir.mkdir(parents=True)
+        (self.config.assetbundle_dir / info.md5).write_bytes(payload)
+
+        client = AssetBundleClient("v3", self.config)
+        try:
+            self.assertEqual(client._load_legacy_ab_infos(), {info.name: [info]})
+
+            (self.config.hot_update_list_dir / "broken").write_text("{")
+            with self.assertRaisesRegex(ValueError, "invalid hot update list .*broken"):
+                client._load_legacy_ab_infos()
+        finally:
+            anyio.run(client.aclose)
+
     def test_short_signature_reuses_disk_cache_and_redownloads_corrupt_file(self):
         info = ABInfo(name="anon/test.bin", hash="1234", md5="1234", thash="a")
         payload = b"cached bundle"
