@@ -3,7 +3,7 @@ import os
 import shutil
 import uuid
 from functools import cache
-from hashlib import md5
+from hashlib import file_digest, sha256
 from pathlib import Path
 from typing import Any
 from zipfile import ZipFile
@@ -14,6 +14,7 @@ import UnityPy
 from ark_fbs import Options as FBOptions
 from ark_fbs import Schema as FBSchema
 from fastcrc import crc64
+from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt
 from UnityPy.classes import MonoBehaviour
 
@@ -44,6 +45,37 @@ def _temp_path(directory: Path, name: str) -> Path:
     目录时不会互相截断、删掉对方的临时文件。
     """
     return directory / f"{name}.{uuid.uuid4().hex}.tmp"
+
+
+def _atomic_write_text(path: Path, contents: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = _temp_path(path.parent, path.name)
+    try:
+        temporary.write_text(contents, encoding="utf-8")
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _file_md5(path: Path) -> str:
+    with path.open("rb") as source:
+        return file_digest(source, "md5").hexdigest()
+
+
+def _matches_md5(path: Path, checksum: str) -> bool:
+    try:
+        return path.is_file() and _file_md5(path) == checksum
+    except FileNotFoundError:
+        # A cache entry can be removed between the existence check and open.
+        return False
+
+
+class _CachedBundle(BaseModel):
+    """Accepted manifest signatures and the checksum of the bytes on disk."""
+
+    info: ABInfo
+    filename: str
+    file_md5: str
 
 
 def _log_retry(name: str):
@@ -85,7 +117,7 @@ class AssetBundleClient:
         self.hot_update_list: HotUpdateInfo
         self.ab_infos: dict[str, ABInfo] = {}
         self.asset_to_bundle: dict[str, str] = {}
-        self.downloaded: dict[str, Path] = {}
+        self._legacy_ab_infos: dict[str, list[ABInfo]] | None = None
         self._download_semaphore = anyio.Semaphore(config.max_concurrent_downloads)
         # 每个 bundle 一把锁：并发请求同一个 bundle 时只有第一个真正下载，
         # 其余拿到锁后重新检查缓存直接命中
@@ -120,13 +152,10 @@ class AssetBundleClient:
             headers=HEADERS,
         )
         response.raise_for_status()
-        result = response.json()
+        result = HotUpdateInfo.model_validate(response.json())
 
-        dest_path = self.config.hot_update_list_dir / res_version
-        dest_path.parent.mkdir(parents=True, exist_ok=True)
-        dest_path.write_text(response.text, encoding="utf-8")
-
-        return HotUpdateInfo.model_validate(result)
+        _atomic_write_text(self.config.hot_update_list_dir / res_version, response.text)
+        return result
 
     async def load_hot_update_list(self, res_version: str) -> HotUpdateInfo:
         return self.load_local_hot_update_list(
@@ -170,51 +199,93 @@ class AssetBundleClient:
         logger.debug(f"Downloaded {filename}")
         return crc
 
-    def _check_cached_ab_path(
-        self, path: str, info: ABInfo, hashed_ab_path: Path
-    ) -> str | None:
-        if (
-            len(info.md5) != 4
-            and hashed_ab_path.exists()
-            and info.md5 == md5(hashed_ab_path.read_bytes()).hexdigest()
-        ):
-            return hashed_ab_path.as_posix()
-        if (
-            len(info.md5) == 4
-            and path in self.downloaded
-            and self.downloaded[path].exists()
-        ):
-            return str(self.downloaded[path].resolve())
+    def _cache_record_path(self, info: ABInfo) -> Path:
+        name_key = sha256(info.name.encode()).hexdigest()
+        signatures = json.dumps([info.hash, info.md5, info.type_hash])
+        signature_key = sha256(signatures.encode()).hexdigest()
+        return (
+            self.config.assetbundle_dir / ".index" / name_key / f"{signature_key}.json"
+        )
+
+    def _load_legacy_ab_infos(self) -> dict[str, list[ABInfo]]:
+        """Find md5-named bundles that predate the persistent cache index."""
+        cache_dir = self.config.assetbundle_dir
+        if not cache_dir.is_dir():
+            return {}
+        filenames = {path.name for path in cache_dir.iterdir()}
+        entries: dict[str, list[ABInfo]] = {}
+        for path in sorted(self.config.hot_update_list_dir.glob("*"), reverse=True):
+            if not path.is_file() or path.suffix == ".tmp":
+                continue
+            snapshot = self.load_local_hot_update_list(path.name)
+            if snapshot is None:
+                continue
+            for previous in snapshot.ab_infos:
+                if len(previous.md5) == 32 and previous.md5 in filenames:
+                    entries.setdefault(previous.name, []).append(previous)
+        return entries
+
+    def _find_cached_bundle(self, info: ABInfo) -> _CachedBundle | None:
+        cache_dir = self.config.assetbundle_dir
+        if len(info.md5) == 32 and _matches_md5(cache_dir / info.md5, info.md5):
+            return _CachedBundle(info=info, filename=info.md5, file_md5=info.md5)
+
+        record_path = self._cache_record_path(info)
+        candidates = sorted(
+            record_path.parent.glob("*.json"),
+            key=lambda path: (path != record_path, path.name),
+        )
+        for path in candidates:
+            cached = _CachedBundle.model_validate_json(path.read_bytes())
+            if not info.needs_update(cached.info) and _matches_md5(
+                cache_dir / cached.filename, cached.file_md5
+            ):
+                return cached
+
+        if self._legacy_ab_infos is None:
+            self._legacy_ab_infos = self._load_legacy_ab_infos()
+        for previous in self._legacy_ab_infos.get(info.name, []):
+            if not info.needs_update(previous) and _matches_md5(
+                cache_dir / previous.md5, previous.md5
+            ):
+                return _CachedBundle(
+                    info=previous, filename=previous.md5, file_md5=previous.md5
+                )
 
         return None
+
+    def _remember_cached_bundle(self, info: ABInfo, cached: _CachedBundle) -> None:
+        # Like persistent_res_list.json, accept the new signatures while keeping
+        # the old file's metadata and checksum for future reuse and validation.
+        accepted = cached.info.model_copy(update={"hash": info.hash, "md5": info.md5})
+        record = _CachedBundle(
+            info=accepted, filename=cached.filename, file_md5=cached.file_md5
+        ).model_dump_json(by_alias=True)
+        path = self._cache_record_path(info)
+        if not path.is_file() or path.read_text(encoding="utf-8") != record:
+            _atomic_write_text(path, record)
 
     async def fetch_asset_bundle(self, path: str) -> str:
         info = self.get_abinfo_by_path(path)
 
-        hashed_ab_path = self.config.assetbundle_dir / info.md5
-        cached = self._check_cached_ab_path(path, info, hashed_ab_path)
-        if cached is not None:
-            return cached
-
         lock = self._bundle_locks.setdefault(path, anyio.Lock())
         async with lock:
-            cached = self._check_cached_ab_path(path, info, hashed_ab_path)
-            if cached is not None:
-                return cached
-            return await self._download_and_write(path, info, hashed_ab_path)
+            cached = self._find_cached_bundle(info)
+            if cached is None:
+                cached = await self._download_and_write(info)
+            self._remember_cached_bundle(info, cached)
+            return (self.config.assetbundle_dir / cached.filename).as_posix()
 
-    async def _download_and_write(
-        self, path: str, info: ABInfo, hashed_ab_path: Path
-    ) -> str:
+    async def _download_and_write(self, info: ABInfo) -> _CachedBundle:
         # 从 2.4.01 24-10-30-15-08-36-72419d 开始引入了anon/*
         # hot update list里面的md5只有四位，改用zip的crc64当文件名
         assetbundle_dir = self.config.assetbundle_dir
         assetbundle_dir.mkdir(parents=True, exist_ok=True)
-        zip_path = _temp_path(assetbundle_dir, hg_normalize_url(path))
+        zip_path = _temp_path(assetbundle_dir, hg_normalize_url(info.name))
         try:
-            crc = await self.download_ab(path, zip_path)
-            if len(info.md5) == 4:
-                hashed_ab_path = assetbundle_dir / str(crc)
+            crc = await self.download_ab(info.name, zip_path)
+            filename = str(crc) if len(info.md5) == 4 else info.md5
+            hashed_ab_path = assetbundle_dir / filename
             # 先解压到临时文件再原子替换：解压中断不会留下损坏的缓存，其他进程
             # 也读不到写了一半的文件；缓存项是软链时替换的是软链本身，不会写穿到
             # 它指向的文件
@@ -226,16 +297,19 @@ class AssetBundleClient:
                     unpacked_path.open("wb") as dst,
                 ):
                     shutil.copyfileobj(src, dst)
+                checksum = _file_md5(unpacked_path)
+                if len(info.md5) != 4 and checksum != info.md5:
+                    raise ValueError(
+                        f"MD5 mismatch for {info.name!r} in {self.res_version}: "
+                        f"expected {info.md5}, got {checksum}"
+                    )
                 os.replace(unpacked_path, hashed_ab_path)
             finally:
                 unpacked_path.unlink(missing_ok=True)
         finally:
             zip_path.unlink(missing_ok=True)
 
-        if len(info.md5) == 4:
-            self.downloaded[path] = hashed_ab_path
-
-        return hashed_ab_path.as_posix()
+        return _CachedBundle(info=info, filename=filename, file_md5=checksum)
 
     async def fetch_asset_bundles(self, path: list[str]) -> list[tuple[str, str]]:
         result = await amap(self.fetch_asset_bundle, path)

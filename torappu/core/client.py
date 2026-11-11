@@ -47,20 +47,15 @@ class Client(AssetBundleClient):
                 for info in self.hot_update_list.ab_infos
             ]
 
-        cur_map = {info.name: info.md5 for info in self.hot_update_list.ab_infos}
+        cur_map = {info.name: info for info in self.hot_update_list.ab_infos}
         for info in self.prev_hot_update_list.ab_infos:
-            if info.name not in cur_map:
+            current = cur_map.pop(info.name, None)
+            if current is None:
                 result.append(Diff(type="delete", path=info.name))
-                continue
+            elif current.needs_update(info):
+                result.append(Diff(type="update", path=info.name))
 
-            sign = cur_map[info.name]
-            del cur_map[info.name]
-            if len(sign) != 4 and sign == info.md5:
-                continue
-
-            result.append(Diff(type="update", path=info.name))
-
-        for k, v in cur_map.items():
-            result.append(Diff(type="create", path=k))
+        for name in cur_map:
+            result.append(Diff(type="create", path=name))
 
         return result

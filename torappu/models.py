@@ -35,6 +35,18 @@ class ABInfo(BaseModel):
     pack_id: str = Field(default="", alias="pid")
     code: int = Field(default=-1, alias="cid")
 
+    def needs_update(self, previous: "ABInfo") -> bool:
+        """Mirror HotUpdater._CheckIfAssetDirty for a cached bundle."""
+        content_changed = self.hash != previous.hash and (
+            not previous.md5 or self.md5 != previous.md5
+        )
+        type_changed = bool(
+            self.type_hash
+            and previous.type_hash
+            and self.type_hash != previous.type_hash
+        )
+        return self.name != previous.name or content_changed or type_changed
+
 
 class HotUpdateInfo(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel)
