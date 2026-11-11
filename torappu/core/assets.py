@@ -13,7 +13,6 @@ import httpx2
 import UnityPy
 from ark_fbs import Options as FBOptions
 from ark_fbs import Schema as FBSchema
-from fastcrc import crc64
 from tenacity import retry, stop_after_attempt
 from UnityPy.classes import MonoBehaviour
 
@@ -85,7 +84,6 @@ class AssetBundleClient:
         self.hot_update_list: HotUpdateInfo
         self.ab_infos: dict[str, ABInfo] = {}
         self.asset_to_bundle: dict[str, str] = {}
-        self.downloaded: dict[str, Path] = {}
         self._download_semaphore = anyio.Semaphore(config.max_concurrent_downloads)
         # 每个 bundle 一把锁：并发请求同一个 bundle 时只有第一个真正下载，
         # 其余拿到锁后重新检查缓存直接命中
@@ -145,12 +143,8 @@ class AssetBundleClient:
         stop=stop_after_attempt(2),
         before_sleep=_log_retry("download_ab"),
     )
-    async def download_ab(self, path: str, dest: Path) -> int:
-        """Stream the bundle zip into ``dest``, returning its crc64(xz).
-
-        本地算出的 crc64(xz) 与 oss 的 ``x-oss-hash-crc64ecma`` 响应头一致，
-        这样缓存键不再依赖响应头。下载失败时清理 ``dest``。
-        """
+    async def download_ab(self, path: str, dest: Path) -> None:
+        """Stream the bundle zip into ``dest``; 下载失败时清理 ``dest``。"""
         logger.debug(f"Downloading {path}")
         filename = f"{hg_normalize_url(path.rsplit('.')[0])}.dat"
         try:
@@ -159,66 +153,58 @@ class AssetBundleClient:
                     "GET", HG_CN_BASEURL.join(f"{self.res_version}/{filename}")
                 ) as resp:
                     resp.raise_for_status()
-                    crc = 0
                     with dest.open("wb") as f:
                         async for chunk in resp.aiter_bytes():
                             f.write(chunk)
-                            crc = crc64.xz(chunk, crc)
         except BaseException:
             dest.unlink(missing_ok=True)  # noqa: ASYNC240
             raise
         logger.debug(f"Downloaded {filename}")
-        return crc
 
-    def _check_cached_ab_path(
-        self, path: str, info: ABInfo, hashed_ab_path: Path
-    ) -> str | None:
-        if (
-            len(info.md5) != 4
-            and hashed_ab_path.exists()
-            and info.md5 == md5(hashed_ab_path.read_bytes()).hexdigest()
-        ):
-            return hashed_ab_path.as_posix()
-        if (
-            len(info.md5) == 4
-            and path in self.downloaded
-            and self.downloaded[path].exists()
-        ):
-            return str(self.downloaded[path].resolve())
+    def _cache_path(self, info: ABInfo) -> Path:
+        if info.ignore_md5:
+            # anon/*（从 2.4.01 24-10-30-15-08-36-72419d 开始）清单里只有 4 位短签名，
+            # 没法按 md5 命名。客户端按包名存放，按 hash / 短签名判断是否需要更新，
+            # 本地只校验大小；这里用包名 + 短签名命名，新进程和后续版本都能直接命中
+            return (
+                self.config.assetbundle_dir
+                / f"{hg_normalize_url(info.name)}.{info.md5}"
+            )
+        return self.config.assetbundle_dir / info.md5
 
-        return None
+    @staticmethod
+    def _is_cached(info: ABInfo, cache_path: Path) -> bool:
+        if info.ignore_md5:
+            return cache_path.is_file() and cache_path.stat().st_size == info.ab_size
+        return (
+            cache_path.exists() and info.md5 == md5(cache_path.read_bytes()).hexdigest()
+        )
 
     async def fetch_asset_bundle(self, path: str) -> str:
         info = self.get_abinfo_by_path(path)
 
-        hashed_ab_path = self.config.assetbundle_dir / info.md5
-        cached = self._check_cached_ab_path(path, info, hashed_ab_path)
-        if cached is not None:
-            return cached
+        cache_path = self._cache_path(info)
+        if self._is_cached(info, cache_path):
+            return cache_path.as_posix()
 
         lock = self._bundle_locks.setdefault(path, anyio.Lock())
         async with lock:
-            cached = self._check_cached_ab_path(path, info, hashed_ab_path)
-            if cached is not None:
-                return cached
-            return await self._download_and_write(path, info, hashed_ab_path)
+            if not self._is_cached(info, cache_path):
+                await self._download_and_write(path, info, cache_path)
+            return cache_path.as_posix()
 
     async def _download_and_write(
-        self, path: str, info: ABInfo, hashed_ab_path: Path
-    ) -> str:
-        # 从 2.4.01 24-10-30-15-08-36-72419d 开始引入了anon/*
-        # hot update list里面的md5只有四位，改用zip的crc64当文件名
-        assetbundle_dir = self.config.assetbundle_dir
+        self, path: str, info: ABInfo, cache_path: Path
+    ) -> None:
+        assetbundle_dir = cache_path.parent
         assetbundle_dir.mkdir(parents=True, exist_ok=True)
         zip_path = _temp_path(assetbundle_dir, hg_normalize_url(path))
         try:
-            crc = await self.download_ab(path, zip_path)
-            if len(info.md5) == 4:
-                hashed_ab_path = assetbundle_dir / str(crc)
+            await self.download_ab(path, zip_path)
             # 先解压到临时文件再原子替换：解压中断不会留下损坏的缓存，其他进程
             # 也读不到写了一半的文件；缓存项是软链时替换的是软链本身，不会写穿到
             # 它指向的文件
-            unpacked_path = _temp_path(assetbundle_dir, hashed_ab_path.name)
+            unpacked_path = _temp_path(assetbundle_dir, cache_path.name)
             try:
                 with (
                     ZipFile(zip_path) as myzip,
@@ -226,16 +212,18 @@ class AssetBundleClient:
                     unpacked_path.open("wb") as dst,
                 ):
                     shutil.copyfileobj(src, dst)
-                os.replace(unpacked_path, hashed_ab_path)
+                size = unpacked_path.stat().st_size
+                if info.ignore_md5 and size != info.ab_size:
+                    # 不校验就落盘的话，之后每次都会判为未命中、重复下载
+                    raise ValueError(
+                        f"size mismatch for {path!r} in {self.res_version}: "
+                        f"expected abSize {info.ab_size}, got {size}"
+                    )
+                os.replace(unpacked_path, cache_path)
             finally:
                 unpacked_path.unlink(missing_ok=True)
         finally:
             zip_path.unlink(missing_ok=True)
-
-        if len(info.md5) == 4:
-            self.downloaded[path] = hashed_ab_path
-
-        return hashed_ab_path.as_posix()
 
     async def fetch_asset_bundles(self, path: list[str]) -> list[tuple[str, str]]:
         result = await amap(self.fetch_asset_bundle, path)
