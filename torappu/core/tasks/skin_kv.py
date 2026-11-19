@@ -1,10 +1,4 @@
-"""Brand promotional sprites (not story KV), including default_kv_<brand>.
-
-Initial backfill: ``uv run torappu run CLIENT_VERSION RES_VERSION -i SkinKV``
-without a previous-version pair. Publish raw/skin_kv through the existing asset
-host as /assets/skin_kv/; this task only extracts files. Keep sprite name case,
-especially default_kv_ambienceSynesthesia (brandId), and KV names (kvImgId).
-"""
+"""Brand promotional sprites (not story KV), including default_kv_<brand>."""
 
 from pathlib import Path
 from typing import Annotated
@@ -21,10 +15,9 @@ from .utils import get_source, read_obj
 
 
 @run_sync
-def unpack(paths: list[str], dependencies: set[str], output_dir: Path) -> set[str]:
+def unpack(paths: list[str], dependencies: set[str], output_dir: Path):
     env = UnityPy.load(*sorted(dependencies), *paths)
     sources = {Path(path).name for path in paths}
-    exported: set[str] = set()
     for obj in env.objects:
         if obj.type.name != "Sprite" or get_source(obj) not in sources:
             continue
@@ -39,10 +32,6 @@ def unpack(paths: list[str], dependencies: set[str], output_dir: Path) -> set[st
         # Packed sprites must be cropped by UnityPy, not saved as whole atlases.
         # Sprite.image resolves both atlas pointers and split alpha dependencies.
         sprite.image.save(output_dir / f"{name}.png")
-        exported.add(name)
-    if not exported:
-        raise ValueError(f"no KV sprites found in {paths!r}")
-    return exported
 
 
 @task("SkinKV", priority=3, raw_subdir="skin_kv")
