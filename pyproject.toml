@@ -1,6 +1,6 @@
 [project]
 name = "torappu"
-version = "2.9.0"
+version = "2.10.0"
 description = "unpacker for arknights"
 authors = [
   { name = "daflyinbed", email = "1677759063@qq.com" },
