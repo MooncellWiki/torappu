@@ -3,7 +3,6 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from math import isclose, isfinite
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -626,18 +625,6 @@ def _load_json_object(path: Path) -> dict[str, object]:
     return current
 
 
-def _write_json_object(path: Path, value: Mapping[str, object]) -> None:
-    # Publish a complete file to readers and preserve the previous export if
-    # writing fails. A normal file in a sibling directory keeps the output's umask.
-    with TemporaryDirectory(dir=path.parent) as tmp_dir:
-        pending = Path(tmp_dir) / path.name
-        pending.write_text(
-            json.dumps(dict(value), ensure_ascii=False, allow_nan=False),
-            encoding="utf-8",
-        )
-        pending.replace(path)
-
-
 def _update_json_object(path: Path, updates: Mapping[str, object]) -> None:
     """Merge ``updates`` into the JSON object at ``path`` and write it key-sorted.
 
@@ -646,7 +633,10 @@ def _update_json_object(path: Path, updates: Mapping[str, object]) -> None:
     """
     current = _load_json_object(path)
     current.update(updates)
-    _write_json_object(path, dict(sorted(current.items())))
+    path.write_text(
+        json.dumps(dict(sorted(current.items())), ensure_ascii=False),
+        encoding="utf-8",
+    )
 
 
 async def _load_story_variables(client: Client) -> dict[str, object]:
@@ -683,7 +673,7 @@ def _update_metadata(
         "imagePpuMap": dict(sorted({**images, **image_ppus}.items())),
         "storyVariables": story_variables,
     }
-    _write_json_object(path, metadata)
+    path.write_text(json.dumps(metadata, ensure_ascii=False), encoding="utf-8")
 
 
 def _compact_character_links(

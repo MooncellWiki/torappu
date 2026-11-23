@@ -55,29 +55,3 @@ class AvgMetadataTests(unittest.TestCase):
 
         with TemporaryDirectory() as directory:
             anyio.run(run, Path(directory))
-
-    def test_interrupted_write_keeps_previous_metadata_for_retry(self):
-        write_text = Path.write_text
-
-        def write_partial(path: Path, data: str, *, encoding: str) -> int:
-            write_text(path, data[: len(data) // 2], encoding=encoding)
-            raise OSError("interrupted write")
-
-        with TemporaryDirectory() as directory:
-            output = Path(directory)
-            _update_metadata(output, {"ac6_3": 68.25}, {})
-            path = output / "metadata.json"
-            previous = path.read_bytes()
-
-            with (
-                patch.object(Path, "write_text", write_partial),
-                self.assertRaisesRegex(OSError, "interrupted write"),
-            ):
-                _update_metadata(output, {"ac6_5": 68.25}, {})
-
-            self.assertEqual(path.read_bytes(), previous)
-            _update_metadata(output, {"ac6_5": 68.25}, {})
-            self.assertEqual(
-                json.loads(path.read_bytes())["imagePpuMap"],
-                {"ac6_3": 68.25, "ac6_5": 68.25},
-            )
