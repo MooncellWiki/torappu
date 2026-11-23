@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from math import isclose, isfinite
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -19,6 +20,7 @@ from UnityPy.classes import (
     MonoBehaviour,
     PPtr,
     Sprite,
+    TextAsset,
     Texture2D,
 )
 from UnityPy.files.ObjectReader import ObjectReader
@@ -26,6 +28,7 @@ from UnityPy.files.ObjectReader import ObjectReader
 from torappu.core.client import Client
 from torappu.core.tasks.utils import (
     get_source,
+    m_script_to_bytes,
     merge_alpha,
     read_obj,
     sprite_image,
@@ -41,6 +44,7 @@ ITEM_CONTAINER_PREFIX = "dyn/avg/items/"
 # interlude type=1 cutin images: atlas-packed sprites shipped outside the
 # `avg/*` bundle family (mostly under `spritepack/cutin_char_*.ab`).
 CUTIN_CONTAINER_PREFIX = "dyn/cutin/characters/"
+STORY_VARIABLES_ASSET = "gamedata/story/story_variables"
 
 if TYPE_CHECKING:
     from UnityPy.files.SerializedFile import SerializedFile
@@ -622,6 +626,18 @@ def _load_json_object(path: Path) -> dict[str, object]:
     return current
 
 
+def _write_json_object(path: Path, value: Mapping[str, object]) -> None:
+    # Publish a complete file to readers and preserve the previous export if
+    # writing fails. A normal file in a sibling directory keeps the output's umask.
+    with TemporaryDirectory(dir=path.parent) as tmp_dir:
+        pending = Path(tmp_dir) / path.name
+        pending.write_text(
+            json.dumps(dict(value), ensure_ascii=False, allow_nan=False),
+            encoding="utf-8",
+        )
+        pending.replace(path)
+
+
 def _update_json_object(path: Path, updates: Mapping[str, object]) -> None:
     """Merge ``updates`` into the JSON object at ``path`` and write it key-sorted.
 
@@ -630,10 +646,44 @@ def _update_json_object(path: Path, updates: Mapping[str, object]) -> None:
     """
     current = _load_json_object(path)
     current.update(updates)
-    path.write_text(
-        json.dumps(dict(sorted(current.items())), ensure_ascii=False),
-        encoding="utf-8",
-    )
+    _write_json_object(path, dict(sorted(current.items())))
+
+
+async def _load_story_variables(client: Client) -> dict[str, object]:
+    # Read the selected version's TextAsset even when only Avg was requested.
+    bundle = client.asset_to_bundle.get(STORY_VARIABLES_ASSET)
+    if bundle is None:
+        return {}
+
+    bundle_path = await client.fetch_asset_bundle(bundle)
+    container = f"dyn/{STORY_VARIABLES_ASSET}.json"
+    env = UnityPy.load(bundle_path)
+    asset = env.container[container].read()
+    if not isinstance(asset, TextAsset):
+        raise TypeError(f"{container!r} in {bundle!r} is not a TextAsset")
+    variables = json.loads(m_script_to_bytes(asset.m_Script))
+    if not isinstance(variables, dict):
+        raise ValueError(f"Expected a JSON object for {container!r} in {bundle!r}")
+    return variables
+
+
+def _update_metadata(
+    output_dir: Path,
+    image_ppus: Mapping[str, float],
+    story_variables: dict[str, object],
+) -> None:
+    path = output_dir / "metadata.json"
+    current = _load_json_object(path)
+    images = current.get("imagePpuMap", {})
+    if not isinstance(images, dict):
+        raise ValueError(f"Expected an imagePpuMap object at {path}")
+
+    metadata = {
+        "backgroundPpuMap": _load_json_object(output_dir / "background.json"),
+        "imagePpuMap": dict(sorted({**images, **image_ppus}.items())),
+        "storyVariables": story_variables,
+    }
+    _write_json_object(path, metadata)
 
 
 def _compact_character_links(
@@ -754,25 +804,25 @@ async def avg(
             "avg/images/",
             "avg/items/",
             "cutin/characters/",
+            skip_if_empty=False,
         ),
     ],
 ) -> None:
-    paths = await client.fetch_asset_bundles(list(bundles))
     output_dir.mkdir(parents=True, exist_ok=True)
-    resolved_paths = [path[1] for path in paths]
-    resolved_filenames: list[str] = [
-        Path(resolved_path).name for resolved_path in resolved_paths
-    ]
-    env = UnityPy.load(*client.anon_paths, *resolved_paths)
-    character_links, background_ppus, image_ppus = await unpack(
-        env, resolved_filenames, output_dir
-    )
+    image_ppus: dict[str, float] = {}
+    if bundles:
+        paths = await client.fetch_asset_bundles(sorted(bundles))
+        resolved_paths = [path[1] for path in paths]
+        resolved_filenames = [Path(path).name for path in resolved_paths]
+        env = UnityPy.load(*client.anon_paths, *resolved_paths)
+        character_links, background_ppus, image_ppus = await unpack(
+            env, resolved_filenames, output_dir
+        )
 
-    if background_ppus:
-        _update_json_object(output_dir.joinpath("background.json"), background_ppus)
+        # Keep this path available to deployed players during the transition.
+        if background_ppus:
+            _update_json_object(output_dir / "background.json", background_ppus)
+        if character_links:
+            _update_json_object(output_dir / "character.json", character_links)
 
-    if image_ppus:
-        _update_json_object(output_dir.joinpath("image.json"), image_ppus)
-
-    if character_links:
-        _update_json_object(output_dir.joinpath("character.json"), character_links)
+    _update_metadata(output_dir, image_ppus, await _load_story_variables(client))
