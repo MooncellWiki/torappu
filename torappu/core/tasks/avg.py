@@ -592,16 +592,13 @@ def _extract_sprite(sprite: Sprite, subdir: str, container_path: str, output_dir
     sprite_image(sprite).save(output_path)
 
 
-def _collect_background_ppu(
+def _collect_sprite_ppu(
     sprite: Sprite,
     container_path: str,
     ppus: dict[str, float],
 ) -> None:
-    # The client sizes the background Image via `Image.SetNativeSize()` as
-    # `sprite.rect / ppu * 100` (canvas referencePixelsPerUnit = 100), and
-    # AVG background art ships a per-asset tuned ppu, so the rendered size
-    # generally differs from the texture's pixel size (e.g. bg_cher_1:
-    # 1024x576 texture, ppu 68.2464 -> 1500.44x844 centered overscan).
+    # The client sizes foreground and background art via `Image.SetNativeSize()`
+    # as `sprite.rect / ppu * 100` (canvas referencePixelsPerUnit = 100).
     # The exported PNG already carries rect, so recording ppu alone lets
     # consumers derive the native display rect.
     ppu = float(sprite.m_PixelsToUnits)
@@ -702,9 +699,10 @@ def _compact_character_links(
 
 async def unpack(
     env: UnityPy.Environment, unpacking_source: list[str], output_dir: Path
-) -> tuple[dict[str, CharacterDataJson], dict[str, float]]:
+) -> tuple[dict[str, CharacterDataJson], dict[str, float], dict[str, float]]:
     character_links: dict[str, CharacterDataJson] = {}
     background_ppus: dict[str, float] = {}
+    image_ppus: dict[str, float] = {}
     characters_dir = output_dir.joinpath("characters")
 
     for obj in env.objects:
@@ -726,12 +724,14 @@ async def unpack(
         if container_path.startswith(BG_CONTAINER_PREFIX):
             if sprite := read_obj(Sprite, obj):
                 _extract_sprite(sprite, "background", container_path, output_dir)
-                _collect_background_ppu(sprite, container_path, background_ppus)
+                _collect_sprite_ppu(sprite, container_path, background_ppus)
             continue
 
         if container_path.startswith((IMAGE_CONTAINER_PREFIX, ITEM_CONTAINER_PREFIX)):
             if sprite := read_obj(Sprite, obj):
                 _extract_sprite(sprite, "images", container_path, output_dir)
+                if container_path.startswith(IMAGE_CONTAINER_PREFIX):
+                    _collect_sprite_ppu(sprite, container_path, image_ppus)
             continue
 
         if container_path.startswith(CUTIN_CONTAINER_PREFIX):
@@ -739,7 +739,7 @@ async def unpack(
                 _extract_sprite(sprite, "cutin", container_path, output_dir)
             continue
 
-    return character_links, background_ppus
+    return character_links, background_ppus, image_ppus
 
 
 @task("Avg", priority=4, raw_subdir="avg")
@@ -764,10 +764,15 @@ async def avg(
         Path(resolved_path).name for resolved_path in resolved_paths
     ]
     env = UnityPy.load(*client.anon_paths, *resolved_paths)
-    character_links, background_ppus = await unpack(env, resolved_filenames, output_dir)
+    character_links, background_ppus, image_ppus = await unpack(
+        env, resolved_filenames, output_dir
+    )
 
     if background_ppus:
         _update_json_object(output_dir.joinpath("background.json"), background_ppus)
+
+    if image_ppus:
+        _update_json_object(output_dir.joinpath("image.json"), image_ppus)
 
     if character_links:
         _update_json_object(output_dir.joinpath("character.json"), character_links)
